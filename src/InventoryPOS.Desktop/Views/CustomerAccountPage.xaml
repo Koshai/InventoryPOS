@@ -1,0 +1,492 @@
+<Page
+    x:Class="InventoryPOS.Desktop.Views.CustomerAccountPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid
+        Padding="24"
+        Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <Button
+                Width="40"
+                Height="40"
+                Margin="0,0,14,0"
+                VerticalAlignment="Center"
+                Click="BackButton_Click">
+
+                <FontIcon
+                    Glyph="&#xE72B;"
+                    FontSize="16" />
+
+            </Button>
+
+            <StackPanel
+                Grid.Column="1"
+                Spacing="3">
+
+                <TextBlock
+                    Text="Customer Account"
+                    FontSize="28"
+                    FontWeight="SemiBold" />
+
+                <StackPanel
+                    Orientation="Horizontal"
+                    Spacing="8">
+
+                    <TextBlock
+                        Text="{Binding CustomerName}"
+                        FontWeight="SemiBold" />
+
+                    <TextBlock
+                        Text="•"
+                        Opacity="0.45" />
+
+                    <TextBlock
+                        Text="{Binding CustomerCode}"
+                        Opacity="0.7" />
+
+                    <TextBlock
+                        Text="•"
+                        Opacity="0.45" />
+
+                    <TextBlock
+                        Text="{Binding Phone}"
+                        Opacity="0.7" />
+
+                </StackPanel>
+
+            </StackPanel>
+
+            <Button
+                Grid.Column="2"
+                Content="Receive Account Payment"
+                Padding="18,9"
+                VerticalAlignment="Center"
+                IsEnabled="{Binding HasOutstandingBalance}"
+                Click="ReceiveAccountPaymentButton_Click" />
+
+        </Grid>
+
+        <!-- Messages -->
+
+        <StackPanel
+            Grid.Row="1"
+            Margin="0,18,0,0"
+            Spacing="8">
+
+            <InfoBar
+                IsOpen="{Binding HasError}"
+                Severity="Error"
+                Title="Unable to continue"
+                Message="{Binding ErrorMessage}" />
+
+            <InfoBar
+                IsOpen="{Binding HasSuccess}"
+                Severity="Success"
+                Title="Payment received"
+                Message="{Binding SuccessMessage}" />
+
+        </StackPanel>
+
+        <!-- Main -->
+
+        <ScrollViewer
+            Grid.Row="2"
+            Margin="0,18,0,0"
+            VerticalScrollBarVisibility="Auto"
+            HorizontalScrollBarVisibility="Disabled">
+
+            <StackPanel Spacing="18">
+
+                <!-- Account summary -->
+
+                <Grid ColumnSpacing="14">
+
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border
+                        Grid.Column="0"
+                        Padding="18"
+                        CornerRadius="10"
+                        BorderThickness="1"
+                        BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                        <StackPanel Spacing="6">
+
+                            <TextBlock
+                                Text="Credit Limit"
+                                FontSize="12"
+                                Opacity="0.65" />
+
+                            <TextBlock
+                                Text="{Binding FormattedCreditLimit}"
+                                FontSize="24"
+                                FontWeight="SemiBold" />
+
+                        </StackPanel>
+
+                    </Border>
+
+                    <Border
+                        Grid.Column="1"
+                        Padding="18"
+                        CornerRadius="10"
+                        BorderThickness="1"
+                        BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                        <StackPanel Spacing="6">
+
+                            <TextBlock
+                                Text="Outstanding"
+                                FontSize="12"
+                                Opacity="0.65" />
+
+                            <TextBlock
+                                Text="{Binding FormattedOutstanding}"
+                                FontSize="24"
+                                FontWeight="SemiBold" />
+
+                        </StackPanel>
+
+                    </Border>
+
+                    <Border
+                        Grid.Column="2"
+                        Padding="18"
+                        CornerRadius="10"
+                        BorderThickness="1"
+                        BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                        <StackPanel Spacing="6">
+
+                            <TextBlock
+                                Text="Available Credit"
+                                FontSize="12"
+                                Opacity="0.65" />
+
+                            <TextBlock
+                                Text="{Binding FormattedAvailableCredit}"
+                                FontSize="24"
+                                FontWeight="SemiBold" />
+
+                        </StackPanel>
+
+                    </Border>
+
+                </Grid>
+
+                <!-- Outstanding invoices -->
+
+                <Border
+                    Padding="18"
+                    CornerRadius="10"
+                    BorderThickness="1"
+                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                    <StackPanel Spacing="14">
+
+                        <TextBlock
+                            Text="Outstanding Invoices"
+                            FontSize="18"
+                            FontWeight="SemiBold" />
+
+                        <!-- Header -->
+
+                        <Grid
+                            Padding="10,6"
+                            ColumnSpacing="12">
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1.3*" />
+                                <ColumnDefinition Width="1.2*" />
+                                <ColumnDefinition Width="1*" />
+                                <ColumnDefinition Width="1*" />
+                                <ColumnDefinition Width="1*" />
+                                <ColumnDefinition Width="1.1*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock
+                                Grid.Column="0"
+                                Text="Invoice"
+                                FontWeight="SemiBold" />
+
+                            <TextBlock
+                                Grid.Column="1"
+                                Text="Date"
+                                FontWeight="SemiBold" />
+
+                            <TextBlock
+                                Grid.Column="2"
+                                Text="Total"
+                                FontWeight="SemiBold" />
+
+                            <TextBlock
+                                Grid.Column="3"
+                                Text="Paid"
+                                FontWeight="SemiBold" />
+
+                            <TextBlock
+                                Grid.Column="4"
+                                Text="Due"
+                                FontWeight="SemiBold" />
+
+                            <TextBlock
+                                Grid.Column="5"
+                                Text="Status"
+                                FontWeight="SemiBold" />
+
+                            <TextBlock
+                                Grid.Column="6"
+                                Text="Action"
+                                FontWeight="SemiBold" />
+
+                        </Grid>
+
+                        <ListView
+                            ItemsSource="{Binding Account.OutstandingSales}"
+                            SelectionMode="None"
+                            MaxHeight="320"
+                            HorizontalContentAlignment="Stretch">
+
+                            <ListView.ItemContainerStyle>
+
+                                <Style TargetType="ListViewItem">
+                                    <Setter
+                                        Property="HorizontalContentAlignment"
+                                        Value="Stretch" />
+                                </Style>
+
+                            </ListView.ItemContainerStyle>
+
+                            <ListView.ItemTemplate>
+
+                                <DataTemplate>
+
+                                    <Grid
+                                        Padding="10,9"
+                                        ColumnSpacing="12">
+
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="1.3*" />
+                                            <ColumnDefinition Width="1.2*" />
+                                            <ColumnDefinition Width="1*" />
+                                            <ColumnDefinition Width="1*" />
+                                            <ColumnDefinition Width="1*" />
+                                            <ColumnDefinition Width="1.1*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBlock
+                                            Grid.Column="0"
+                                            Text="{Binding InvoiceNumber}"
+                                            FontWeight="SemiBold"
+                                            VerticalAlignment="Center" />
+
+                                        <TextBlock
+                                            Grid.Column="1"
+                                            Text="{Binding FormattedSaleDate}"
+                                            VerticalAlignment="Center" />
+
+                                        <TextBlock
+                                            Grid.Column="2"
+                                            Text="{Binding FormattedTotal}"
+                                            VerticalAlignment="Center" />
+
+                                        <TextBlock
+                                            Grid.Column="3"
+                                            Text="{Binding FormattedPaid}"
+                                            VerticalAlignment="Center" />
+
+                                        <TextBlock
+                                            Grid.Column="4"
+                                            Text="{Binding FormattedDue}"
+                                            FontWeight="SemiBold"
+                                            VerticalAlignment="Center" />
+
+                                        <TextBlock
+                                            Grid.Column="5"
+                                            Text="{Binding StatusDisplay}"
+                                            VerticalAlignment="Center" />
+
+                                        <Button
+                                            Grid.Column="6"
+                                            Content="Receive Payment"
+                                            Tag="{Binding}"
+                                            Click="InvoicePaymentButton_Click" />
+
+                                    </Grid>
+
+                                </DataTemplate>
+
+                            </ListView.ItemTemplate>
+
+                        </ListView>
+
+                    </StackPanel>
+
+                </Border>
+
+                <!-- Payment History -->
+
+                <Border
+                    Padding="18"
+                    CornerRadius="10"
+                    BorderThickness="1"
+                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                    <StackPanel Spacing="14">
+
+                        <TextBlock
+                            Text="Payment History"
+                            FontSize="18"
+                            FontWeight="SemiBold" />
+
+                        <Grid
+                            Padding="10,6"
+                            ColumnSpacing="12">
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1.5*" />
+                                <ColumnDefinition Width="1.3*" />
+                                <ColumnDefinition Width="1.2*" />
+                                <ColumnDefinition Width="1*" />
+                                <ColumnDefinition Width="1.4*" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock
+                                Grid.Column="0"
+                                Text="Date"
+                                FontWeight="SemiBold" />
+
+                            <TextBlock
+                                Grid.Column="1"
+                                Text="Invoice"
+                                FontWeight="SemiBold" />
+
+                            <TextBlock
+                                Grid.Column="2"
+                                Text="Method"
+                                FontWeight="SemiBold" />
+
+                            <TextBlock
+                                Grid.Column="3"
+                                Text="Amount"
+                                FontWeight="SemiBold" />
+
+                            <TextBlock
+                                Grid.Column="4"
+                                Text="Reference"
+                                FontWeight="SemiBold" />
+
+                        </Grid>
+
+                        <ListView
+                            ItemsSource="{Binding Account.PaymentHistory}"
+                            SelectionMode="None"
+                            MaxHeight="300"
+                            HorizontalContentAlignment="Stretch">
+
+                            <ListView.ItemContainerStyle>
+
+                                <Style TargetType="ListViewItem">
+                                    <Setter
+                                        Property="HorizontalContentAlignment"
+                                        Value="Stretch" />
+                                </Style>
+
+                            </ListView.ItemContainerStyle>
+
+                            <ListView.ItemTemplate>
+
+                                <DataTemplate>
+
+                                    <Grid
+                                        Padding="10,9"
+                                        ColumnSpacing="12">
+
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="1.5*" />
+                                            <ColumnDefinition Width="1.3*" />
+                                            <ColumnDefinition Width="1.2*" />
+                                            <ColumnDefinition Width="1*" />
+                                            <ColumnDefinition Width="1.4*" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBlock
+                                            Grid.Column="0"
+                                            Text="{Binding FormattedPaymentDate}" />
+
+                                        <TextBlock
+                                            Grid.Column="1"
+                                            Text="{Binding InvoiceNumber}"
+                                            FontWeight="SemiBold" />
+
+                                        <TextBlock
+                                            Grid.Column="2"
+                                            Text="{Binding PaymentMethodDisplay}" />
+
+                                        <TextBlock
+                                            Grid.Column="3"
+                                            Text="{Binding FormattedAmount}"
+                                            FontWeight="SemiBold" />
+
+                                        <TextBlock
+                                            Grid.Column="4"
+                                            Text="{Binding ReferenceDisplay}"
+                                            TextTrimming="CharacterEllipsis" />
+
+                                    </Grid>
+
+                                </DataTemplate>
+
+                            </ListView.ItemTemplate>
+
+                        </ListView>
+
+                    </StackPanel>
+
+                </Border>
+
+            </StackPanel>
+
+        </ScrollViewer>
+
+        <!-- Busy indicator -->
+
+        <ProgressRing
+            Grid.RowSpan="3"
+            Width="42"
+            Height="42"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            IsActive="{Binding IsBusy}"
+            Visibility="{Binding IsBusy}" />
+
+    </Grid>
+
+</Page>

@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="InventoryPOS.Desktop.Views.SetOpeningStockPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer>
+
+        <Grid
+            Padding="28"
+            MaxWidth="700"
+            HorizontalAlignment="Left">
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <StackPanel Spacing="6">
+
+                <Button
+                    Content="← Inventory"
+                    HorizontalAlignment="Left"
+                    Click="CancelButton_Click" />
+
+                <TextBlock
+                    Text="Set Opening Stock"
+                    FontSize="28"
+                    FontWeight="SemiBold"
+                    Margin="0,12,0,0" />
+
+                <TextBlock
+                    Text="Enter the initial stock balance for a product at a location."
+                    Opacity="0.65" />
+
+            </StackPanel>
+
+            <StackPanel
+                Grid.Row="1"
+                Margin="0,28,0,0"
+                Spacing="16">
+
+                <ComboBox
+                    Header="Product"
+                    ItemsSource="{Binding Products}"
+                    SelectedItem="{Binding SelectedProduct, Mode=TwoWay}"
+                    DisplayMemberPath="DisplayName" />
+
+                <ComboBox
+                    Header="Location"
+                    ItemsSource="{Binding Locations}"
+                    SelectedItem="{Binding SelectedLocation, Mode=TwoWay}"
+                    DisplayMemberPath="DisplayName" />
+
+                <NumberBox
+                    Header="Opening Quantity"
+                    Minimum="0"
+                    SpinButtonPlacementMode="Inline"
+                    Value="{Binding Quantity, Mode=TwoWay}" />
+
+                <NumberBox
+                    Header="Unit Cost"
+                    Minimum="0"
+                    SpinButtonPlacementMode="Inline"
+                    Value="{Binding UnitCost, Mode=TwoWay}" />
+
+                <TextBox
+                    Header="Notes"
+                    PlaceholderText="Optional"
+                    AcceptsReturn="True"
+                    Height="90"
+                    Text="{Binding Notes, Mode=TwoWay}" />
+
+                <InfoBar
+                    x:Name="ErrorInfoBar"
+                    IsOpen="False"
+                    Severity="Error"
+                    Message="{Binding ErrorMessage}" />
+
+            </StackPanel>
+
+            <StackPanel
+                Grid.Row="2"
+                Margin="0,24,0,0"
+                Orientation="Horizontal"
+                Spacing="10">
+
+                <Button
+                    Content="Save Opening Stock"
+                    Click="SaveButton_Click" />
+
+                <Button
+                    Content="Cancel"
+                    Click="CancelButton_Click" />
+
+                <ProgressRing
+                    IsActive="{Binding IsSaving}"
+                    Width="24"
+                    Height="24" />
+
+            </StackPanel>
+
+        </Grid>
+
+    </ScrollViewer>
+
+</Page>

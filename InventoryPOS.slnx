@@ -1,0 +1,10 @@
+<Solution>
+  <Project Path="src/InventoryPOS.Application/InventoryPOS.Application.csproj" />
+  <Project Path="src/InventoryPOS.Desktop/InventoryPOS.Desktop.csproj">
+    <Platform Project="x64" />
+    <Deploy />
+  </Project>
+  <Project Path="src/InventoryPOS.Domain/InventoryPOS.Domain.csproj" />
+  <Project Path="src/InventoryPOS.Infrastructure/InventoryPOS.Infrastructure.csproj" />
+  <Project Path="tests/InventoryPOS.Tests/InventoryPOS.Tests.csproj" />
+</Solution>

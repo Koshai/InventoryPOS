@@ -1,0 +1,258 @@
+<Page
+    x:Class="InventoryPOS.Desktop.Views.SupplierFormPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid
+        Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+        <ScrollViewer
+            VerticalScrollBarVisibility="Auto"
+            HorizontalScrollBarVisibility="Disabled">
+
+            <Grid Padding="28">
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel
+                    Grid.Column="1"
+                    Width="1000"
+                    MaxWidth="1100"
+                    Spacing="22"
+                    HorizontalAlignment="Center">
+
+                    <!-- Header -->
+
+                    <StackPanel Spacing="4">
+
+                        <TextBlock
+                            Text="{Binding PageTitle}"
+                            FontSize="28"
+                            FontWeight="SemiBold" />
+
+                        <TextBlock
+                            Text="Enter supplier identity, contact and tax information."
+                            FontSize="14"
+                            Opacity="0.65" />
+
+                    </StackPanel>
+
+                    <!-- Error -->
+
+                    <InfoBar
+                        x:Name="ErrorInfoBar"
+                        Severity="Error"
+                        IsClosable="True"
+                        IsOpen="False"
+                        Message="{Binding ErrorMessage}" />
+
+                    <!-- Main Form -->
+
+                    <Border
+                        Padding="26"
+                        CornerRadius="12"
+                        BorderThickness="1"
+                        BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                        <StackPanel Spacing="24">
+
+                            <StackPanel Spacing="4">
+
+                                <TextBlock
+                                    Text="Supplier Information"
+                                    FontSize="18"
+                                    FontWeight="SemiBold" />
+
+                                <TextBlock
+                                    Text="Basic details used for purchasing and supplier records."
+                                    FontSize="12"
+                                    Opacity="0.60" />
+
+                            </StackPanel>
+
+                            <!-- Supplier Code + Name -->
+
+                            <Grid ColumnSpacing="18">
+
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1*" />
+                                    <ColumnDefinition Width="2*" />
+                                </Grid.ColumnDefinitions>
+
+                                <TextBox
+                                    Grid.Column="0"
+                                    Header="Supplier Code"
+                                    PlaceholderText="SUP-0001"
+                                    MinWidth="220"
+                                    Text="{Binding SupplierCode, Mode=TwoWay}" />
+
+                                <TextBox
+                                    Grid.Column="1"
+                                    Header="Supplier Name"
+                                    PlaceholderText="e.g. Dhaka Foods Ltd."
+                                    MinWidth="360"
+                                    Text="{Binding Name, Mode=TwoWay}" />
+
+                            </Grid>
+
+                            <!-- Contact + Phone -->
+
+                            <Grid ColumnSpacing="18">
+
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <TextBox
+                                    Grid.Column="0"
+                                    Header="Contact Person"
+                                    PlaceholderText="Full name"
+                                    MinWidth="300"
+                                    Text="{Binding ContactPerson, Mode=TwoWay}" />
+
+                                <TextBox
+                                    Grid.Column="1"
+                                    Header="Phone"
+                                    PlaceholderText="+880..."
+                                    MinWidth="300"
+                                    Text="{Binding Phone, Mode=TwoWay}" />
+
+                            </Grid>
+
+                            <!-- Email + Tax -->
+
+                            <Grid ColumnSpacing="18">
+
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <TextBox
+                                    Grid.Column="0"
+                                    Header="Email"
+                                    PlaceholderText="supplier@example.com"
+                                    MinWidth="300"
+                                    Text="{Binding Email, Mode=TwoWay}" />
+
+                                <TextBox
+                                    Grid.Column="1"
+                                    Header="BIN / TIN / Tax Number"
+                                    PlaceholderText="Optional"
+                                    MinWidth="300"
+                                    Text="{Binding TaxNumber, Mode=TwoWay}" />
+
+                            </Grid>
+
+                            <!-- Address -->
+
+                            <TextBox
+                                Header="Address"
+                                PlaceholderText="Supplier business address"
+                                AcceptsReturn="True"
+                                TextWrapping="Wrap"
+                                MinHeight="110"
+                                MaxHeight="160"
+                                Text="{Binding Address, Mode=TwoWay}" />
+
+                            <!-- Status -->
+
+                            <Border
+                                Padding="16"
+                                CornerRadius="8"
+                                Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+
+                                <Grid>
+
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel
+                                        Grid.Column="0"
+                                        Spacing="3">
+
+                                        <TextBlock
+                                            Text="Supplier Status"
+                                            FontWeight="SemiBold" />
+
+                                        <TextBlock
+                                            Text="Inactive suppliers will not be available for new purchase orders."
+                                            FontSize="12"
+                                            Opacity="0.65"
+                                            TextWrapping="Wrap" />
+
+                                    </StackPanel>
+
+                                    <CheckBox
+                                        Grid.Column="1"
+                                        Content="Active"
+                                        Margin="20,0,0,0"
+                                        VerticalAlignment="Center"
+                                        IsChecked="{Binding IsActive, Mode=TwoWay}" />
+
+                                </Grid>
+
+                            </Border>
+
+                        </StackPanel>
+
+                    </Border>
+
+                    <!-- Actions -->
+
+                    <Grid Margin="0,2,0,0">
+
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel
+                            Grid.Column="1"
+                            Orientation="Horizontal"
+                            Spacing="10">
+
+                            <Button
+                                Content="Cancel"
+                                Padding="20,10"
+                                Click="CancelButton_Click" />
+
+                            <Button
+                                Content="Save Supplier"
+                                Padding="22,10"
+                                Click="SaveButton_Click" />
+
+                        </StackPanel>
+
+                    </Grid>
+
+                </StackPanel>
+
+            </Grid>
+
+        </ScrollViewer>
+
+        <!-- Loading -->
+
+        <ProgressRing
+            Width="40"
+            Height="40"
+            IsActive="{Binding IsLoading}"
+            Visibility="{Binding IsLoading}"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center" />
+
+    </Grid>
+
+</Page>

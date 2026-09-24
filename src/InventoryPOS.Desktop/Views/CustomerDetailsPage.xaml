@@ -1,0 +1,219 @@
+<Page
+    x:Class="InventoryPOS.Desktop.Views.CustomerDetailsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid
+        Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+        <ScrollViewer
+            HorizontalContentAlignment="Stretch">
+
+            <StackPanel
+                Padding="24"
+                Spacing="22">
+
+                <!-- Header -->
+
+                <Grid>
+
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Spacing="4">
+
+                        <TextBlock
+                            Text="{Binding Customer.Name}"
+                            FontSize="28"
+                            FontWeight="SemiBold" />
+
+                        <TextBlock
+                            Text="{Binding Customer.CustomerCode}"
+                            FontSize="14"
+                            Opacity="0.65" />
+
+                    </StackPanel>
+                    <StackPanel
+                        Grid.Column="1"
+                        Orientation="Horizontal"
+                        Spacing="10">
+
+                        <Button
+                            Content="Back"
+                            Padding="18,9"
+                            Click="BackButton_Click" />
+
+                        <Button
+                            Content="View Account"
+                            Padding="18,9"
+                            Click="ViewAccountButton_Click" />
+
+                        <Button
+                            Content="Edit Customer"
+                            Padding="18,9"
+                            Click="EditButton_Click" />
+
+                    </StackPanel>
+
+                </Grid>
+
+                <InfoBar
+                    x:Name="ErrorInfoBar"
+                    Severity="Error"
+                    IsClosable="True"
+                    IsOpen="False"
+                    Message="{Binding ErrorMessage}" />
+
+                <!-- Summary -->
+
+                <Grid
+                    ColumnSpacing="14"
+                    RowSpacing="14">
+
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Border
+                        Grid.Row="0"
+                        Grid.Column="0"
+                        Padding="20"
+                        CornerRadius="10"
+                        BorderThickness="1"
+                        BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                        <StackPanel Spacing="5">
+
+                            <TextBlock
+                                Text="Phone"
+                                FontSize="12"
+                                Opacity="0.6" />
+
+                            <TextBlock
+                                Text="{Binding Customer.PhoneDisplay}"
+                                FontSize="16"
+                                FontWeight="SemiBold" />
+
+                        </StackPanel>
+
+                    </Border>
+
+                    <Border
+                        Grid.Row="0"
+                        Grid.Column="1"
+                        Padding="20"
+                        CornerRadius="10"
+                        BorderThickness="1"
+                        BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                        <StackPanel Spacing="5">
+
+                            <TextBlock
+                                Text="Email"
+                                FontSize="12"
+                                Opacity="0.6" />
+
+                            <TextBlock
+                                Text="{Binding Customer.EmailDisplay}"
+                                FontSize="16"
+                                FontWeight="SemiBold"
+                                TextWrapping="Wrap" />
+
+                        </StackPanel>
+
+                    </Border>
+
+                    <Border
+                        Grid.Row="1"
+                        Grid.Column="0"
+                        Padding="20"
+                        CornerRadius="10"
+                        BorderThickness="1"
+                        BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                        <StackPanel Spacing="5">
+
+                            <TextBlock
+                                Text="Credit Limit"
+                                FontSize="12"
+                                Opacity="0.6" />
+
+                            <TextBlock
+                                Text="{Binding Customer.FormattedCreditLimit}"
+                                FontSize="18"
+                                FontWeight="SemiBold" />
+
+                        </StackPanel>
+
+                    </Border>
+
+                    <Border
+                        Grid.Row="1"
+                        Grid.Column="1"
+                        Padding="20"
+                        CornerRadius="10"
+                        BorderThickness="1"
+                        BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                        <StackPanel Spacing="5">
+
+                            <TextBlock
+                                Text="Status"
+                                FontSize="12"
+                                Opacity="0.6" />
+
+                            <TextBlock
+                                Text="{Binding Customer.StatusDisplay}"
+                                FontSize="18"
+                                FontWeight="SemiBold" />
+
+                        </StackPanel>
+
+                    </Border>
+
+                </Grid>
+
+                <!-- Address -->
+
+                <Border
+                    Padding="22"
+                    CornerRadius="10"
+                    BorderThickness="1"
+                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                    <StackPanel Spacing="6">
+
+                        <TextBlock
+                            Text="Address"
+                            FontSize="12"
+                            Opacity="0.6" />
+
+                        <TextBlock
+                            Text="{Binding Customer.AddressDisplay}"
+                            FontSize="15"
+                            TextWrapping="Wrap" />
+
+                    </StackPanel>
+
+                </Border>
+
+            </StackPanel>
+
+        </ScrollViewer>
+
+    </Grid>
+
+</Page>

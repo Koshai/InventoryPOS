@@ -1,0 +1,91 @@
+﻿using InventoryPOS.Application.DTOs.Inventory;
+using System;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+
+namespace InventoryPOS.Desktop.ViewModels;
+
+public class PurchaseOrderLineEditViewModel
+    : INotifyPropertyChanged
+{
+    private InventoryProductLookupDto? _selectedProduct;
+    private double _quantity = 1;
+    private double _unitCost;
+    private double _warrantyMonths;
+
+    public InventoryProductLookupDto? SelectedProduct
+    {
+        get => _selectedProduct;
+        set
+        {
+            if (_selectedProduct == value)
+                return;
+
+            _selectedProduct = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(LineTotalDisplay));
+        }
+    }
+
+    public double Quantity
+    {
+        get => _quantity;
+        set
+        {
+            if (_quantity == value)
+                return;
+
+            _quantity = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(LineTotal));
+            OnPropertyChanged(nameof(LineTotalDisplay));
+        }
+    }
+
+    public double UnitCost
+    {
+        get => _unitCost;
+        set
+        {
+            if (_unitCost == value)
+                return;
+
+            _unitCost = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(LineTotal));
+            OnPropertyChanged(nameof(LineTotalDisplay));
+        }
+    }
+
+    public double WarrantyMonths
+    {
+        get => _warrantyMonths;
+        set
+        {
+            if (_warrantyMonths == value)
+                return;
+
+            _warrantyMonths = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public decimal LineTotal =>
+        Convert.ToDecimal(Quantity) *
+        Convert.ToDecimal(UnitCost);
+
+    public string LineTotalDisplay =>
+        $"৳{LineTotal:N2}";
+
+    public event PropertyChangedEventHandler?
+        PropertyChanged;
+
+    private void OnPropertyChanged(
+        [CallerMemberName]
+        string? propertyName = null)
+    {
+        PropertyChanged?.Invoke(
+            this,
+            new PropertyChangedEventArgs(propertyName));
+    }
+}

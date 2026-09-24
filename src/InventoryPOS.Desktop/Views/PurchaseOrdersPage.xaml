@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="InventoryPOS.Desktop.Views.PurchaseOrdersPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid
+        Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+
+        <Grid
+            Grid.Row="0"
+            Margin="28,28,28,16">
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Spacing="4">
+
+                <TextBlock
+                    Text="Purchase Orders"
+                    FontSize="28"
+                    FontWeight="SemiBold" />
+
+                <TextBlock
+                    Text="Create and manage supplier purchase orders."
+                    FontSize="14"
+                    Opacity="0.65" />
+
+            </StackPanel>
+
+            <Button
+                Grid.Column="1"
+                Content="+ New Purchase Order"
+                Padding="18,10"
+                Click="NewPurchaseOrderButton_Click" />
+
+        </Grid>
+
+        <!-- Search -->
+
+        <TextBox
+            Grid.Row="1"
+            Width="380"
+            Margin="28,0,28,16"
+            HorizontalAlignment="Left"
+            PlaceholderText="Search PO number, supplier, location or status..."
+            Text="{Binding SearchText,
+                           Mode=TwoWay,
+                           UpdateSourceTrigger=PropertyChanged}" />
+
+        <!-- Table -->
+
+        <Border
+            Grid.Row="2"
+            Margin="28,0,28,28"
+            CornerRadius="10"
+            BorderThickness="1"
+            BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+            <Grid>
+
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <Grid
+                    Grid.Row="0"
+                    Padding="16,12"
+                    ColumnSpacing="12">
+
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.4*" />
+                        <ColumnDefinition Width="1.8*" />
+                        <ColumnDefinition Width="1.3*" />
+                        <ColumnDefinition Width="1.2*" />
+                        <ColumnDefinition Width="1.2*" />
+                        <ColumnDefinition Width="0.8*" />
+                        <ColumnDefinition Width="1.1*" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0" Text="PO Number" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="1" Text="Supplier" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="2" Text="Location" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="3" Text="Order Date" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="4" Text="Expected" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="5" Text="Status" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="6" Text="Total" FontWeight="SemiBold" />
+
+                </Grid>
+
+                <ListView
+                    x:Name="PurchaseOrdersListView"
+                    Grid.Row="1"
+                    ItemsSource="{Binding FilteredPurchaseOrders}"
+                    HorizontalContentAlignment="Stretch"
+                    SelectionMode="Single"
+                    IsItemClickEnabled="True"
+                    ItemClick="PurchaseOrdersListView_ItemClick">
+
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+
+                            <Grid
+                                Padding="16,12"
+                                ColumnSpacing="12">
+
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1.4*" />
+                                    <ColumnDefinition Width="1.8*" />
+                                    <ColumnDefinition Width="1.3*" />
+                                    <ColumnDefinition Width="1.2*" />
+                                    <ColumnDefinition Width="1.2*" />
+                                    <ColumnDefinition Width="0.8*" />
+                                    <ColumnDefinition Width="1.1*" />
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock
+                                    Grid.Column="0"
+                                    Text="{Binding OrderNumber}"
+                                    FontWeight="SemiBold" />
+
+                                <TextBlock
+                                    Grid.Column="1"
+                                    Text="{Binding SupplierName}"
+                                    TextTrimming="CharacterEllipsis" />
+
+                                <TextBlock
+                                    Grid.Column="2"
+                                    Text="{Binding LocationName}" />
+
+                                <TextBlock
+                                    Grid.Column="3"
+                                    Text="{Binding FormattedOrderDate}" />
+
+                                <TextBlock
+                                    Grid.Column="4"
+                                    Text="{Binding FormattedExpectedDate}" />
+
+                                <TextBlock
+                                    Grid.Column="5"
+                                    Text="{Binding Status}" />
+
+                                <TextBlock
+                                    Grid.Column="6"
+                                    Text="{Binding FormattedTotal}" />
+
+                            </Grid>
+
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+
+                </ListView>
+
+            </Grid>
+
+        </Border>
+
+        <ProgressRing
+            Grid.RowSpan="3"
+            Width="40"
+            Height="40"
+            IsActive="{Binding IsLoading}"
+            Visibility="{Binding IsLoading}"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center" />
+
+    </Grid>
+
+</Page>

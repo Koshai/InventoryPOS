@@ -1,0 +1,491 @@
+<Page
+    x:Class="InventoryPOS.Desktop.Views.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+        <ScrollViewer
+            VerticalScrollBarVisibility="Auto"
+            HorizontalScrollBarVisibility="Disabled">
+
+            <Grid
+                MaxWidth="1200"
+                HorizontalAlignment="Stretch"
+                Padding="28,24,28,40">
+
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Page Header -->
+                <StackPanel
+                    Grid.Row="0"
+                    Spacing="4"
+                    Margin="0,0,0,22">
+
+                    <TextBlock
+                        Text="Settings"
+                        FontSize="28"
+                        FontWeight="SemiBold"/>
+
+                    <TextBlock
+                        Text="Manage your business identity, invoice information and regional settings."
+                        Opacity="0.65"
+                        FontSize="14"/>
+
+                </StackPanel>
+
+                <!-- Error -->
+                <InfoBar
+                    Grid.Row="1"
+                    Margin="0,0,0,16"
+                    IsOpen="{Binding HasError, Mode=OneWay}"
+                    Severity="Error"
+                    Title="Unable to save settings"
+                    Message="{Binding ErrorMessage, Mode=OneWay}"/>
+
+                <!-- Success -->
+                <InfoBar
+                    Grid.Row="2"
+                    Margin="0,0,0,16"
+                    IsOpen="{Binding HasSuccess, Mode=OneWay}"
+                    Severity="Success"
+                    Title="Settings saved"
+                    Message="{Binding SuccessMessage, Mode=OneWay}"/>
+
+                <!-- Main Content -->
+                <StackPanel
+                    Grid.Row="3"
+                    Spacing="18">
+
+                    <!-- Business Identity -->
+                    <Border
+                        Padding="22"
+                        CornerRadius="8"
+                        BorderThickness="1"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                        <StackPanel Spacing="18">
+
+                            <StackPanel Spacing="3">
+                                <TextBlock
+                                    Text="Business Profile"
+                                    FontSize="18"
+                                    FontWeight="SemiBold"/>
+
+                                <TextBlock
+                                    Text="This information will appear on invoices and receipts."
+                                    FontSize="13"
+                                    Opacity="0.65"/>
+                            </StackPanel>
+
+                            <Grid ColumnSpacing="16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel
+                                    Grid.Column="0"
+                                    Spacing="6">
+
+                                    <TextBlock
+                                        Text="Business Name *"
+                                        FontWeight="SemiBold"/>
+
+                                    <TextBox
+                                        Text="{Binding BusinessName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        PlaceholderText="Business name"/>
+                                </StackPanel>
+
+                                <StackPanel
+                                    Grid.Column="1"
+                                    Spacing="6">
+
+                                    <TextBlock
+                                        Text="Business Name (বাংলা)"
+                                        FontWeight="SemiBold"/>
+
+                                    <TextBox
+                                        Text="{Binding BusinessNameBn, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        PlaceholderText="ব্যবসার নাম"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <Grid ColumnSpacing="16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel
+                                    Grid.Column="0"
+                                    Spacing="6">
+
+                                    <TextBlock
+                                        Text="Address"
+                                        FontWeight="SemiBold"/>
+
+                                    <TextBox
+                                        Text="{Binding Address, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        PlaceholderText="Business address"
+                                        AcceptsReturn="True"
+                                        TextWrapping="Wrap"
+                                        MinHeight="72"/>
+                                </StackPanel>
+
+                                <StackPanel
+                                    Grid.Column="1"
+                                    Spacing="6">
+
+                                    <TextBlock
+                                        Text="Address (বাংলা)"
+                                        FontWeight="SemiBold"/>
+
+                                    <TextBox
+                                        Text="{Binding AddressBn, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        PlaceholderText="ব্যবসার ঠিকানা"
+                                        AcceptsReturn="True"
+                                        TextWrapping="Wrap"
+                                        MinHeight="72"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <Grid ColumnSpacing="16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel
+                                    Grid.Column="0"
+                                    Spacing="6">
+
+                                    <TextBlock
+                                        Text="Phone"
+                                        FontWeight="SemiBold"/>
+
+                                    <TextBox
+                                        Text="{Binding Phone, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        PlaceholderText="+880..."/>
+                                </StackPanel>
+
+                                <StackPanel
+                                    Grid.Column="1"
+                                    Spacing="6">
+
+                                    <TextBlock
+                                        Text="Email"
+                                        FontWeight="SemiBold"/>
+
+                                    <TextBox
+                                        Text="{Binding Email, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        PlaceholderText="business@example.com"/>
+                                </StackPanel>
+
+                                <StackPanel
+                                    Grid.Column="2"
+                                    Spacing="6">
+
+                                    <TextBlock
+                                        Text="Website"
+                                        FontWeight="SemiBold"/>
+
+                                    <TextBox
+                                        Text="{Binding Website, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        PlaceholderText="www.example.com"/>
+                                </StackPanel>
+                            </Grid>
+
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Bangladesh Business Information -->
+                    <Border
+                        Padding="22"
+                        CornerRadius="8"
+                        BorderThickness="1"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                        <StackPanel Spacing="18">
+
+                            <StackPanel Spacing="3">
+                                <TextBlock
+                                    Text="Business Registration"
+                                    FontSize="18"
+                                    FontWeight="SemiBold"/>
+
+                                <TextBlock
+                                    Text="Bangladesh tax and registration information."
+                                    FontSize="13"
+                                    Opacity="0.65"/>
+                            </StackPanel>
+
+                            <Grid ColumnSpacing="16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel
+                                    Grid.Column="0"
+                                    Spacing="6">
+
+                                    <TextBlock
+                                        Text="BIN"
+                                        FontWeight="SemiBold"/>
+
+                                    <TextBox
+                                        Text="{Binding BinNumber, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        PlaceholderText="Business Identification Number"/>
+                                </StackPanel>
+
+                                <StackPanel
+                                    Grid.Column="1"
+                                    Spacing="6">
+
+                                    <TextBlock
+                                        Text="TIN"
+                                        FontWeight="SemiBold"/>
+
+                                    <TextBox
+                                        Text="{Binding TinNumber, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        PlaceholderText="Tax Identification Number"/>
+                                </StackPanel>
+
+                                <StackPanel
+                                    Grid.Column="2"
+                                    Spacing="6">
+
+                                    <TextBlock
+                                        Text="Trade License"
+                                        FontWeight="SemiBold"/>
+
+                                    <TextBox
+                                        Text="{Binding TradeLicenseNumber, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        PlaceholderText="Trade license number"/>
+                                </StackPanel>
+                            </Grid>
+
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Regional / Invoice -->
+                    <Border
+                        Padding="22"
+                        CornerRadius="8"
+                        BorderThickness="1"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                        <StackPanel Spacing="18">
+
+                            <StackPanel Spacing="3">
+                                <TextBlock
+                                    Text="Regional &amp; Invoice"
+                                    FontSize="18"
+                                    FontWeight="SemiBold"/>
+
+                                <TextBlock
+                                    Text="Currency and invoice presentation defaults."
+                                    FontSize="13"
+                                    Opacity="0.65"/>
+                            </StackPanel>
+
+                            <Grid
+                                ColumnSpacing="16"
+                                MaxWidth="500"
+                                HorizontalAlignment="Left">
+
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="240"/>
+                                    <ColumnDefinition Width="160"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel
+                                    Grid.Column="0"
+                                    Spacing="6">
+
+                                    <TextBlock
+                                        Text="Currency Code *"
+                                        FontWeight="SemiBold"/>
+
+                                    <TextBox
+                                        Text="{Binding CurrencyCode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        PlaceholderText="BDT"/>
+                                </StackPanel>
+
+                                <StackPanel
+                                    Grid.Column="1"
+                                    Spacing="6">
+
+                                    <TextBlock
+                                        Text="Currency Symbol *"
+                                        FontWeight="SemiBold"/>
+
+                                    <TextBox
+                                        Text="{Binding CurrencySymbol, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        PlaceholderText="৳"/>
+                                </StackPanel>
+
+                            </Grid>
+
+                            <StackPanel Spacing="6">
+
+                                <TextBlock
+                                    Text="Invoice Footer"
+                                    FontWeight="SemiBold"/>
+
+                                <TextBox
+                                    Text="{Binding InvoiceFooter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                    PlaceholderText="Thank you for your business."
+                                    AcceptsReturn="True"
+                                    TextWrapping="Wrap"
+                                    MinHeight="80"/>
+
+                                <TextBlock
+                                    Text="Optional message printed at the bottom of invoices and receipts."
+                                    FontSize="12"
+                                    Opacity="0.55"/>
+
+                            </StackPanel>
+
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Business Logo -->
+                    <Border
+                        Padding="22"
+                        CornerRadius="8"
+                        BorderThickness="1"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                        <Grid ColumnSpacing="24">
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="140"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Preview -->
+                            <Border
+                                Grid.Column="0"
+                                Width="120"
+                                Height="120"
+                                CornerRadius="8"
+                                BorderThickness="1"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
+
+                                <Grid>
+
+                                    <FontIcon
+                                        x:Name="LogoPlaceholderIcon"
+                                        Glyph="&#xEB9F;"
+                                        FontSize="34"
+                                        Opacity="0.35"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"/>
+
+                                    <Image
+                                        x:Name="LogoPreviewImage"
+                                        Stretch="Uniform"
+                                        Margin="8"/>
+
+                                </Grid>
+
+                            </Border>
+
+                            <!-- Controls -->
+                            <StackPanel
+                                Grid.Column="1"
+                                VerticalAlignment="Center"
+                                Spacing="10">
+
+                                <StackPanel Spacing="3">
+
+                                    <TextBlock
+                                        Text="Business Logo"
+                                        FontSize="18"
+                                        FontWeight="SemiBold"/>
+
+                                    <TextBlock
+                                        Text="Used on invoices and supported receipt layouts."
+                                        FontSize="13"
+                                        Opacity="0.65"/>
+
+                                </StackPanel>
+
+                                <TextBlock
+                                    Text="PNG or JPEG recommended. A transparent PNG works best."
+                                    FontSize="12"
+                                    Opacity="0.55"/>
+
+                                <StackPanel
+                                    Orientation="Horizontal"
+                                    Spacing="10">
+
+                                    <Button
+                                        Content="{Binding LogoButtonText}"
+                                        Click="ChooseLogoButton_Click"/>
+
+                                    <Button
+                                        Content="Remove"
+                                        Click="RemoveLogoButton_Click"
+                                        Visibility="{Binding HasLogo}"/>
+
+                                </StackPanel>
+
+                            </StackPanel>
+
+                        </Grid>
+                    </Border>
+
+                </StackPanel>
+
+                <!-- Bottom Actions -->
+                <Grid
+                    Grid.Row="4"
+                    Margin="0,22,0,0">
+
+                    <StackPanel
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Spacing="10">
+
+                        <ProgressRing
+                            Width="20"
+                            Height="20"
+                            IsActive="{Binding IsBusy}"
+                            Visibility="{Binding IsBusy}"
+                            VerticalAlignment="Center"/>
+
+                        <Button
+                            x:Name="SaveButton"
+                            Content="Save Changes"
+                            Click="SaveButton_Click"
+                            MinWidth="130"/>
+
+                    </StackPanel>
+
+                </Grid>
+
+            </Grid>
+        </ScrollViewer>
+
+    </Grid>
+</Page>

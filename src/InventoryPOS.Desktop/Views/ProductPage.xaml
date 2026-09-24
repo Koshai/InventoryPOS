@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="InventoryPOS.Desktop.Views.ProductsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Padding="28"
+          RowSpacing="20">
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Page Header -->
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel>
+                <TextBlock
+                    Text="Products"
+                    FontSize="28"
+                    FontWeight="SemiBold" />
+
+                <TextBlock
+                    Text="Manage products, pricing, categories and inventory settings."
+                    Margin="0,6,0,0"
+                    Opacity="0.65" />
+            </StackPanel>
+
+            <Button
+                Grid.Column="1"
+                Content="+ Add Product"
+                Padding="18,10"
+                VerticalAlignment="Center"
+                Click="AddProductButton_Click" />
+        </Grid>
+
+        <!-- Search / Toolbar -->
+        <Grid Grid.Row="1"
+              ColumnSpacing="12">
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="320" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <TextBox
+                PlaceholderText="Search products..."
+                Text="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+            <StackPanel
+                Grid.Column="1"
+                Orientation="Horizontal"
+                HorizontalAlignment="Right"
+                Spacing="8">
+
+                <Button Content="Categories" />
+                <Button Content="Brands" />
+                <Button Content="Units" />
+
+            </StackPanel>
+        </Grid>
+
+        <!-- Product List -->
+        <Grid Grid.Row="2">
+
+            <ProgressRing
+                IsActive="{Binding IsLoading}"
+                Width="32"
+                Height="32"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Visibility="{Binding IsLoading}" />
+
+            <ListView
+    ItemsSource="{Binding FilteredProducts}"
+    SelectionMode="Single"
+    IsItemClickEnabled="True"
+    ItemClick="ProductsList_ItemClick">
+
+                <!-- Make every row fill the available ListView width -->
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="HorizontalContentAlignment"
+                    Value="Stretch" />
+                        <Setter Property="Padding"
+                    Value="0" />
+                        <Setter Property="Margin"
+                    Value="0" />
+                    </Style>
+                </ListView.ItemContainerStyle>
+
+                <!-- TABLE HEADER -->
+                <ListView.Header>
+                    <Grid
+            Padding="12,10"
+            ColumnSpacing="16">
+
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="220" />
+                            <ColumnDefinition Width="140" />
+                            <ColumnDefinition Width="170" />
+                            <ColumnDefinition Width="140" />
+                            <ColumnDefinition Width="90" />
+                            <ColumnDefinition Width="130" />
+                            <ColumnDefinition Width="100" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock
+                Grid.Column="0"
+                Text="Product"
+                FontWeight="SemiBold" />
+
+                        <TextBlock
+                Grid.Column="1"
+                Text="SKU"
+                FontWeight="SemiBold" />
+
+                        <TextBlock
+                Grid.Column="2"
+                Text="Category"
+                FontWeight="SemiBold" />
+
+                        <TextBlock
+                Grid.Column="3"
+                Text="Brand"
+                FontWeight="SemiBold" />
+
+                        <TextBlock
+                Grid.Column="4"
+                Text="Unit"
+                FontWeight="SemiBold" />
+
+                        <TextBlock
+                Grid.Column="5"
+                Text="Selling Price"
+                FontWeight="SemiBold"
+                HorizontalAlignment="Right" />
+
+                        <TextBlock
+                Grid.Column="6"
+                Text="Status"
+                FontWeight="SemiBold" />
+
+                    </Grid>
+                </ListView.Header>
+
+                <!-- TABLE ROWS -->
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+
+                        <Grid
+                Padding="12,10"
+                ColumnSpacing="16">
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="220" />
+                                <ColumnDefinition Width="140" />
+                                <ColumnDefinition Width="170" />
+                                <ColumnDefinition Width="140" />
+                                <ColumnDefinition Width="90" />
+                                <ColumnDefinition Width="130" />
+                                <ColumnDefinition Width="100" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Product -->
+                            <StackPanel Grid.Column="0">
+                                <TextBlock
+                        Text="{Binding Name}"
+                        FontWeight="SemiBold"
+                        TextTrimming="CharacterEllipsis" />
+
+                                <TextBlock
+                        Text="{Binding NameBn}"
+                        FontSize="12"
+                        Opacity="0.65"
+                        TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+
+                            <!-- SKU -->
+                            <TextBlock
+                    Grid.Column="1"
+                    Text="{Binding SKU}"
+                    VerticalAlignment="Center"
+                    TextTrimming="CharacterEllipsis" />
+
+                            <!-- Category -->
+                            <TextBlock
+                    Grid.Column="2"
+                    Text="{Binding CategoryName}"
+                    VerticalAlignment="Center"
+                    TextTrimming="CharacterEllipsis" />
+
+                            <!-- Brand -->
+                            <TextBlock
+                    Grid.Column="3"
+                    Text="{Binding BrandName}"
+                    VerticalAlignment="Center"
+                    TextTrimming="CharacterEllipsis" />
+
+                            <!-- Unit -->
+                            <TextBlock
+                    Grid.Column="4"
+                    Text="{Binding UnitSymbol}"
+                    VerticalAlignment="Center" />
+
+                            <!-- Selling Price -->
+                            <TextBlock
+                    Grid.Column="5"
+                    Text="{Binding FormattedSellingPrice}"
+                    VerticalAlignment="Center"
+                    HorizontalAlignment="Right"
+                    FontWeight="SemiBold" />
+
+                            <!-- Status -->
+                            <TextBlock
+                    Grid.Column="6"
+                    Text="{Binding StatusText}"
+                    VerticalAlignment="Center" />
+
+                        </Grid>
+
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+
+            </ListView>
+
+        </Grid>
+
+    </Grid>
+
+</Page>

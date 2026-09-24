@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Folder Include="Features\Inventory\" />
+    <Folder Include="Features\Customers\" />
+    <Folder Include="Features\Users\" />
+    <Folder Include="Features\Reports\" />
+    <Folder Include="Features\POS\" />
+    <Folder Include="Features\Sales\" />
+    <Folder Include="Features\Purchasing\" />
+    <Folder Include="Features\Suppliers\" />
+    <Folder Include="Features\Products\" />
+    <Folder Include="Validation\" />
+    <Folder Include="Services\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\InventoryPOS.Domain\InventoryPOS.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

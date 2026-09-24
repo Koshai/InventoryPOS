@@ -1,0 +1,756 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<Page
+    x:Class="InventoryPOS.Desktop.Views.InvoicePage"
+    x:Name="PageRoot"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:sales="using:InventoryPOS.Application.DTOs.Sales"
+    xmlns:vm="using:InventoryPOS.Desktop.ViewModels">
+
+    <Grid
+        Padding="24"
+        RowSpacing="14"
+        Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- ================================================= -->
+        <!-- TOP BAR -->
+        <!-- ================================================= -->
+
+        <Grid Grid.Row="0">
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel
+                Grid.Column="0"
+                Orientation="Horizontal"
+                Spacing="12">
+
+                <Button
+                    Content="←"
+                    Width="40"
+                    Height="36"
+                    Padding="0"
+                    FontSize="18"
+                    ToolTipService.ToolTip="Back to Sales"
+                    Click="BackButton_Click" />
+
+                <StackPanel Spacing="2">
+
+                    <TextBlock
+                        Text="Invoice"
+                        FontSize="26"
+                        FontWeight="SemiBold" />
+
+                    <TextBlock
+                        Text="Sale details and payment information"
+                        FontSize="12"
+                        Opacity="0.60" />
+
+                </StackPanel>
+
+            </StackPanel>
+
+            <StackPanel
+                Grid.Column="1"
+                Orientation="Horizontal"
+                Spacing="8"
+                VerticalAlignment="Center">
+
+                <!--
+                    This is our hook for the next phase.
+                    We will connect this to IInvoicePdfService.
+                -->
+
+                <Button
+                    Content="Export PDF"
+                    Padding="16,8"
+                    IsEnabled="{Binding HasSale}"
+                    Click="ExportPdfButton_Click" />
+                <Button
+                    x:Name="PrintButton"
+                    Click="PrintButton_Click"
+                    Style="{StaticResource AccentButtonStyle}">
+                    <StackPanel
+                        Orientation="Horizontal"
+                        Spacing="8">
+                        <FontIcon Glyph="&#xE749;" />
+                        <TextBlock Text="Print Invoice" />
+                    </StackPanel>
+                </Button>
+
+            </StackPanel>
+
+        </Grid>
+
+        <!-- ================================================= -->
+        <!-- ERROR -->
+        <!-- ================================================= -->
+
+        <InfoBar
+            Grid.Row="1"
+            Severity="Error"
+            IsClosable="True"
+            IsOpen="{Binding HasError}"
+            Message="{Binding ErrorMessage}" />
+
+        <!-- ================================================= -->
+        <!-- INVOICE DOCUMENT -->
+        <!-- ================================================= -->
+
+        <ScrollViewer
+            Grid.Row="2"
+            VerticalScrollMode="Enabled"
+            VerticalScrollBarVisibility="Auto"
+            HorizontalScrollMode="Disabled"
+            HorizontalScrollBarVisibility="Disabled">
+
+            <Grid
+                MaxWidth="1050"
+                HorizontalAlignment="Center">
+
+                <Border
+                    Padding="28"
+                    CornerRadius="10"
+                    BorderThickness="1"
+                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                    <StackPanel Spacing="22">
+
+                        <!-- ===================================== -->
+                        <!-- INVOICE HEADER -->
+                        <!-- ===================================== -->
+
+                        <Grid>
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- BUSINESS PLACEHOLDER -->
+
+                            <StackPanel
+                                Grid.Column="0"
+                                Spacing="3">
+
+                                <TextBlock
+                                    Text="InventoryPOS"
+                                    FontSize="24"
+                                    FontWeight="SemiBold" />
+
+                                <TextBlock
+                                    Text="{Binding Sale.LocationName}"
+                                    FontSize="13" />
+
+                                <TextBlock
+                                    Text="Business details will come from Store Settings"
+                                    FontSize="10"
+                                    Opacity="0.50" />
+
+                            </StackPanel>
+
+                            <!-- INVOICE INFO -->
+
+                            <StackPanel
+                                Grid.Column="1"
+                                Spacing="4"
+                                HorizontalAlignment="Right">
+
+                                <TextBlock
+                                    Text="INVOICE"
+                                    FontSize="11"
+                                    FontWeight="SemiBold"
+                                    Opacity="0.55"
+                                    HorizontalAlignment="Right" />
+
+                                <TextBlock
+                                    Text="{Binding Sale.InvoiceNumber}"
+                                    FontSize="20"
+                                    FontWeight="SemiBold"
+                                    HorizontalAlignment="Right" />
+
+                                <TextBlock
+                                    Text="{Binding Sale.FormattedSaleDate}"
+                                    FontSize="11"
+                                    Opacity="0.65"
+                                    HorizontalAlignment="Right" />
+
+                                <Border
+                                    Margin="0,4,0,0"
+                                    Padding="10,4"
+                                    CornerRadius="10"
+                                    Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                    HorizontalAlignment="Right">
+
+                                    <TextBlock
+                                        Text="{Binding Sale.StatusDisplay}"
+                                        FontSize="10"
+                                        FontWeight="SemiBold" />
+
+                                </Border>
+
+                            </StackPanel>
+
+                        </Grid>
+
+                        <!-- ===================================== -->
+                        <!-- CUSTOMER / LOCATION -->
+                        <!-- ===================================== -->
+
+                        <Border
+                            Padding="16"
+                            CornerRadius="8"
+                            Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+
+                            <Grid ColumnSpacing="30">
+
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <!-- CUSTOMER -->
+
+                                <StackPanel
+                                    Grid.Column="0"
+                                    Spacing="4">
+
+                                    <TextBlock
+                                        Text="BILL TO"
+                                        FontSize="10"
+                                        FontWeight="SemiBold"
+                                        Opacity="0.55" />
+
+                                    <TextBlock
+                                        Text="{Binding Sale.CustomerName}"
+                                        FontSize="15"
+                                        FontWeight="SemiBold" />
+
+                                    <TextBlock
+                                        Text="{Binding Sale.CustomerCode}"
+                                        FontSize="11"
+                                        Opacity="0.65"
+                                        Visibility="{Binding HasCustomerCode}" />
+
+                                    <TextBlock
+                                        Text="{Binding Sale.CustomerPhone}"
+                                        FontSize="11"
+                                        Opacity="0.65"
+                                        Visibility="{Binding HasCustomerPhone}" />
+
+                                    <TextBlock
+                                        Text="{Binding Sale.CustomerAddress}"
+                                        FontSize="11"
+                                        TextWrapping="Wrap"
+                                        Opacity="0.65"
+                                        Visibility="{Binding HasCustomerAddress}" />
+
+                                </StackPanel>
+
+                                <!-- LOCATION -->
+
+                                <StackPanel
+                                    Grid.Column="1"
+                                    Spacing="4">
+
+                                    <TextBlock
+                                        Text="LOCATION"
+                                        FontSize="10"
+                                        FontWeight="SemiBold"
+                                        Opacity="0.55" />
+
+                                    <TextBlock
+                                        Text="{Binding Sale.LocationName}"
+                                        FontSize="15"
+                                        FontWeight="SemiBold" />
+
+                                </StackPanel>
+
+                            </Grid>
+
+                        </Border>
+
+                        <!-- ===================================== -->
+                        <!-- SALE LINES -->
+                        <!-- ===================================== -->
+
+                        <Border
+                            CornerRadius="8"
+                            BorderThickness="1"
+                            BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}">
+
+                            <StackPanel>
+
+                                <!-- HEADER -->
+
+                                <Grid
+                                    Padding="14,9"
+                                    ColumnSpacing="12"
+                                    Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="2.3*" />
+                                        <ColumnDefinition Width="1*" />
+                                        <ColumnDefinition Width="1*" />
+                                        <ColumnDefinition Width="1*" />
+                                        <ColumnDefinition Width="1*" />
+                                        <ColumnDefinition Width="1.1*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock
+                                        Grid.Column="0"
+                                        Text="Product"
+                                        FontSize="10"
+                                        FontWeight="SemiBold"
+                                        Opacity="0.65" />
+
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        Text="Qty"
+                                        FontSize="10"
+                                        FontWeight="SemiBold"
+                                        Opacity="0.65" />
+
+                                    <TextBlock
+                                        Grid.Column="2"
+                                        Text="Price"
+                                        FontSize="10"
+                                        FontWeight="SemiBold"
+                                        Opacity="0.65" />
+
+                                    <TextBlock
+                                        Grid.Column="3"
+                                        Text="Discount"
+                                        FontSize="10"
+                                        FontWeight="SemiBold"
+                                        Opacity="0.65" />
+
+                                    <TextBlock
+                                        Grid.Column="4"
+                                        Text="Tax"
+                                        FontSize="10"
+                                        FontWeight="SemiBold"
+                                        Opacity="0.65" />
+
+                                    <TextBlock
+                                        Grid.Column="5"
+                                        Text="Total"
+                                        FontSize="10"
+                                        FontWeight="SemiBold"
+                                        Opacity="0.65"
+                                        HorizontalAlignment="Right" />
+
+                                </Grid>
+
+                                <!-- ROWS -->
+
+                                <ItemsControl
+                                    ItemsSource="{Binding Sale.Lines}">
+
+                                    <ItemsControl.ItemTemplate>
+
+                                        <DataTemplate
+                                            x:DataType="sales:SaleDetailsLineDto">
+
+                                            <Border
+                                                Padding="14,10"
+                                                BorderThickness="0,1,0,0"
+                                                BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}">
+
+                                                <Grid ColumnSpacing="12">
+
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="2.3*" />
+                                                        <ColumnDefinition Width="1*" />
+                                                        <ColumnDefinition Width="1*" />
+                                                        <ColumnDefinition Width="1*" />
+                                                        <ColumnDefinition Width="1*" />
+                                                        <ColumnDefinition Width="1.1*" />
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <StackPanel
+                                                        Grid.Column="0"
+                                                        Spacing="2">
+
+                                                        <TextBlock
+                                                            Text="{x:Bind ProductName}"
+                                                            FontSize="12"
+                                                            FontWeight="SemiBold"
+                                                            TextTrimming="CharacterEllipsis" />
+
+                                                        <TextBlock
+                                                            Text="{x:Bind SKU}"
+                                                            FontSize="9"
+                                                            Opacity="0.55" />
+
+                                                    </StackPanel>
+
+                                                    <TextBlock
+                                                        Grid.Column="1"
+                                                        Text="{x:Bind FormattedQuantity}"
+                                                        FontSize="11"
+                                                        VerticalAlignment="Center" />
+
+                                                    <TextBlock
+                                                        Grid.Column="2"
+                                                        Text="{x:Bind FormattedUnitPrice}"
+                                                        FontSize="11"
+                                                        VerticalAlignment="Center" />
+
+                                                    <TextBlock
+                                                        Grid.Column="3"
+                                                        Text="{x:Bind FormattedDiscount}"
+                                                        FontSize="11"
+                                                        VerticalAlignment="Center" />
+
+                                                    <TextBlock
+                                                        Grid.Column="4"
+                                                        Text="{x:Bind FormattedTax}"
+                                                        FontSize="11"
+                                                        VerticalAlignment="Center" />
+
+                                                    <TextBlock
+                                                        Grid.Column="5"
+                                                        Text="{x:Bind FormattedLineTotal}"
+                                                        FontSize="11"
+                                                        FontWeight="SemiBold"
+                                                        HorizontalAlignment="Right"
+                                                        VerticalAlignment="Center" />
+
+                                                </Grid>
+
+                                            </Border>
+
+                                        </DataTemplate>
+
+                                    </ItemsControl.ItemTemplate>
+
+                                </ItemsControl>
+
+                            </StackPanel>
+
+                        </Border>
+
+                        <!-- ===================================== -->
+                        <!-- TOTALS -->
+                        <!-- ===================================== -->
+
+                        <Grid>
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="330" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel
+                                Grid.Column="1"
+                                Spacing="8">
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock
+                                        Text="Subtotal"
+                                        FontSize="12"
+                                        Opacity="0.65" />
+
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        Text="{Binding Sale.FormattedSubtotal}"
+                                        FontSize="12" />
+                                </Grid>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock
+                                        Text="Discount"
+                                        FontSize="12"
+                                        Opacity="0.65" />
+
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        Text="{Binding Sale.FormattedDiscount}"
+                                        FontSize="12" />
+                                </Grid>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock
+                                        Text="Tax"
+                                        FontSize="12"
+                                        Opacity="0.65" />
+
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        Text="{Binding Sale.FormattedTax}"
+                                        FontSize="12" />
+                                </Grid>
+
+                                <Border
+                                    Height="1"
+                                    Margin="0,3"
+                                    Background="{ThemeResource ControlStrokeColorDefaultBrush}" />
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock
+                                        Text="TOTAL"
+                                        FontSize="15"
+                                        FontWeight="SemiBold" />
+
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        Text="{Binding Sale.FormattedTotal}"
+                                        FontSize="18"
+                                        FontWeight="SemiBold" />
+                                </Grid>
+
+                            </StackPanel>
+
+                        </Grid>
+
+                        <!-- ===================================== -->
+                        <!-- PAYMENTS -->
+                        <!-- ===================================== -->
+
+                        <StackPanel
+                            Spacing="8"
+                            Visibility="{Binding Sale.HasPayments}">
+
+                            <TextBlock
+                                Text="PAYMENT DETAILS"
+                                FontSize="11"
+                                FontWeight="SemiBold"
+                                Opacity="0.60" />
+
+                            <Border
+                                CornerRadius="8"
+                                BorderThickness="1"
+                                BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}">
+
+                                <ItemsControl
+                                    ItemsSource="{Binding Sale.Payments}">
+
+                                    <ItemsControl.ItemTemplate>
+
+                                        <DataTemplate
+                                            x:DataType="sales:SaleDetailsPaymentDto">
+
+                                            <Border
+                                                Padding="14,9"
+                                                BorderThickness="0,0,0,1"
+                                                BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}">
+
+                                                <Grid ColumnSpacing="16">
+
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="1.1*" />
+                                                        <ColumnDefinition Width="1.3*" />
+                                                        <ColumnDefinition Width="1.3*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <TextBlock
+                                                        Grid.Column="0"
+                                                        Text="{x:Bind PaymentMethodDisplay}"
+                                                        FontSize="11"
+                                                        FontWeight="SemiBold"
+                                                        VerticalAlignment="Center" />
+
+                                                    <TextBlock
+                                                        Grid.Column="1"
+                                                        Text="{x:Bind ReferenceDisplay}"
+                                                        FontSize="10"
+                                                        Opacity="0.65"
+                                                        VerticalAlignment="Center" />
+
+                                                    <TextBlock
+                                                        Grid.Column="2"
+                                                        Text="{x:Bind FormattedPaymentDate}"
+                                                        FontSize="10"
+                                                        Opacity="0.65"
+                                                        VerticalAlignment="Center" />
+
+                                                    <TextBlock
+                                                        Grid.Column="3"
+                                                        Text="{x:Bind FormattedAmount}"
+                                                        FontSize="11"
+                                                        FontWeight="SemiBold"
+                                                        HorizontalAlignment="Right"
+                                                        VerticalAlignment="Center" />
+
+                                                </Grid>
+
+                                            </Border>
+
+                                        </DataTemplate>
+
+                                    </ItemsControl.ItemTemplate>
+
+                                </ItemsControl>
+
+                            </Border>
+
+                        </StackPanel>
+
+                        <!-- ===================================== -->
+                        <!-- PAID / DUE -->
+                        <!-- ===================================== -->
+
+                        <Border
+                            Padding="16"
+                            CornerRadius="8"
+                            Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+
+                            <Grid ColumnSpacing="30">
+
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel
+                                    Grid.Column="0"
+                                    Spacing="2">
+
+                                    <TextBlock
+                                        Text="PAID"
+                                        FontSize="9"
+                                        Opacity="0.55" />
+
+                                    <TextBlock
+                                        Text="{Binding Sale.FormattedPaid}"
+                                        FontSize="18"
+                                        FontWeight="SemiBold" />
+
+                                </StackPanel>
+
+                                <StackPanel
+                                    Grid.Column="1"
+                                    Spacing="2">
+
+                                    <TextBlock
+                                        Text="DUE"
+                                        FontSize="9"
+                                        Opacity="0.55" />
+
+                                    <TextBlock
+                                        Text="{Binding Sale.FormattedDue}"
+                                        FontSize="18"
+                                        FontWeight="SemiBold" />
+
+                                </StackPanel>
+
+                            </Grid>
+
+                        </Border>
+
+                        <!-- ===================================== -->
+                        <!-- NOTES -->
+                        <!-- ===================================== -->
+
+                        <StackPanel
+                            Spacing="5"
+                            Visibility="{Binding HasNotes}">
+
+                            <TextBlock
+                                Text="NOTES"
+                                FontSize="10"
+                                FontWeight="SemiBold"
+                                Opacity="0.55" />
+
+                            <TextBlock
+                                Text="{Binding Sale.Notes}"
+                                FontSize="11"
+                                TextWrapping="Wrap" />
+
+                        </StackPanel>
+
+                        <!-- ===================================== -->
+                        <!-- FOOTER -->
+                        <!-- ===================================== -->
+
+                        <Border
+                            Padding="0,14,0,0"
+                            BorderThickness="0,1,0,0"
+                            BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}">
+
+                            <TextBlock
+                                Text="Thank you for your business."
+                                FontSize="11"
+                                Opacity="0.55"
+                                HorizontalAlignment="Center" />
+
+                        </Border>
+
+                    </StackPanel>
+
+                </Border>
+
+            </Grid>
+
+        </ScrollViewer>
+
+        <!-- ================================================= -->
+        <!-- LOADING -->
+        <!-- ================================================= -->
+
+        <Grid
+            Grid.RowSpan="3"
+            Visibility="{Binding IsLoading}">
+
+            <Border
+                Padding="22"
+                CornerRadius="10"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                <StackPanel
+                    Orientation="Horizontal"
+                    Spacing="12">
+
+                    <ProgressRing
+                        Width="28"
+                        Height="28"
+                        IsActive="{Binding IsLoading}" />
+
+                    <TextBlock
+                        Text="Loading invoice..."
+                        VerticalAlignment="Center" />
+
+                </StackPanel>
+
+            </Border>
+
+        </Grid>
+
+    </Grid>
+
+</Page>

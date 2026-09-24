@@ -1,0 +1,83 @@
+<Window
+    x:Class="InventoryPOS.Desktop.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <NavigationView
+        x:Name="MainNavigation"
+        PaneDisplayMode="Left"
+        IsBackButtonVisible="Collapsed"
+        SelectionChanged="MainNavigation_SelectionChanged">
+
+        <NavigationView.MenuItems>
+
+            <NavigationViewItem
+                Content="Dashboard"
+                Tag="dashboard">
+                <NavigationViewItem.Icon>
+                    <SymbolIcon Symbol="Home" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+
+            <NavigationViewItem
+                Content="POS"
+                Tag="pos">
+                <NavigationViewItem.Icon>
+                    <SymbolIcon Symbol="Shop" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+
+            <NavigationViewItem
+                Content="Sales"
+                Tag="Sales">
+                <NavigationViewItem.Icon>
+                    <SymbolIcon Symbol="Document" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+
+            <NavigationViewItem
+                Content="Products"
+                Tag="products">
+                <NavigationViewItem.Icon>
+                    <SymbolIcon Symbol="AllApps" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+
+            <NavigationViewItem
+                Content="Inventory"
+                Tag="inventory">
+                <NavigationViewItem.Icon>
+                    <SymbolIcon Symbol="Library" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+
+            <NavigationViewItem
+                Content="Purchases"
+                Tag="purchases">
+                <NavigationViewItem.Icon>
+                    <SymbolIcon Symbol="Shop" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+
+            <NavigationViewItem
+                Content="Suppliers"
+                Tag="suppliers">
+                <NavigationViewItem.Icon>
+                    <SymbolIcon Symbol="Contact" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+
+            <NavigationViewItem
+                Content="Customers"
+                Tag="customers">
+                <NavigationViewItem.Icon>
+                    <SymbolIcon Symbol="People" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+        </NavigationView.MenuItems>
+
+        <Frame x:Name="ContentFrame" />
+
+    </NavigationView>
+
+</Window>

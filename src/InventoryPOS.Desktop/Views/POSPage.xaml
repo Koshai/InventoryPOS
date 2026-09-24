@@ -1,0 +1,914 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<Page
+    x:Class="InventoryPOS.Desktop.Views.POSPage"
+    x:Name="PageRoot"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:sales="using:InventoryPOS.Application.DTOs.Sales"
+    xmlns:vm="using:InventoryPOS.Desktop.ViewModels">
+
+    <Grid
+        Padding="22"
+        ColumnSpacing="18"
+        Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="1.05*" />
+            <ColumnDefinition Width="1.35*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- ===================================================== -->
+        <!-- LEFT: PRODUCT BROWSER -->
+        <!-- ===================================================== -->
+
+        <Grid
+            Grid.Column="0"
+            RowSpacing="16">
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- HEADER -->
+
+            <StackPanel Spacing="4">
+
+                <TextBlock
+                    Text="Point of Sale"
+                    FontSize="28"
+                    FontWeight="SemiBold" />
+
+                <TextBlock
+                    Text="Search products and add them to the current sale."
+                    FontSize="13"
+                    Opacity="0.65" />
+
+            </StackPanel>
+
+            <!-- SEARCH / LOCATION -->
+
+            <Grid
+                Grid.Row="1"
+                ColumnSpacing="12">
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="220" />
+                </Grid.ColumnDefinitions>
+
+                <TextBox
+                    Grid.Column="0"
+                    PlaceholderText="Search product or SKU..."
+                    Text="{Binding SearchText,
+                                   Mode=TwoWay,
+                                   UpdateSourceTrigger=PropertyChanged}" />
+
+                <ComboBox
+                    Grid.Column="1"
+                    Header="Location"
+                    ItemsSource="{Binding Locations}"
+                    SelectedItem="{Binding SelectedLocation,
+                                           Mode=TwoWay}"
+                    DisplayMemberPath="Name"
+                    HorizontalAlignment="Stretch" />
+
+            </Grid>
+
+            <!-- PRODUCTS -->
+
+            <Border
+                Grid.Row="2"
+                Padding="14"
+                CornerRadius="10"
+                BorderThickness="1"
+                BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                <Grid>
+
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid
+                        Padding="10,4,10,10"
+                        ColumnSpacing="12">
+
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock
+                            Text="Products"
+                            FontSize="18"
+                            FontWeight="SemiBold" />
+
+                        <TextBlock
+                            Grid.Column="1"
+                            Text="Click a product to add"
+                            FontSize="11"
+                            Opacity="0.55"
+                            VerticalAlignment="Center" />
+
+                    </Grid>
+
+                    <ListView
+                        Grid.Row="1"
+                        ItemsSource="{Binding FilteredProducts}"
+                        IsItemClickEnabled="True"
+                        SelectionMode="None"
+                        ItemClick="Product_ItemClick"
+                        HorizontalContentAlignment="Stretch">
+
+                        <ListView.ItemContainerStyle>
+
+                            <Style TargetType="ListViewItem">
+                                <Setter
+                                    Property="HorizontalContentAlignment"
+                                    Value="Stretch" />
+                            </Style>
+
+                        </ListView.ItemContainerStyle>
+
+                        <ListView.ItemTemplate>
+
+                            <DataTemplate
+                                x:DataType="sales:PosProductDto">
+
+                                <Grid
+                                    Padding="10,12"
+                                    ColumnSpacing="12">
+
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel
+                                        Grid.Column="0"
+                                        Spacing="3">
+
+                                        <TextBlock
+                                            Text="{x:Bind ProductName}"
+                                            FontSize="15"
+                                            FontWeight="SemiBold"
+                                            TextTrimming="CharacterEllipsis" />
+
+                                        <StackPanel
+                                            Orientation="Horizontal"
+                                            Spacing="8">
+
+                                            <TextBlock
+                                                Text="{x:Bind SKU}"
+                                                FontSize="11"
+                                                Opacity="0.60" />
+
+                                            <TextBlock
+                                                Text="•"
+                                                FontSize="11"
+                                                Opacity="0.40" />
+
+                                            <TextBlock
+                                                Text="{x:Bind StockDisplay}"
+                                                FontSize="11"
+                                                Opacity="0.60" />
+
+                                        </StackPanel>
+
+                                    </StackPanel>
+
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        Text="{x:Bind FormattedPrice}"
+                                        FontSize="15"
+                                        FontWeight="SemiBold"
+                                        VerticalAlignment="Center" />
+
+                                </Grid>
+
+                            </DataTemplate>
+
+                        </ListView.ItemTemplate>
+
+                    </ListView>
+
+                </Grid>
+
+            </Border>
+
+        </Grid>
+
+        <!-- ===================================================== -->
+        <!-- RIGHT: CURRENT SALE -->
+        <!-- ===================================================== -->
+
+        <Border
+            Grid.Column="1"
+            Padding="18"
+            CornerRadius="10"
+            BorderThickness="1"
+            BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+            <Grid RowSpacing="10">
+
+                <Grid.RowDefinitions>
+
+                    <!-- Header -->
+                    <RowDefinition Height="Auto" />
+
+                    <!-- Error -->
+                    <RowDefinition Height="Auto" />
+
+                    <!-- Customer -->
+                    <RowDefinition Height="Auto" />
+
+                    <!-- Cart owns remaining space -->
+                    <RowDefinition Height="*" />
+
+                    <!-- Checkout has controlled height -->
+                    <RowDefinition Height="210" />
+
+                    <!-- Complete Sale -->
+                    <RowDefinition Height="Auto" />
+
+                </Grid.RowDefinitions>
+
+                <!-- ================================================= -->
+                <!-- HEADER -->
+                <!-- ================================================= -->
+
+                <Grid Grid.Row="0">
+
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Spacing="2">
+
+                        <TextBlock
+                            Text="Current Sale"
+                            FontSize="20"
+                            FontWeight="SemiBold" />
+
+                        <TextBlock
+                            Text="Review items, customer and payment."
+                            FontSize="11"
+                            Opacity="0.60" />
+
+                    </StackPanel>
+
+                    <TextBlock
+                        Grid.Column="1"
+                        Text="{Binding LastInvoiceNumber}"
+                        FontSize="11"
+                        Opacity="0.60"
+                        VerticalAlignment="Center" />
+
+                </Grid>
+
+                <!-- ================================================= -->
+                <!-- ERROR -->
+                <!-- ================================================= -->
+
+                <InfoBar
+                    x:Name="ErrorInfoBar"
+                    Grid.Row="1"
+                    Severity="Error"
+                    IsClosable="True"
+                    IsOpen="False"
+                    Message="{Binding ErrorMessage}" />
+
+                <!-- ================================================= -->
+                <!-- CUSTOMER -->
+                <!-- ================================================= -->
+
+                <Border
+                    Grid.Row="2"
+                    Padding="10"
+                    CornerRadius="8"
+                    BorderThickness="1"
+                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}">
+
+                    <Grid ColumnSpacing="14">
+
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1.4*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- CUSTOMER SELECTOR -->
+
+                        <StackPanel
+                            Grid.Column="0"
+                            Spacing="4">
+
+                            <TextBlock
+                                Text="Customer"
+                                FontSize="11"
+                                FontWeight="SemiBold" />
+
+                            <Grid ColumnSpacing="8">
+
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <ComboBox
+                                    Grid.Column="0"
+                                    ItemsSource="{Binding Customers}"
+                                    SelectedItem="{Binding SelectedCustomer,
+                                                         Mode=TwoWay}"
+                                    DisplayMemberPath="DisplayName"
+                                    PlaceholderText="Walk-in Customer"
+                                    HorizontalAlignment="Stretch" />
+
+                                <Button
+                                    Grid.Column="1"
+                                    Content="Walk-in"
+                                    Padding="12,6"
+                                    Click="WalkInCustomerButton_Click" />
+
+                            </Grid>
+
+                        </StackPanel>
+
+                        <!-- CUSTOMER CREDIT -->
+
+                        <StackPanel
+                            Grid.Column="1"
+                            Spacing="2"
+                            VerticalAlignment="Center"
+                            Visibility="{Binding HasSelectedCustomer}">
+
+                            <TextBlock
+                                Text="Available Credit"
+                                FontSize="10"
+                                Opacity="0.60" />
+
+                            <TextBlock
+                                Text="{Binding FormattedCustomerAvailableCredit}"
+                                FontSize="17"
+                                FontWeight="SemiBold" />
+
+                            <StackPanel
+                                Orientation="Horizontal"
+                                Spacing="5">
+
+                                <TextBlock
+                                    Text="Outstanding:"
+                                    FontSize="10"
+                                    Opacity="0.55" />
+
+                                <TextBlock
+                                    Text="{Binding FormattedCustomerOutstanding}"
+                                    FontSize="10"
+                                    Opacity="0.75" />
+
+                            </StackPanel>
+
+                        </StackPanel>
+
+                    </Grid>
+
+                </Border>
+
+                <!-- ================================================= -->
+                <!-- CART -->
+                <!-- ================================================= -->
+
+                <Border
+                    Grid.Row="3"
+                    MinHeight="180"
+                    CornerRadius="8"
+                    BorderThickness="1"
+                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}">
+
+                    <Grid>
+
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <!-- CART TITLE -->
+
+                        <Grid
+                            Grid.Row="0"
+                            Padding="12,8"
+                            Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock
+                                Text="Cart"
+                                FontSize="15"
+                                FontWeight="SemiBold" />
+
+                            <TextBlock
+                                Grid.Column="1"
+                                Text="Scroll for additional items"
+                                FontSize="10"
+                                Opacity="0.55"
+                                VerticalAlignment="Center" />
+
+                        </Grid>
+
+                        <!-- COLUMN HEADERS -->
+
+                        <Grid
+                            Grid.Row="1"
+                            Padding="12,6"
+                            ColumnSpacing="10">
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="125" />
+                                <ColumnDefinition Width="100" />
+                                <ColumnDefinition Width="40" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock
+                                Grid.Column="0"
+                                Text="Product"
+                                FontSize="10"
+                                Opacity="0.55" />
+
+                            <TextBlock
+                                Grid.Column="1"
+                                Text="Quantity"
+                                FontSize="10"
+                                Opacity="0.55" />
+
+                            <TextBlock
+                                Grid.Column="2"
+                                Text="Total"
+                                FontSize="10"
+                                Opacity="0.55" />
+
+                        </Grid>
+
+                        <!--
+                            IMPORTANT:
+                            This is a genuinely constrained viewport.
+
+                            The ScrollViewer lives in the * row.
+                            It therefore receives the remaining finite
+                            height of the Cart Grid and can scroll its
+                            ItemsControl independently.
+                        -->
+
+                        <ScrollViewer
+                            Grid.Row="2"
+                            VerticalScrollMode="Enabled"
+                            VerticalScrollBarVisibility="Auto"
+                            HorizontalScrollMode="Disabled"
+                            HorizontalScrollBarVisibility="Disabled">
+
+                            <ItemsControl
+                                ItemsSource="{Binding CartLines}">
+
+                                <ItemsControl.ItemTemplate>
+
+                                    <DataTemplate
+                                        x:DataType="vm:PosCartLineViewModel">
+
+                                        <Border
+                                            Padding="12,8"
+                                            BorderThickness="0,1,0,0"
+                                            BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}">
+
+                                            <Grid ColumnSpacing="10">
+
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="125" />
+                                                    <ColumnDefinition Width="100" />
+                                                    <ColumnDefinition Width="40" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <!-- PRODUCT -->
+
+                                                <StackPanel
+                                                    Grid.Column="0"
+                                                    Spacing="2"
+                                                    VerticalAlignment="Center">
+
+                                                    <TextBlock
+                                                        Text="{x:Bind ProductName}"
+                                                        FontSize="13"
+                                                        FontWeight="SemiBold"
+                                                        TextTrimming="CharacterEllipsis" />
+
+                                                    <StackPanel
+                                                        Orientation="Horizontal"
+                                                        Spacing="5">
+
+                                                        <TextBlock
+                                                            Text="{x:Bind SKU}"
+                                                            FontSize="10"
+                                                            Opacity="0.55" />
+
+                                                        <TextBlock
+                                                            Text="•"
+                                                            FontSize="10"
+                                                            Opacity="0.35" />
+
+                                                        <TextBlock
+                                                            Text="{x:Bind FormattedUnitPrice}"
+                                                            FontSize="10"
+                                                            Opacity="0.70" />
+
+                                                    </StackPanel>
+
+                                                </StackPanel>
+
+                                                <!-- QUANTITY -->
+
+                                                <NumberBox
+                                                    Grid.Column="1"
+                                                    Minimum="0.001"
+                                                    Maximum="{x:Bind QuantityAvailableForNumberBox}"
+                                                    SmallChange="1"
+                                                    Value="{x:Bind Quantity,
+                                                                  Mode=TwoWay}"
+                                                    SpinButtonPlacementMode="Compact"
+                                                    VerticalAlignment="Center"
+                                                    ValueChanged="Quantity_ValueChanged" />
+
+                                                <!-- TOTAL -->
+
+                                                <TextBlock
+                                                    Grid.Column="2"
+                                                    Text="{x:Bind FormattedLineTotal,
+                                                                  Mode=OneWay}"
+                                                    FontSize="13"
+                                                    FontWeight="SemiBold"
+                                                    VerticalAlignment="Center" />
+
+                                                <!-- REMOVE -->
+
+                                                <Button
+                                                    Grid.Column="3"
+                                                    Content="×"
+                                                    Tag="{x:Bind}"
+                                                    Width="34"
+                                                    Height="34"
+                                                    Padding="0"
+                                                    FontSize="17"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    ToolTipService.ToolTip="Remove item"
+                                                    Click="RemoveLineButton_Click" />
+
+                                            </Grid>
+
+                                        </Border>
+
+                                    </DataTemplate>
+
+                                </ItemsControl.ItemTemplate>
+
+                            </ItemsControl>
+
+                        </ScrollViewer>
+
+                    </Grid>
+
+                </Border>
+
+                <!-- ================================================= -->
+                <!-- CHECKOUT -->
+                <!-- ================================================= -->
+
+                <Border
+                    Grid.Row="4"
+                    Padding="10"
+                    CornerRadius="8"
+                    Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+
+                    <Grid
+                        RowSpacing="7">
+
+                        <Grid.RowDefinitions>
+
+                            <!-- Total / Add payment -->
+                            <RowDefinition Height="Auto" />
+
+                            <!-- Payment list owns remaining checkout space -->
+                            <RowDefinition Height="*" />
+
+                            <!-- Summary always visible -->
+                            <RowDefinition Height="Auto" />
+
+                        </Grid.RowDefinitions>
+
+                        <!-- ========================================= -->
+                        <!-- TOTAL / PAYMENT HEADER -->
+                        <!-- ========================================= -->
+
+                        <Grid Grid.Row="0">
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- TOTAL -->
+
+                            <StackPanel
+                                Grid.Column="0"
+                                Orientation="Horizontal"
+                                Spacing="7"
+                                VerticalAlignment="Center">
+
+                                <TextBlock
+                                    Text="Total"
+                                    FontSize="11"
+                                    Opacity="0.60"
+                                    VerticalAlignment="Center" />
+
+                                <TextBlock
+                                    Text="{Binding FormattedTotal}"
+                                    FontSize="19"
+                                    FontWeight="SemiBold"
+                                    VerticalAlignment="Center" />
+
+                            </StackPanel>
+
+                            <!-- PAYMENT LABEL -->
+
+                            <TextBlock
+                                Grid.Column="1"
+                                Margin="12,0"
+                                Text="Payments"
+                                FontSize="12"
+                                FontWeight="SemiBold"
+                                VerticalAlignment="Center" />
+
+                            <!-- ADD PAYMENT -->
+
+                            <Button
+                                Grid.Column="2"
+                                Content="+ Add Payment"
+                                Padding="10,4"
+                                Click="AddPaymentButton_Click" />
+
+                        </Grid>
+
+                        <!-- ========================================= -->
+                        <!-- PAYMENT SCROLLER -->
+                        <!-- ========================================= -->
+
+                        <Border
+                            Grid.Row="1"
+                            CornerRadius="6"
+                            BorderThickness="1"
+                            BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                            <Grid>
+
+                                <!--
+                                    Payment list has its own independent
+                                    bounded viewport because this Border
+                                    occupies the * row of the 210px
+                                    Checkout area.
+                                -->
+
+                                <ScrollViewer
+                                    VerticalScrollMode="Enabled"
+                                    VerticalScrollBarVisibility="Auto"
+                                    HorizontalScrollMode="Disabled"
+                                    HorizontalScrollBarVisibility="Disabled">
+
+                                    <ItemsControl
+                                        ItemsSource="{Binding PaymentLines}">
+
+                                        <ItemsControl.ItemTemplate>
+
+                                            <DataTemplate
+                                                x:DataType="vm:PosPaymentLineViewModel">
+
+                                                <Border
+                                                    Padding="8,6"
+                                                    BorderThickness="0,0,0,1"
+                                                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}">
+
+                                                    <Grid ColumnSpacing="8">
+
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="135" />
+                                                            <ColumnDefinition Width="115" />
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="36" />
+                                                        </Grid.ColumnDefinitions>
+
+                                                        <!-- METHOD -->
+
+                                                        <ComboBox
+                                                            Grid.Column="0"
+                                                            ItemsSource="{x:Bind PaymentMethods}"
+                                                            SelectedItem="{x:Bind SelectedPaymentMethod,
+                                                                                 Mode=TwoWay}"
+                                                            HorizontalAlignment="Stretch"
+                                                            VerticalAlignment="Center" />
+
+                                                        <!-- AMOUNT -->
+
+                                                        <NumberBox
+                                                            Grid.Column="1"
+                                                            Minimum="0"
+                                                            SmallChange="1"
+                                                            SpinButtonPlacementMode="Compact"
+                                                            Value="{x:Bind Amount,
+                                                                          Mode=TwoWay}"
+                                                            VerticalAlignment="Center" />
+
+                                                        <!-- REFERENCE -->
+
+                                                        <TextBox
+                                                            Grid.Column="2"
+                                                            Text="{x:Bind ReferenceNumber,
+                                                                          Mode=TwoWay,
+                                                                          UpdateSourceTrigger=PropertyChanged}"
+                                                            PlaceholderText="{x:Bind ReferenceLabel,
+                                                                                     Mode=OneWay}"
+                                                            Visibility="{x:Bind RequiresReference,
+                                                                                Mode=OneWay}"
+                                                            VerticalAlignment="Center" />
+
+                                                        <!-- REMOVE -->
+
+                                                        <Button
+                                                            Grid.Column="3"
+                                                            Content="×"
+                                                            Tag="{x:Bind}"
+                                                            Width="32"
+                                                            Height="32"
+                                                            Padding="0"
+                                                            FontSize="16"
+                                                            HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center"
+                                                            ToolTipService.ToolTip="Remove payment"
+                                                            Click="RemovePaymentButton_Click" />
+
+                                                    </Grid>
+
+                                                </Border>
+
+                                            </DataTemplate>
+
+                                        </ItemsControl.ItemTemplate>
+
+                                    </ItemsControl>
+
+                                </ScrollViewer>
+
+                            </Grid>
+
+                        </Border>
+
+                        <!-- ========================================= -->
+                        <!-- ALWAYS-VISIBLE PAYMENT SUMMARY -->
+                        <!-- ========================================= -->
+
+                        <Grid
+                            Grid.Row="2"
+                            ColumnSpacing="18"
+                            Padding="4,2,4,0">
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="1.25*" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- PAID -->
+
+                            <StackPanel
+                                Grid.Column="0"
+                                Spacing="1">
+
+                                <TextBlock
+                                    Text="Paid"
+                                    FontSize="9"
+                                    Opacity="0.55" />
+
+                                <TextBlock
+                                    Text="{Binding FormattedPaidAmount}"
+                                    FontSize="13"
+                                    FontWeight="SemiBold" />
+
+                            </StackPanel>
+
+                            <!-- DUE -->
+
+                            <StackPanel
+                                Grid.Column="1"
+                                Spacing="1">
+
+                                <TextBlock
+                                    Text="Due"
+                                    FontSize="9"
+                                    Opacity="0.55" />
+
+                                <TextBlock
+                                    Text="{Binding FormattedDueAmount}"
+                                    FontSize="13"
+                                    FontWeight="SemiBold" />
+
+                            </StackPanel>
+
+                            <!-- STATUS -->
+
+                            <StackPanel
+                                Grid.Column="2"
+                                Spacing="1">
+
+                                <TextBlock
+                                    Text="Status"
+                                    FontSize="9"
+                                    Opacity="0.55" />
+
+                                <TextBlock
+                                    Text="{Binding PaymentStatusDisplay}"
+                                    FontSize="12"
+                                    FontWeight="SemiBold" />
+
+                            </StackPanel>
+
+                        </Grid>
+
+                    </Grid>
+
+                </Border>
+
+                <!-- ================================================= -->
+                <!-- COMPLETE -->
+                <!-- ================================================= -->
+
+                <Button
+                    Grid.Row="5"
+                    Content="Complete Sale"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Center"
+                    Padding="20,10"
+                    FontSize="15"
+                    FontWeight="SemiBold"
+                    IsEnabled="{Binding HasItems}"
+                    Click="CompleteSaleButton_Click" />
+
+            </Grid>
+
+        </Border>
+
+        <!-- ===================================================== -->
+        <!-- LOADING -->
+        <!-- ===================================================== -->
+
+        <Grid
+            Grid.ColumnSpan="2"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Visibility="{Binding IsLoading}">
+
+            <Border
+                Padding="22"
+                CornerRadius="10"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                <StackPanel
+                    Orientation="Horizontal"
+                    Spacing="12">
+
+                    <ProgressRing
+                        Width="28"
+                        Height="28"
+                        IsActive="{Binding IsLoading}" />
+
+                    <TextBlock
+                        Text="Loading POS..."
+                        VerticalAlignment="Center" />
+
+                </StackPanel>
+
+            </Border>
+
+        </Grid>
+
+    </Grid>
+
+</Page>

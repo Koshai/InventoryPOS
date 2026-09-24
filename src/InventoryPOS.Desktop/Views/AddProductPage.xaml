@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="InventoryPOS.Desktop.Views.AddProductPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer>
+        <Grid Padding="28"
+              MaxWidth="900"
+              HorizontalAlignment="Left">
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <StackPanel Spacing="6">
+                <TextBlock
+                    Text="Add Product"
+                    FontSize="28"
+                    FontWeight="SemiBold" />
+
+                <TextBlock
+                    Text="Create a product and its initial selling variant."
+                    Opacity="0.65" />
+            </StackPanel>
+
+            <StackPanel
+                Grid.Row="1"
+                Margin="0,28,0,0"
+                Spacing="16">
+
+                <StackPanel Spacing="10">
+
+                    <TextBlock
+                        Text="Product Image"
+                        FontWeight="SemiBold" />
+
+                    <Border
+                        Width="180"
+                        Height="180"
+                        HorizontalAlignment="Left"
+                        BorderThickness="1"
+                        CornerRadius="8">
+
+                        <Image
+                            x:Name="ProductImagePreview"
+                            Stretch="UniformToFill" />
+
+                    </Border>
+
+                    <StackPanel
+                        Orientation="Horizontal"
+                        Spacing="8">
+
+                        <Button
+                            Content="Choose Image"
+                            Click="ChooseImageButton_Click" />
+
+                        <Button
+                            x:Name="RemoveImageButton"
+                            Content="Remove"
+                            Visibility="Collapsed"
+                            Click="RemoveImageButton_Click" />
+
+                    </StackPanel>
+
+                </StackPanel>
+
+                <TextBox
+                    Header="Product name"
+                    PlaceholderText="Example: Premium Rice"
+                    Text="{Binding Name, Mode=TwoWay}" />
+
+                <TextBox
+                    Header="Product name (বাংলা)"
+                    Text="{Binding NameBn, Mode=TwoWay}" />
+
+                <TextBox
+                    Header="Description"
+                    AcceptsReturn="True"
+                    Height="90"
+                    Text="{Binding Description, Mode=TwoWay}" />
+
+                <ComboBox
+                    Header="Category"
+                    ItemsSource="{Binding Categories}"
+                    SelectedItem="{Binding SelectedCategory, Mode=TwoWay}"
+                    DisplayMemberPath="Name" />
+
+                <ComboBox
+                    Header="Brand"
+                    ItemsSource="{Binding Brands}"
+                    SelectedItem="{Binding SelectedBrand, Mode=TwoWay}"
+                    DisplayMemberPath="Name"
+                    PlaceholderText="Optional" />
+
+                <ComboBox
+                    Header="Unit"
+                    ItemsSource="{Binding Units}"
+                    SelectedItem="{Binding SelectedUnit, Mode=TwoWay}"
+                    DisplayMemberPath="Name" />
+
+                <TextBox
+                    Header="SKU"
+                    PlaceholderText="Example: RICE-001"
+                    Text="{Binding SKU, Mode=TwoWay}" />
+
+                <NumberBox
+                    Header="Cost Price"
+                    Minimum="0"
+                    Value="{Binding CostPrice, Mode=TwoWay}" />
+
+                <NumberBox
+                    Header="Selling Price"
+                    Minimum="0"
+                    Value="{Binding SellingPrice, Mode=TwoWay}" />
+
+                <NumberBox
+                    Header="Reorder Level"
+                    Minimum="0"
+                    Value="{Binding ReorderLevel, Mode=TwoWay}" />
+
+                <InfoBar
+                    x:Name="ErrorInfoBar"
+                    IsOpen="False"
+                    Severity="Error"
+                    Message="{Binding ErrorMessage}" />
+
+            </StackPanel>
+
+            <StackPanel
+                Grid.Row="2"
+                Orientation="Horizontal"
+                Spacing="10"
+                Margin="0,24,0,0">
+
+                <Button
+                    Content="Save Product"
+                    Click="SaveButton_Click" />
+
+                <Button
+                    Content="Cancel"
+                    Click="CancelButton_Click" />
+
+                <ProgressRing
+                    IsActive="{Binding IsSaving}"
+                    Width="24"
+                    Height="24" />
+
+            </StackPanel>
+
+        </Grid>
+    </ScrollViewer>
+</Page>

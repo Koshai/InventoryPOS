@@ -1,0 +1,314 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="InventoryPOS.Desktop.Views.CreatePurchaseOrderPage"
+    x:Name="PageRoot"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:InventoryPOS.Desktop.ViewModels"
+    mc:Ignorable="d">
+
+    <Grid
+        Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+        <ScrollViewer
+            VerticalScrollBarVisibility="Auto"
+            HorizontalScrollBarVisibility="Disabled">
+
+            <StackPanel
+                Width="1100"
+                Padding="28"
+                Spacing="22"
+                HorizontalAlignment="Center">
+
+                <!-- Header -->
+
+                <StackPanel Spacing="4">
+
+                    <TextBlock
+                        Text="New Purchase Order"
+                        FontSize="28"
+                        FontWeight="SemiBold" />
+
+                    <TextBlock
+                        Text="Create an order for products from a supplier."
+                        FontSize="14"
+                        Opacity="0.65" />
+
+                </StackPanel>
+
+                <InfoBar
+                    x:Name="ErrorInfoBar"
+                    Severity="Error"
+                    IsClosable="True"
+                    IsOpen="False"
+                    Message="{Binding ErrorMessage}" />
+
+                <!-- Order information -->
+
+                <Border
+                    Padding="24"
+                    CornerRadius="10"
+                    BorderThickness="1"
+                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                    <StackPanel Spacing="18">
+
+                        <TextBlock
+                            Text="Order Information"
+                            FontSize="18"
+                            FontWeight="SemiBold" />
+
+                        <Grid ColumnSpacing="18">
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*" />
+                                <ColumnDefinition Width="1.4*" />
+                                <ColumnDefinition Width="1.2*" />
+                            </Grid.ColumnDefinitions>
+
+                            <ComboBox
+                                Grid.Column="0"
+                                Header="Supplier"
+                                ItemsSource="{Binding Suppliers}"
+                                SelectedItem="{Binding SelectedSupplier, Mode=TwoWay}"
+                                DisplayMemberPath="DisplayName"
+                                HorizontalAlignment="Stretch" />
+
+                            <ComboBox
+                                Grid.Column="1"
+                                Header="Location"
+                                ItemsSource="{Binding Locations}"
+                                SelectedItem="{Binding SelectedLocation, Mode=TwoWay}"
+                                DisplayMemberPath="DisplayName"
+                                HorizontalAlignment="Stretch" />
+
+                            <CalendarDatePicker
+                                Grid.Column="2"
+                                Header="Expected Date"
+                                Date="{Binding ExpectedDate, Mode=TwoWay}"
+                                HorizontalAlignment="Stretch" />
+
+                        </Grid>
+
+                    </StackPanel>
+
+                </Border>
+
+                <!-- Items -->
+
+                <Border
+                    Padding="24"
+                    CornerRadius="10"
+                    BorderThickness="1"
+                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                    <StackPanel Spacing="16">
+
+                        <Grid>
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock
+                                Text="Order Items"
+                                FontSize="18"
+                                FontWeight="SemiBold" />
+
+                            <Button
+                                Grid.Column="1"
+                                Content="+ Add Product"
+                                Padding="14,8"
+                                Click="AddProductButton_Click" />
+
+                        </Grid>
+
+                        <!-- Column headers -->
+
+                        <Grid ColumnSpacing="12">
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="3*" />
+                                <ColumnDefinition Width="1*" />
+                                <ColumnDefinition Width="1.2*" />
+                                <ColumnDefinition Width="1.1*" />
+                                <ColumnDefinition Width="1.3*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0" Text="Product" FontWeight="SemiBold" />
+                            <TextBlock Grid.Column="1" Text="Quantity" FontWeight="SemiBold" />
+                            <TextBlock Grid.Column="2" Text="Unit Cost" FontWeight="SemiBold" />
+                            <TextBlock Grid.Column="3" Text="Warranty" FontWeight="SemiBold" />
+                            <TextBlock Grid.Column="4" Text="Line Total" FontWeight="SemiBold" />
+
+                        </Grid>
+
+                        <ItemsControl
+                            ItemsSource="{Binding Lines}">
+
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:PurchaseOrderLineEditViewModel">
+
+                                    <Grid
+                                        ColumnSpacing="12"
+                                        Margin="0,4">
+
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="3*" />
+                                            <ColumnDefinition Width="1*" />
+                                            <ColumnDefinition Width="1.2*" />
+                                            <ColumnDefinition Width="1.1*" />
+                                            <ColumnDefinition Width="1.3*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <ComboBox
+                                            Grid.Column="0"
+                                            ItemsSource="{Binding DataContext.Products,
+                                                ElementName=PageRoot}"
+                                            SelectedItem="{Binding SelectedProduct, Mode=TwoWay}"
+                                            DisplayMemberPath="DisplayName"
+                                            HorizontalAlignment="Stretch" />
+
+                                        <NumberBox
+                                            Grid.Column="1"
+                                            Value="{Binding Quantity, Mode=TwoWay}"
+                                            Minimum="0"
+                                            SpinButtonPlacementMode="Compact"
+                                            HorizontalAlignment="Stretch" />
+
+                                        <NumberBox
+                                            Grid.Column="2"
+                                            Value="{Binding UnitCost, Mode=TwoWay}"
+                                            Minimum="0"
+                                            SpinButtonPlacementMode="Compact"
+                                            HorizontalAlignment="Stretch" />
+
+                                        <NumberBox
+                                            Grid.Column="3"
+                                            Value="{Binding WarrantyMonths, Mode=TwoWay}"
+                                            Minimum="0"
+                                            SpinButtonPlacementMode="Compact"
+                                            HorizontalAlignment="Stretch" />
+
+                                        <TextBlock
+                                            Grid.Column="4"
+                                            Text="{Binding LineTotalDisplay}"
+                                            VerticalAlignment="Center" />
+
+                                        <Button
+                                            Grid.Column="5"
+                                            Content="Remove"
+                                            Tag="{Binding}"
+                                            Click="RemoveLineButton_Click" />
+
+                                    </Grid>
+
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+
+                        </ItemsControl>
+
+                        <Border
+                            Height="1"
+                            Margin="0,8"
+                            Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
+
+                        <Grid>
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel
+                                Grid.Column="1"
+                                Orientation="Horizontal"
+                                Spacing="12">
+
+                                <TextBlock
+                                    Text="Total"
+                                    FontSize="18"
+                                    FontWeight="SemiBold" />
+
+                                <TextBlock
+                                    Text="{Binding TotalAmountDisplay}"
+                                    FontSize="18"
+                                    FontWeight="SemiBold" />
+
+                            </StackPanel>
+
+                        </Grid>
+
+                    </StackPanel>
+
+                </Border>
+
+                <!-- Notes -->
+
+                <Border
+                    Padding="24"
+                    CornerRadius="10"
+                    BorderThickness="1"
+                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                    <TextBox
+                        Header="Notes"
+                        PlaceholderText="Optional purchase order notes..."
+                        AcceptsReturn="True"
+                        TextWrapping="Wrap"
+                        MinHeight="100"
+                        Text="{Binding Notes, Mode=TwoWay}" />
+
+                </Border>
+
+                <!-- Actions -->
+
+                <Grid>
+
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel
+                        Grid.Column="1"
+                        Orientation="Horizontal"
+                        Spacing="10">
+
+                        <Button
+                            Content="Cancel"
+                            Padding="20,10"
+                            Click="CancelButton_Click" />
+
+                        <Button
+                            Content="Create Purchase Order"
+                            Padding="22,10"
+                            Click="CreatePurchaseOrderButton_Click" />
+
+                    </StackPanel>
+
+                </Grid>
+
+            </StackPanel>
+
+        </ScrollViewer>
+
+        <ProgressRing
+            Width="40"
+            Height="40"
+            IsActive="{Binding IsLoading}"
+            Visibility="{Binding IsLoading}"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center" />
+
+    </Grid>
+
+</Page>

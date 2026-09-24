@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "InventoryPOS.Desktop (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "InventoryPOS.Desktop (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
