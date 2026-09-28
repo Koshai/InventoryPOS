@@ -1,0 +1,513 @@
+<Page
+    x:Class="InventoryPOS.Desktop.Views.PurchaseRequisitionDetailsPage"
+    x:Name="RootPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:dto="using:InventoryPOS.Application.DTOs.Purchasing"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+    <Grid>
+
+        <ScrollViewer>
+
+            <Grid
+                Padding="28"
+                MaxWidth="1400"
+                HorizontalAlignment="Stretch">
+
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- HEADER -->
+
+                <Grid Grid.Row="0">
+
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Button
+                        Content="← Back to Requisitions"
+                        HorizontalAlignment="Left"
+                        Padding="12,7"
+                        Margin="0,0,0,14"
+                        Click="Back_Click"/>
+
+                    <Grid Grid.Row="1">
+
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Spacing="4">
+
+                            <TextBlock
+                                Text="Purchase Requisition"
+                                FontSize="13"
+                                Opacity="0.65"/>
+
+                            <TextBlock
+                                Text="{x:Bind ViewModel.RequisitionNumber, Mode=OneWay}"
+                                FontSize="28"
+                                FontWeight="SemiBold"/>
+
+                        </StackPanel>
+
+                        <StackPanel
+                            Grid.Column="1"
+                            Orientation="Horizontal"
+                            Spacing="10"
+                            VerticalAlignment="Center">
+
+                            <Border
+                                Padding="14,7"
+                                CornerRadius="14"
+                                Background="{ThemeResource AccentFillColorSecondaryBrush}">
+
+                                <TextBlock
+                                    Text="{x:Bind ViewModel.StatusDisplay, Mode=OneWay}"
+                                    FontWeight="SemiBold"/>
+
+                            </Border>
+
+                            <Button
+                                Content="Mark as Sent"
+                                Padding="16,9"
+                                IsEnabled="{x:Bind ViewModel.CanMarkAsSent, Mode=OneWay}"
+                                Click="MarkAsSent_Click"/>
+
+                            <Button
+                                Content="Cancel"
+                                Padding="16,9"
+                                IsEnabled="{x:Bind ViewModel.CanCancel, Mode=OneWay}"
+                                Click="Cancel_Click"/>
+
+                            <Button
+                                Content="Export RFQ PDF"
+                                Padding="16,9"
+                                Click="ExportPdf_Click"/>
+
+                            <Button
+                                Content="Print RFQ"
+                                Padding="16,9"
+                                Click="PrintPdf_Click"/>
+                            <Button
+                                Content="Convert to PO"
+                                Padding="16,9"
+                                IsEnabled="{x:Bind ViewModel.CanConvertToPurchaseOrder, Mode=OneWay}"
+                                Click="ConvertToPurchaseOrder_Click"/>
+
+                        </StackPanel>
+
+                    </Grid>
+
+                </Grid>
+
+                <!-- ERROR -->
+
+                <InfoBar
+                    Grid.Row="1"
+                    Margin="0,18,0,0"
+                    IsOpen="{x:Bind ViewModel.HasError, Mode=OneWay}"
+                    Severity="Error"
+                    Title="Unable to load requisition"
+                    Message="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"/>
+
+                <!-- DOCUMENT INFO -->
+
+                <Border
+                    Grid.Row="2"
+                    Margin="0,20,0,0"
+                    Padding="20"
+                    CornerRadius="10"
+                    BorderThickness="1"
+                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                    <StackPanel Spacing="20">
+
+                        <TextBlock
+                            Text="Requisition Information"
+                            FontSize="18"
+                            FontWeight="SemiBold"/>
+
+                        <Grid
+                            ColumnSpacing="24"
+                            RowSpacing="18">
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- SUPPLIER -->
+
+                            <StackPanel Spacing="4">
+
+                                <TextBlock
+                                    Text="Supplier"
+                                    FontSize="12"
+                                    Opacity="0.6"/>
+
+                                <TextBlock
+                                    Text="{x:Bind ViewModel.Requisition.SupplierName, Mode=OneWay}"
+                                    FontWeight="SemiBold"/>
+
+                            </StackPanel>
+
+                            <!-- LOCATION -->
+
+                            <StackPanel
+                                Grid.Column="1"
+                                Spacing="4">
+
+                                <TextBlock
+                                    Text="Location"
+                                    FontSize="12"
+                                    Opacity="0.6"/>
+
+                                <TextBlock
+                                    Text="{x:Bind ViewModel.Requisition.LocationName, Mode=OneWay}"
+                                    FontWeight="SemiBold"/>
+
+                            </StackPanel>
+
+                            <!-- DATE -->
+
+                            <StackPanel
+                                Grid.Column="2"
+                                Spacing="4">
+
+                                <TextBlock
+                                    Text="Requisition Date"
+                                    FontSize="12"
+                                    Opacity="0.6"/>
+
+                                <TextBlock
+                                    Text="{x:Bind ViewModel.RequisitionDateDisplay, Mode=OneWay}"
+                                    FontWeight="SemiBold"/>
+
+                            </StackPanel>
+
+                            <!-- REQUIRED -->
+
+                            <StackPanel
+                                Grid.Row="1"
+                                Spacing="4">
+
+                                <TextBlock
+                                    Text="Required By"
+                                    FontSize="12"
+                                    Opacity="0.6"/>
+
+                                <TextBlock
+                                    Text="{x:Bind ViewModel.RequiredByDateDisplay, Mode=OneWay}"/>
+
+                            </StackPanel>
+
+                            <!-- VALID -->
+
+                            <StackPanel
+                                Grid.Row="1"
+                                Grid.Column="1"
+                                Spacing="4">
+
+                                <TextBlock
+                                    Text="Valid Until"
+                                    FontSize="12"
+                                    Opacity="0.6"/>
+
+                                <TextBlock
+                                    Text="{x:Bind ViewModel.ValidUntilDateDisplay, Mode=OneWay}"/>
+
+                            </StackPanel>
+
+                            <!-- LINKED PO -->
+
+                            <StackPanel
+                                Grid.Row="1"
+                                Grid.Column="2"
+                                Spacing="4">
+
+                                <TextBlock
+                                    Text="Purchase Order"
+                                    FontSize="12"
+                                    Opacity="0.6"/>
+
+                                <TextBlock
+                                    Text="{x:Bind ViewModel.Requisition.PurchaseOrderNumber, Mode=OneWay}"/>
+
+                            </StackPanel>
+
+                            <!-- SUBJECT -->
+
+                            <StackPanel
+                                Grid.Row="2"
+                                Grid.ColumnSpan="3"
+                                Spacing="4">
+
+                                <TextBlock
+                                    Text="Subject"
+                                    FontSize="12"
+                                    Opacity="0.6"/>
+
+                                <TextBlock
+                                    Text="{x:Bind ViewModel.Requisition.Subject, Mode=OneWay}"
+                                    TextWrapping="Wrap"
+                                    FontWeight="SemiBold"/>
+
+                            </StackPanel>
+
+                        </Grid>
+
+                    </StackPanel>
+
+                </Border>
+
+                <!-- ITEMS -->
+
+                <Border
+                    Grid.Row="3"
+                    Margin="0,16,0,0"
+                    CornerRadius="10"
+                    BorderThickness="1"
+                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                    <Grid>
+
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock
+                            Margin="20,18"
+                            Text="Requested Items"
+                            FontSize="18"
+                            FontWeight="SemiBold"/>
+
+                        <!-- TABLE HEADER -->
+
+                        <Grid
+                            Grid.Row="1"
+                            Padding="20,11"
+                            ColumnSpacing="12"
+                            Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2.2*"/>
+                                <ColumnDefinition Width="1.1*"/>
+                                <ColumnDefinition Width="0.8*"/>
+                                <ColumnDefinition Width="1.1*"/>
+                                <ColumnDefinition Width="1.1*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock
+                                Text="Product"
+                                FontWeight="SemiBold"/>
+
+                            <TextBlock
+                                Grid.Column="1"
+                                Text="SKU"
+                                FontWeight="SemiBold"/>
+
+                            <TextBlock
+                                Grid.Column="2"
+                                Text="Qty"
+                                HorizontalAlignment="Right"
+                                FontWeight="SemiBold"/>
+
+                            <TextBlock
+                                Grid.Column="3"
+                                Text="Est. Unit Cost"
+                                HorizontalAlignment="Right"
+                                FontWeight="SemiBold"/>
+
+                            <TextBlock
+                                Grid.Column="4"
+                                Text="Est. Total"
+                                HorizontalAlignment="Right"
+                                FontWeight="SemiBold"/>
+
+                        </Grid>
+
+                        <ItemsControl
+                            Grid.Row="2"
+                            ItemsSource="{x:Bind ViewModel.Lines, Mode=OneWay}">
+
+                            <ItemsControl.ItemTemplate>
+
+                                <DataTemplate
+                                    x:DataType="dto:PurchaseRequisitionDetailsLineDto">
+
+                                    <Grid
+                                        Padding="20,13"
+                                        ColumnSpacing="12">
+
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="2.2*"/>
+                                            <ColumnDefinition Width="1.1*"/>
+                                            <ColumnDefinition Width="0.8*"/>
+                                            <ColumnDefinition Width="1.1*"/>
+                                            <ColumnDefinition Width="1.1*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel Spacing="2">
+
+                                            <TextBlock
+                                                Text="{x:Bind ProductName}"
+                                                FontWeight="SemiBold"
+                                                TextTrimming="CharacterEllipsis"/>
+
+                                            <TextBlock
+                                                Text="{x:Bind Description}"
+                                                FontSize="11"
+                                                Opacity="0.6"
+                                                TextWrapping="Wrap"/>
+
+                                        </StackPanel>
+
+                                        <TextBlock
+                                            Grid.Column="1"
+                                            Text="{x:Bind SKU}"
+                                            VerticalAlignment="Center"/>
+
+                                        <TextBlock
+                                            Grid.Column="2"
+                                            Text="{x:Bind RequestedQuantityDisplay}"
+                                            HorizontalAlignment="Right"
+                                            VerticalAlignment="Center"/>
+
+                                        <TextBlock
+                                            Grid.Column="3"
+                                            Text="{x:Bind EstimatedUnitCostDisplay}"
+                                            HorizontalAlignment="Right"
+                                            VerticalAlignment="Center"/>
+
+                                        <TextBlock
+                                            Grid.Column="4"
+                                            Text="{x:Bind EstimatedLineTotalDisplay}"
+                                            HorizontalAlignment="Right"
+                                            VerticalAlignment="Center"
+                                            FontWeight="SemiBold"/>
+
+                                    </Grid>
+
+                                </DataTemplate>
+
+                            </ItemsControl.ItemTemplate>
+
+                        </ItemsControl>
+
+                    </Grid>
+
+                </Border>
+
+                <!-- NOTES / TOTAL -->
+
+                <Border
+                    Grid.Row="4"
+                    Margin="0,16,0,30"
+                    Padding="20"
+                    CornerRadius="10"
+                    BorderThickness="1"
+                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                    <Grid ColumnSpacing="30">
+
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*"/>
+                            <ColumnDefinition Width="1*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Spacing="20">
+
+                            <StackPanel Spacing="6">
+
+                                <TextBlock
+                                    Text="Notes"
+                                    FontWeight="SemiBold"/>
+
+                                <TextBlock
+                                    Text="{x:Bind ViewModel.Requisition.Notes, Mode=OneWay}"
+                                    TextWrapping="Wrap"
+                                    Opacity="0.8"/>
+
+                            </StackPanel>
+
+                            <StackPanel Spacing="6">
+
+                                <TextBlock
+                                    Text="Terms / Request to Supplier"
+                                    FontWeight="SemiBold"/>
+
+                                <TextBlock
+                                    Text="{x:Bind ViewModel.Requisition.Terms, Mode=OneWay}"
+                                    TextWrapping="Wrap"
+                                    Opacity="0.8"/>
+
+                            </StackPanel>
+
+                        </StackPanel>
+
+                        <StackPanel
+                            Grid.Column="1"
+                            HorizontalAlignment="Stretch"
+                            Spacing="8">
+
+                            <TextBlock
+                                Text="Estimated Total"
+                                HorizontalAlignment="Right"
+                                Opacity="0.65"/>
+
+                            <TextBlock
+                                Text="{x:Bind ViewModel.EstimatedTotalDisplay, Mode=OneWay}"
+                                HorizontalAlignment="Right"
+                                FontSize="26"
+                                FontWeight="SemiBold"/>
+
+                            <TextBlock
+                                Text="Items without estimated pricing are not included in this total."
+                                HorizontalAlignment="Right"
+                                TextAlignment="Right"
+                                TextWrapping="Wrap"
+                                FontSize="11"
+                                Opacity="0.55"/>
+
+                        </StackPanel>
+
+                    </Grid>
+
+                </Border>
+
+            </Grid>
+
+        </ScrollViewer>
+
+        <ProgressRing
+            IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}"
+            Width="42"
+            Height="42"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"/>
+
+    </Grid>
+
+</Page>

@@ -122,6 +122,24 @@
                     Minimum="0"
                     Value="{Binding ReorderLevel, Mode=TwoWay}" />
 
+                <StackPanel Spacing="6">
+
+                    <NumberBox
+                        Header="Customer Warranty (Months)"
+                        Minimum="0"
+                        SmallChange="1"
+                        SpinButtonPlacementMode="Compact"
+                        Value="{Binding DefaultWarrantyMonths,
+                        Mode=TwoWay}" />
+
+                    <TextBlock
+                        Text="Enter 0 for no warranty. This becomes the default warranty offered when this product is sold."
+                        FontSize="11"
+                        Opacity="0.60"
+                        TextWrapping="Wrap" />
+
+                </StackPanel>
+
                 <InfoBar
                     x:Name="ErrorInfoBar"
                     IsOpen="False"

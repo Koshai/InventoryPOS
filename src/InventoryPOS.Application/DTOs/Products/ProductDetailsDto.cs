@@ -55,5 +55,7 @@ public class ProductVariantDto
 
     public decimal ReorderLevel { get; set; }
 
+    public int? DefaultWarrantyMonths { get; set; }
+
     public bool IsActive { get; set; }
 }

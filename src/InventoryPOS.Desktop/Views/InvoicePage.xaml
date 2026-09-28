@@ -66,26 +66,45 @@
                 Spacing="8"
                 VerticalAlignment="Center">
 
-                <!--
-                    This is our hook for the next phase.
-                    We will connect this to IInvoicePdfService.
-                -->
+                <Button
+                    x:Name="StartReturnButton"
+                    Padding="16,8"
+                    IsEnabled="{Binding HasSale}"
+                    Click="StartReturnButton_Click">
+
+                    <StackPanel
+                        Orientation="Horizontal"
+                        Spacing="8">
+
+                        <FontIcon Glyph="&#xE72B;" />
+
+                        <TextBlock Text="Start Return" />
+
+                    </StackPanel>
+
+                </Button>
 
                 <Button
                     Content="Export PDF"
                     Padding="16,8"
                     IsEnabled="{Binding HasSale}"
                     Click="ExportPdfButton_Click" />
+
                 <Button
                     x:Name="PrintButton"
                     Click="PrintButton_Click"
                     Style="{StaticResource AccentButtonStyle}">
+
                     <StackPanel
                         Orientation="Horizontal"
                         Spacing="8">
+
                         <FontIcon Glyph="&#xE749;" />
+
                         <TextBlock Text="Print Invoice" />
+
                     </StackPanel>
+
                 </Button>
 
             </StackPanel>
@@ -393,6 +412,16 @@
                                                             Text="{x:Bind SKU}"
                                                             FontSize="9"
                                                             Opacity="0.55" />
+
+                                                        <TextBlock
+                                                            Text="{x:Bind WarrantyDisplay}"
+                                                            FontSize="9"
+                                                            Opacity="0.70"/>
+
+                                                        <TextBlock
+                                                            Text="{x:Bind WarrantyEndDateDisplay}"
+                                                            FontSize="9"
+                                                            Opacity="0.55"/>
 
                                                     </StackPanel>
 

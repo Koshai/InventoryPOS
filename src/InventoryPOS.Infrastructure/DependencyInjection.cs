@@ -40,7 +40,12 @@ public static class DependencyInjection
         services.AddScoped<ISaleService, SaleService>();
         services.AddScoped<IBusinessProfileService, BusinessProfileService>();
         services.AddScoped<ICustomerAccountService, CustomerAccountService>();
+        services.AddScoped<ISalesReturnService, SalesReturnService>();
+        services.AddScoped<ISaleFinancialService, SaleFinancialService>();
+        services.AddScoped<IPurchaseReturnService, PurchaseReturnService>();
+        services.AddScoped<IPurchaseRequisitionService, PurchaseRequisitionService>();
         services.AddSingleton<IInvoicePdfService, InvoicePdfService>();
+        services.AddSingleton<IPurchaseRequisitionPdfService, PurchaseRequisitionPdfService>();
 
         return services;
     }

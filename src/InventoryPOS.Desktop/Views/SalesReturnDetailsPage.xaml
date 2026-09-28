@@ -1,0 +1,636 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<Page
+    x:Class="InventoryPOS.Desktop.Views.SalesReturnDetailsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid
+        Padding="28"
+        RowSpacing="20">
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- ================================================= -->
+        <!-- HEADER -->
+        <!-- ================================================= -->
+
+        <Grid Grid.Row="0">
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel
+                Grid.Column="0"
+                Orientation="Horizontal"
+                Spacing="14">
+
+                <Button
+                    Width="40"
+                    Height="40"
+                    Content="←"
+                    Click="BackButton_Click" />
+
+                <StackPanel Spacing="3">
+
+                    <TextBlock
+                        Text="Return Details"
+                        FontSize="28"
+                        FontWeight="SemiBold" />
+
+                    <TextBlock
+                        Text="{Binding ReturnNumber}"
+                        Opacity="0.65" />
+
+                </StackPanel>
+
+            </StackPanel>
+
+            <Button
+                Grid.Column="1"
+                Content="View Original Invoice"
+                Padding="16,9"
+                VerticalAlignment="Center"
+                Click="ViewInvoiceButton_Click" />
+
+        </Grid>
+
+        <!-- ================================================= -->
+        <!-- CONTENT -->
+        <!-- ================================================= -->
+
+        <ScrollViewer
+            Grid.Row="1"
+            VerticalScrollBarVisibility="Auto"
+            HorizontalScrollBarVisibility="Disabled">
+
+            <StackPanel
+                MaxWidth="1150"
+                HorizontalAlignment="Center"
+                Spacing="18">
+
+                <!-- ========================================= -->
+                <!-- RETURN SUMMARY -->
+                <!-- ========================================= -->
+
+                <Border
+                    Padding="18"
+                    CornerRadius="10"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                    BorderThickness="1">
+
+                    <Grid ColumnSpacing="28">
+
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1.3*" />
+                            <ColumnDefinition Width="1.3*" />
+                            <ColumnDefinition Width="1.3*" />
+                            <ColumnDefinition Width="1.2*" />
+                            <ColumnDefinition Width="1*" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel
+                            Grid.Column="0"
+                            Spacing="4">
+
+                            <TextBlock
+                                Text="RETURN"
+                                FontSize="10"
+                                Opacity="0.55" />
+
+                            <TextBlock
+                                Text="{Binding ReturnNumber}"
+                                FontWeight="SemiBold" />
+
+                        </StackPanel>
+
+                        <StackPanel
+                            Grid.Column="1"
+                            Spacing="4">
+
+                            <TextBlock
+                                Text="ORIGINAL INVOICE"
+                                FontSize="10"
+                                Opacity="0.55" />
+
+                            <TextBlock
+                                Text="{Binding InvoiceNumber}"
+                                FontWeight="SemiBold" />
+
+                        </StackPanel>
+
+                        <StackPanel
+                            Grid.Column="2"
+                            Spacing="4">
+
+                            <TextBlock
+                                Text="CUSTOMER"
+                                FontSize="10"
+                                Opacity="0.55" />
+
+                            <TextBlock
+                                Text="{Binding CustomerName}"
+                                FontWeight="SemiBold"
+                                TextTrimming="CharacterEllipsis" />
+
+                        </StackPanel>
+
+                        <StackPanel
+                            Grid.Column="3"
+                            Spacing="4">
+
+                            <TextBlock
+                                Text="DATE"
+                                FontSize="10"
+                                Opacity="0.55" />
+
+                            <TextBlock
+                                Text="{Binding ReturnDateText}"
+                                FontWeight="SemiBold" />
+
+                        </StackPanel>
+
+                        <StackPanel
+                            Grid.Column="4"
+                            Spacing="4">
+
+                            <TextBlock
+                                Text="STATUS"
+                                FontSize="10"
+                                Opacity="0.55" />
+
+                            <TextBlock
+                                Text="{Binding StatusText}"
+                                FontWeight="SemiBold" />
+
+                        </StackPanel>
+
+                    </Grid>
+
+                </Border>
+
+                <!-- ========================================= -->
+                <!-- FINANCIAL SUMMARY -->
+                <!-- ========================================= -->
+
+                <Grid ColumnSpacing="14">
+
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border
+                        Grid.Column="0"
+                        Padding="16"
+                        CornerRadius="8"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                        <StackPanel Spacing="5">
+
+                            <TextBlock
+                                Text="Original Sale"
+                                Opacity="0.65" />
+
+                            <TextBlock
+                                Text="{Binding OriginalSaleTotalText}"
+                                FontSize="20"
+                                FontWeight="SemiBold" />
+
+                        </StackPanel>
+
+                    </Border>
+
+                    <Border
+                        Grid.Column="1"
+                        Padding="16"
+                        CornerRadius="8"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                        <StackPanel Spacing="5">
+
+                            <TextBlock
+                                Text="Return Amount"
+                                Opacity="0.65" />
+
+                            <TextBlock
+                                Text="{Binding ReturnAmountText}"
+                                FontSize="20"
+                                FontWeight="SemiBold" />
+
+                        </StackPanel>
+
+                    </Border>
+
+                    <Border
+                        Grid.Column="2"
+                        Padding="16"
+                        CornerRadius="8"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                        <StackPanel Spacing="5">
+
+                            <TextBlock
+                                Text="Applied to Balance"
+                                Opacity="0.65" />
+
+                            <TextBlock
+                                Text="{Binding AppliedToBalanceText}"
+                                FontSize="20"
+                                FontWeight="SemiBold" />
+
+                        </StackPanel>
+
+                    </Border>
+
+                    <Border
+                        Grid.Column="3"
+                        Padding="16"
+                        CornerRadius="8"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                        <StackPanel Spacing="5">
+
+                            <TextBlock
+                                Text="Refunded"
+                                Opacity="0.65" />
+
+                            <TextBlock
+                                Text="{Binding RefundedAmountText}"
+                                FontSize="20"
+                                FontWeight="SemiBold" />
+
+                        </StackPanel>
+
+                    </Border>
+
+                </Grid>
+
+                <!-- ========================================= -->
+                <!-- RETURNED ITEMS -->
+                <!-- ========================================= -->
+
+                <Border
+                    CornerRadius="10"
+                    BorderThickness="1"
+                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                    <StackPanel>
+
+                        <TextBlock
+                            Text="Returned Items"
+                            Padding="16,14"
+                            FontSize="16"
+                            FontWeight="SemiBold" />
+
+                        <!-- HEADER -->
+
+                        <Grid
+                            Padding="16,10"
+                            ColumnSpacing="12"
+                            Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="130" />
+                                <ColumnDefinition Width="90" />
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="90" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock
+                                Grid.Column="0"
+                                Text="Product"
+                                FontWeight="SemiBold" />
+
+                            <TextBlock
+                                Grid.Column="1"
+                                Text="SKU"
+                                FontWeight="SemiBold" />
+
+                            <TextBlock
+                                Grid.Column="2"
+                                Text="Qty"
+                                FontWeight="SemiBold"
+                                HorizontalAlignment="Right" />
+
+                            <TextBlock
+                                Grid.Column="3"
+                                Text="Unit Price"
+                                FontWeight="SemiBold"
+                                HorizontalAlignment="Right" />
+
+                            <TextBlock
+                                Grid.Column="4"
+                                Text="Total"
+                                FontWeight="SemiBold"
+                                HorizontalAlignment="Right" />
+
+                            <TextBlock
+                                Grid.Column="5"
+                                Text="Restocked"
+                                FontWeight="SemiBold"
+                                HorizontalAlignment="Center" />
+
+                        </Grid>
+
+                        <!-- ROWS -->
+
+                        <ItemsControl
+                            ItemsSource="{Binding Lines}">
+
+                            <ItemsControl.ItemTemplate>
+
+                                <DataTemplate>
+
+                                    <Border
+                                        BorderThickness="0,1,0,0"
+                                        BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}">
+
+                                        <Grid
+                                            MinHeight="50"
+                                            Padding="16,9"
+                                            ColumnSpacing="12">
+
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="130" />
+                                                <ColumnDefinition Width="90" />
+                                                <ColumnDefinition Width="110" />
+                                                <ColumnDefinition Width="110" />
+                                                <ColumnDefinition Width="90" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock
+                                                Grid.Column="0"
+                                                Text="{Binding ProductName}"
+                                                FontWeight="SemiBold"
+                                                VerticalAlignment="Center"
+                                                TextTrimming="CharacterEllipsis" />
+
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Text="{Binding SKU}"
+                                                VerticalAlignment="Center"
+                                                TextTrimming="CharacterEllipsis" />
+
+                                            <TextBlock
+                                                Grid.Column="2"
+                                                Text="{Binding QuantityText}"
+                                                HorizontalAlignment="Right"
+                                                VerticalAlignment="Center" />
+
+                                            <TextBlock
+                                                Grid.Column="3"
+                                                Text="{Binding UnitPriceText}"
+                                                HorizontalAlignment="Right"
+                                                VerticalAlignment="Center" />
+
+                                            <TextBlock
+                                                Grid.Column="4"
+                                                Text="{Binding LineTotalText}"
+                                                FontWeight="SemiBold"
+                                                HorizontalAlignment="Right"
+                                                VerticalAlignment="Center" />
+
+                                            <TextBlock
+                                                Grid.Column="5"
+                                                Text="{Binding RestockText}"
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center" />
+
+                                        </Grid>
+
+                                    </Border>
+
+                                </DataTemplate>
+
+                            </ItemsControl.ItemTemplate>
+
+                        </ItemsControl>
+
+                    </StackPanel>
+
+                </Border>
+
+                <!-- ========================================= -->
+                <!-- REFUND / ACCOUNTING EVENTS -->
+                <!-- ========================================= -->
+
+                <Border
+                    CornerRadius="10"
+                    BorderThickness="1"
+                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                    <StackPanel>
+
+                        <TextBlock
+                            Text="Refund / Account Activity"
+                            Padding="16,14"
+                            FontSize="16"
+                            FontWeight="SemiBold" />
+
+                        <Grid
+                            Padding="16,10"
+                            ColumnSpacing="12"
+                            Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="170" />
+                                <ColumnDefinition Width="120" />
+                                <ColumnDefinition Width="120" />
+                                <ColumnDefinition Width="170" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock
+                                Grid.Column="0"
+                                Text="Type"
+                                FontWeight="SemiBold" />
+
+                            <TextBlock
+                                Grid.Column="1"
+                                Text="Method"
+                                FontWeight="SemiBold" />
+
+                            <TextBlock
+                                Grid.Column="2"
+                                Text="Amount"
+                                FontWeight="SemiBold"
+                                HorizontalAlignment="Right" />
+
+                            <TextBlock
+                                Grid.Column="3"
+                                Text="Date"
+                                FontWeight="SemiBold" />
+
+                            <TextBlock
+                                Grid.Column="4"
+                                Text="Reference"
+                                FontWeight="SemiBold" />
+
+                        </Grid>
+
+                        <ItemsControl
+                            ItemsSource="{Binding Refunds}">
+
+                            <ItemsControl.ItemTemplate>
+
+                                <DataTemplate>
+
+                                    <Border
+                                        BorderThickness="0,1,0,0"
+                                        BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}">
+
+                                        <Grid
+                                            MinHeight="50"
+                                            Padding="16,9"
+                                            ColumnSpacing="12">
+
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="170" />
+                                                <ColumnDefinition Width="120" />
+                                                <ColumnDefinition Width="120" />
+                                                <ColumnDefinition Width="170" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock
+                                                Grid.Column="0"
+                                                Text="{Binding RefundTypeText}"
+                                                VerticalAlignment="Center" />
+
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Text="{Binding PaymentMethodText}"
+                                                VerticalAlignment="Center" />
+
+                                            <TextBlock
+                                                Grid.Column="2"
+                                                Text="{Binding AmountText}"
+                                                FontWeight="SemiBold"
+                                                HorizontalAlignment="Right"
+                                                VerticalAlignment="Center" />
+
+                                            <TextBlock
+                                                Grid.Column="3"
+                                                Text="{Binding RefundDateText}"
+                                                VerticalAlignment="Center" />
+
+                                            <TextBlock
+                                                Grid.Column="4"
+                                                Text="{Binding ReferenceText}"
+                                                VerticalAlignment="Center"
+                                                TextTrimming="CharacterEllipsis" />
+
+                                        </Grid>
+
+                                    </Border>
+
+                                </DataTemplate>
+
+                            </ItemsControl.ItemTemplate>
+
+                        </ItemsControl>
+
+                    </StackPanel>
+
+                </Border>
+
+                <!-- ========================================= -->
+                <!-- RETURN INFORMATION -->
+                <!-- ========================================= -->
+
+                <Border
+                    Padding="18"
+                    CornerRadius="10"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderThickness="1"
+                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}">
+
+                    <Grid ColumnSpacing="30">
+
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel
+                            Grid.Column="0"
+                            Spacing="6">
+
+                            <TextBlock
+                                Text="Reason"
+                                FontWeight="SemiBold" />
+
+                            <TextBlock
+                                Text="{Binding ReasonText}"
+                                TextWrapping="Wrap"
+                                Opacity="0.8" />
+
+                        </StackPanel>
+
+                        <StackPanel
+                            Grid.Column="1"
+                            Spacing="6">
+
+                            <TextBlock
+                                Text="Notes"
+                                FontWeight="SemiBold" />
+
+                            <TextBlock
+                                Text="{Binding NotesText}"
+                                TextWrapping="Wrap"
+                                Opacity="0.8" />
+
+                        </StackPanel>
+
+                        <StackPanel
+                            Grid.Column="2"
+                            Spacing="6">
+
+                            <TextBlock
+                                Text="Location"
+                                FontWeight="SemiBold" />
+
+                            <TextBlock
+                                Text="{Binding LocationName}"
+                                Opacity="0.8" />
+
+                        </StackPanel>
+
+                    </Grid>
+
+                </Border>
+
+                <Border Height="20" />
+
+            </StackPanel>
+
+        </ScrollViewer>
+
+        <!-- LOADING -->
+
+        <ProgressRing
+            Grid.RowSpan="2"
+            IsActive="{Binding IsLoading}"
+            Width="36"
+            Height="36"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center" />
+
+    </Grid>
+
+</Page>

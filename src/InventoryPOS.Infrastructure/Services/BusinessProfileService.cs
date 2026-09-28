@@ -93,6 +93,11 @@ public sealed class BusinessProfileService : IBusinessProfileService
 
         entity.LogoPath =
             Clean(profile.LogoPath);
+        entity.InvoiceAccentColor =
+            string.IsNullOrWhiteSpace(
+                profile.InvoiceAccentColor)
+                ? "#4F56D9"
+                : profile.InvoiceAccentColor.Trim();
 
         entity.InvoiceFooter =
             Clean(profile.InvoiceFooter);
@@ -130,6 +135,7 @@ public sealed class BusinessProfileService : IBusinessProfileService
             CurrencySymbol = entity.CurrencySymbol,
 
             LogoPath = entity.LogoPath,
+            InvoiceAccentColor = entity.InvoiceAccentColor,
 
             InvoiceFooter = entity.InvoiceFooter
         };

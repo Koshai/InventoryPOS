@@ -169,4 +169,16 @@ public sealed partial class InvoicePage : Page
             PrintButton.IsEnabled = true;
         }
     }
+
+    private void StartReturnButton_Click(
+    object sender,
+    RoutedEventArgs e)
+    {
+        if (_saleId == Guid.Empty)
+            return;
+
+        Frame.Navigate(
+            typeof(SalesReturnPage),
+            _saleId);
+    }
 }

@@ -35,5 +35,8 @@ public class ProductVariantConfiguration :
 
         builder.Property(x => x.ReorderLevel)
             .HasPrecision(18, 3);
+
+        builder.Property(x => x.DefaultWarrantyMonths)
+            .IsRequired(false);
     }
 }

@@ -1,0 +1,335 @@
+<Page
+    x:Class="InventoryPOS.Desktop.Views.PurchaseReturnPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:InventoryPOS.Desktop.Views"
+    xmlns:vm="using:InventoryPOS.Desktop.ViewModels"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+    <Grid>
+        <ScrollViewer>
+            <Grid
+                Padding="28"
+                MaxWidth="1400"
+                HorizontalAlignment="Stretch">
+
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- HEADER -->
+
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Spacing="4">
+                        <TextBlock
+                            Text="Purchase Return"
+                            FontSize="28"
+                            FontWeight="SemiBold" />
+
+                        <TextBlock
+                            Text="Return received inventory to the supplier"
+                            FontSize="13"
+                            Opacity="0.65" />
+                    </StackPanel>
+
+                    <Button
+                        Grid.Column="1"
+                        Content="Back"
+                        Click="Back_Click"
+                        VerticalAlignment="Center" />
+                </Grid>
+
+                <!-- ERROR -->
+
+                <InfoBar
+                    Grid.Row="1"
+                    Margin="0,18,0,0"
+                    IsOpen="{x:Bind ViewModel.HasError, Mode=OneWay}"
+                    Severity="Error"
+                    Title="Unable to complete purchase return"
+                    Message="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}" />
+
+                <!-- RECEIPT SUMMARY -->
+
+                <Border
+                    Grid.Row="2"
+                    Margin="0,20,0,0"
+                    Padding="20"
+                    CornerRadius="8"
+                    BorderThickness="1"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+
+                    <Grid ColumnSpacing="32">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel>
+                            <TextBlock
+                                Text="GOODS RECEIPT"
+                                FontSize="11"
+                                Opacity="0.55" />
+
+                            <TextBlock
+                                Margin="0,5,0,0"
+                                Text="{x:Bind ViewModel.ReceiptNumber, Mode=OneWay}"
+                                FontSize="15"
+                                FontWeight="SemiBold" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1">
+                            <TextBlock
+                                Text="PURCHASE ORDER"
+                                FontSize="11"
+                                Opacity="0.55" />
+
+                            <TextBlock
+                                Margin="0,5,0,0"
+                                Text="{x:Bind ViewModel.PurchaseOrderNumber, Mode=OneWay}"
+                                FontSize="15"
+                                FontWeight="SemiBold" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2">
+                            <TextBlock
+                                Text="SUPPLIER"
+                                FontSize="11"
+                                Opacity="0.55" />
+
+                            <TextBlock
+                                Margin="0,5,0,0"
+                                Text="{x:Bind ViewModel.SupplierName, Mode=OneWay}"
+                                FontSize="15"
+                                FontWeight="SemiBold" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="3">
+                            <TextBlock
+                                Text="LOCATION"
+                                FontSize="11"
+                                Opacity="0.55" />
+
+                            <TextBlock
+                                Margin="0,5,0,0"
+                                Text="{x:Bind ViewModel.LocationName, Mode=OneWay}"
+                                FontSize="15"
+                                FontWeight="SemiBold" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- LINES -->
+
+                <Border
+                    Grid.Row="3"
+                    Margin="0,20,0,0"
+                    CornerRadius="8"
+                    BorderThickness="1"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+
+                    <StackPanel>
+
+                        <!-- TABLE HEADER -->
+
+                        <Grid
+                            Padding="16,12"
+                            ColumnSpacing="12"
+                            Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*" />
+                                <ColumnDefinition Width="1.2*" />
+                                <ColumnDefinition Width="0.8*" />
+                                <ColumnDefinition Width="0.8*" />
+                                <ColumnDefinition Width="0.8*" />
+                                <ColumnDefinition Width="0.9*" />
+                                <ColumnDefinition Width="0.9*" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Text="Product" FontWeight="SemiBold" />
+                            <TextBlock Grid.Column="1" Text="Batch" FontWeight="SemiBold" />
+                            <TextBlock Grid.Column="2" Text="Received" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                            <TextBlock Grid.Column="3" Text="Returned" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                            <TextBlock Grid.Column="4" Text="On Hand" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                            <TextBlock Grid.Column="5" Text="Max Return" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                            <TextBlock Grid.Column="6" Text="Return Qty" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                        </Grid>
+
+                        <ItemsControl ItemsSource="{x:Bind ViewModel.Lines}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:PurchaseReturnLineViewModel">
+
+                                    <Grid
+                                        Padding="16,12"
+                                        ColumnSpacing="12">
+
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="2*" />
+                                            <ColumnDefinition Width="1.2*" />
+                                            <ColumnDefinition Width="0.8*" />
+                                            <ColumnDefinition Width="0.8*" />
+                                            <ColumnDefinition Width="0.8*" />
+                                            <ColumnDefinition Width="0.9*" />
+                                            <ColumnDefinition Width="0.9*" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel Spacing="2">
+                                            <TextBlock
+                                                Text="{x:Bind ProductName}"
+                                                FontWeight="SemiBold" />
+
+                                            <TextBlock
+                                                Text="{x:Bind SKU}"
+                                                FontSize="11"
+                                                Opacity="0.55" />
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock
+                                                Text="{x:Bind SupplierBatchNumber}"
+                                                FontWeight="SemiBold" />
+
+                                            <TextBlock
+                                                Text="{x:Bind ExpiryDisplay}"
+                                                FontSize="11"
+                                                Opacity="0.55" />
+                                        </StackPanel>
+
+                                        <TextBlock
+                                            Grid.Column="2"
+                                            Text="{x:Bind ReceivedDisplay}"
+                                            HorizontalAlignment="Right"
+                                            VerticalAlignment="Center" />
+
+                                        <TextBlock
+                                            Grid.Column="3"
+                                            Text="{x:Bind PreviouslyReturnedDisplay}"
+                                            HorizontalAlignment="Right"
+                                            VerticalAlignment="Center" />
+
+                                        <TextBlock
+                                            Grid.Column="4"
+                                            Text="{x:Bind BatchOnHandDisplay}"
+                                            HorizontalAlignment="Right"
+                                            VerticalAlignment="Center" />
+
+                                        <TextBlock
+                                            Grid.Column="5"
+                                            Text="{x:Bind MaximumReturnDisplay}"
+                                            HorizontalAlignment="Right"
+                                            VerticalAlignment="Center"
+                                            FontWeight="SemiBold" />
+
+                                        <NumberBox
+                                            Grid.Column="6"
+                                            Width="110"
+                                            HorizontalAlignment="Right"
+                                            Value="{x:Bind ReturnQuantity, Mode=TwoWay}"
+                                            Minimum="0"
+                                            Maximum="{x:Bind MaximumReturnQuantityDouble}"
+                                            SmallChange="1"
+                                            SpinButtonPlacementMode="Compact" />
+
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+
+                <!-- FOOTER -->
+
+                <Grid
+                    Grid.Row="4"
+                    Margin="0,20,0,30"
+                    ColumnSpacing="24">
+
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="360" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Spacing="12">
+
+                        <TextBox
+                            Header="Reason"
+                            PlaceholderText="e.g. Damaged shipment, defective product"
+                            Text="{x:Bind ViewModel.Reason, Mode=TwoWay}" />
+
+                        <TextBox
+                            Header="Notes"
+                            PlaceholderText="Optional notes"
+                            AcceptsReturn="True"
+                            TextWrapping="Wrap"
+                            MinHeight="90"
+                            Text="{x:Bind ViewModel.Notes, Mode=TwoWay}" />
+
+                    </StackPanel>
+
+                    <Border
+                        Grid.Column="1"
+                        Padding="20"
+                        CornerRadius="8"
+                        BorderThickness="1"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+
+                        <StackPanel Spacing="14">
+
+                            <Grid>
+                                <TextBlock
+                                    Text="Return Quantity"
+                                    Opacity="0.65" />
+
+                                <TextBlock
+                                    HorizontalAlignment="Right"
+                                    Text="{x:Bind ViewModel.TotalReturnQuantity, Mode=OneWay}"
+                                    FontWeight="SemiBold" />
+                            </Grid>
+
+                            <Grid>
+                                <TextBlock
+                                    Text="Return Value"
+                                    FontSize="15"
+                                    FontWeight="SemiBold" />
+
+                                <TextBlock
+                                    HorizontalAlignment="Right"
+                                    Text="{x:Bind ViewModel.ReturnTotalDisplay, Mode=OneWay}"
+                                    FontSize="18"
+                                    FontWeight="SemiBold" />
+                            </Grid>
+
+                            <Button
+                                Content="Complete Return"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Center"
+                                Click="CompleteReturn_Click" />
+
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Grid>
+        </ScrollViewer>
+
+        <ProgressRing
+            IsActive="{x:Bind ViewModel.IsBusy, Mode=OneWay}"
+            Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay}"
+            Width="42"
+            Height="42"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center" />
+
+    </Grid>
+</Page>

@@ -210,4 +210,12 @@ public sealed partial class SalesPage : Page
             typeof(InvoicePage),
             sale.SaleId);
     }
+
+    private void ReturnsButton_Click(
+    object sender,
+    RoutedEventArgs e)
+    {
+        Frame.Navigate(
+            typeof(SalesReturnsPage));
+    }
 }

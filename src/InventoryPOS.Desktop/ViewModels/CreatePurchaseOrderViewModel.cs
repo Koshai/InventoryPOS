@@ -14,6 +14,8 @@ public class CreatePurchaseOrderViewModel
     : INotifyPropertyChanged
 {
     private readonly IPurchaseOrderService _purchaseOrderService;
+    private readonly IPurchaseRequisitionService _purchaseRequisitionService;
+    private Guid? _sourcePurchaseRequisitionId;
 
     private SupplierLookupDto? _selectedSupplier;
     private LocationLookupDto? _selectedLocation;
@@ -22,6 +24,7 @@ public class CreatePurchaseOrderViewModel
     private bool _isLoading;
     private bool _isSaving;
     private string? _errorMessage;
+    public bool IsFromRequisition => _sourcePurchaseRequisitionId.HasValue;
 
     public ObservableCollection<SupplierLookupDto>
         Suppliers
@@ -137,9 +140,14 @@ public class CreatePurchaseOrderViewModel
         $"৳{TotalAmount:N2}";
 
     public CreatePurchaseOrderViewModel(
-        IPurchaseOrderService purchaseOrderService)
+    IPurchaseOrderService purchaseOrderService,
+    IPurchaseRequisitionService purchaseRequisitionService)
     {
-        _purchaseOrderService = purchaseOrderService;
+        _purchaseOrderService =
+            purchaseOrderService;
+
+        _purchaseRequisitionService =
+            purchaseRequisitionService;
 
         Lines.CollectionChanged += (_, _) =>
         {
@@ -288,6 +296,16 @@ public class CreatePurchaseOrderViewModel
                     return null;
                 }
 
+                if (line.RequiresUnitCost)
+                {
+                    ErrorMessage =
+                        "Enter the supplier's unit cost for all " +
+                        "items that were marked 'Price requested' " +
+                        "on the requisition.";
+
+                    return null;
+                }
+
                 if (line.UnitCost < 0)
                 {
                     ErrorMessage =
@@ -344,8 +362,18 @@ public class CreatePurchaseOrderViewModel
                         .ToList()
                 };
 
-            return await _purchaseOrderService
-                .CreateAsync(request);
+            var purchaseOrderId =
+                await _purchaseOrderService.CreateAsync(request);
+
+            if (_sourcePurchaseRequisitionId.HasValue)
+            {
+                await _purchaseRequisitionService
+                    .CompletePurchaseOrderConversionAsync(
+                        _sourcePurchaseRequisitionId.Value,
+                        purchaseOrderId);
+            }
+
+            return purchaseOrderId;
         }
         catch (Exception ex)
         {
@@ -355,6 +383,134 @@ public class CreatePurchaseOrderViewModel
         finally
         {
             IsSaving = false;
+        }
+    }
+
+    public async Task LoadFromRequisitionAsync(
+    Guid purchaseRequisitionId)
+    {
+        try
+        {
+            IsLoading = true;
+            ErrorMessage = null;
+
+            Suppliers.Clear();
+            Locations.Clear();
+            Products.Clear();
+            Lines.Clear();
+
+            // Sequential intentionally because these services
+            // share the same scoped DbContext.
+
+            var suppliers =
+                await _purchaseOrderService
+                    .GetSuppliersAsync();
+
+            foreach (var supplier in suppliers)
+                Suppliers.Add(supplier);
+
+            var locations =
+                await _purchaseOrderService
+                    .GetLocationsAsync();
+
+            foreach (var location in locations)
+                Locations.Add(location);
+
+            var products =
+                await _purchaseOrderService
+                    .GetProductVariantsAsync();
+
+            foreach (var product in products)
+                Products.Add(product);
+
+            var conversion =
+                await _purchaseRequisitionService
+                    .GetPurchaseOrderConversionAsync(
+                        purchaseRequisitionId);
+
+            _sourcePurchaseRequisitionId =
+                conversion.PurchaseRequisitionId;
+
+            SelectedSupplier =
+                Suppliers.FirstOrDefault(
+                    x => x.Id ==
+                        conversion.SupplierId);
+
+            SelectedLocation =
+                Locations.FirstOrDefault(
+                    x => x.Id ==
+                        conversion.LocationId);
+
+            if (conversion.ExpectedDate.HasValue)
+            {
+                ExpectedDate =
+                    new DateTimeOffset(
+                        DateTime.SpecifyKind(
+                            conversion.ExpectedDate.Value,
+                            DateTimeKind.Utc));
+            }
+            else
+            {
+                ExpectedDate = null;
+            }
+
+            Notes =
+                conversion.Notes;
+
+            foreach (var sourceLine in conversion.Lines)
+            {
+                var product =
+                    Products.FirstOrDefault(
+                        x =>
+                            x.ProductVariantId ==
+                            sourceLine.ProductVariantId);
+
+                if (product is null)
+                {
+                    throw new InvalidOperationException(
+                        "One or more requisition products " +
+                        "are no longer available.");
+                }
+
+                var line =
+                    new PurchaseOrderLineEditViewModel
+                    {
+                        SelectedProduct =
+                            product,
+
+                        Quantity =
+                            Convert.ToDouble(
+                                sourceLine.Quantity),
+
+                        UnitCost =
+                            sourceLine.EstimatedUnitCost.HasValue
+                                ? Convert.ToDouble(
+                                    sourceLine
+                                        .EstimatedUnitCost
+                                        .Value)
+                                : 0,
+                        RequiresUnitCost =
+                            !sourceLine.EstimatedUnitCost.HasValue
+                    };
+
+                line.PropertyChanged +=
+                    Line_PropertyChanged;
+
+                Lines.Add(line);
+            }
+
+            RefreshTotal();
+
+            OnPropertyChanged(
+                nameof(IsFromRequisition));
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+        }
+        finally
+        {
+            IsLoading = false;
         }
     }
 

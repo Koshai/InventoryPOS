@@ -38,4 +38,6 @@ public class Sale : BaseEntity
 
     public ICollection<SalePayment> Payments { get; set; }
         = new List<SalePayment>();
+    public ICollection<SalesReturn> Returns { get; set; }
+    = new List<SalesReturn>();
 }

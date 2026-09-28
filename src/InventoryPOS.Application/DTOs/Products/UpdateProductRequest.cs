@@ -26,6 +26,7 @@ public class UpdateProductRequest
     public decimal SellingPrice { get; set; }
 
     public decimal ReorderLevel { get; set; }
+    public int? DefaultWarrantyMonths { get; set; }
 
     public bool VariantIsActive { get; set; } = true;
 }

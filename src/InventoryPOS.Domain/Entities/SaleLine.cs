@@ -18,6 +18,16 @@ public class SaleLine : BaseEntity
 
     public decimal LineTotal { get; set; }
 
+    // ---------------------------------------------------------
+    // Customer warranty snapshot
+    // ---------------------------------------------------------
+
+    public int? WarrantyMonths { get; set; }
+
+    public DateTime? WarrantyStartDate { get; set; }
+
+    public DateTime? WarrantyEndDate { get; set; }
+
     public Sale? Sale { get; set; }
 
     public ProductVariant? ProductVariant { get; set; }

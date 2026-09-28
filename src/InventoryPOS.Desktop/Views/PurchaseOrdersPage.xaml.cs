@@ -49,4 +49,20 @@ public sealed partial class PurchaseOrdersPage : Page
             typeof(PurchaseOrderDetailsPage),
             order.Id);
     }
+
+    private void PurchaseReturnsButton_Click(
+    object sender,
+    RoutedEventArgs e)
+    {
+        Frame.Navigate(
+            typeof(PurchaseReturnHistoryPage));
+    }
+
+    private void RequisitionsButton_Click(
+    object sender,
+    RoutedEventArgs e)
+    {
+        Frame.Navigate(
+            typeof(PurchaseRequisitionHistoryPage));
+    }
 }

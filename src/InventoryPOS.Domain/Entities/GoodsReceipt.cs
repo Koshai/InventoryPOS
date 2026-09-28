@@ -29,4 +29,6 @@ public class GoodsReceipt : BaseEntity
 
     public ICollection<GoodsReceiptLine> Lines { get; set; }
         = new List<GoodsReceiptLine>();
+    public ICollection<PurchaseReturn> Returns { get; set; }
+    = new List<PurchaseReturn>();
 }

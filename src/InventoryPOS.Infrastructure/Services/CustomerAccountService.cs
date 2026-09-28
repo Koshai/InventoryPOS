@@ -1,4 +1,5 @@
 ﻿using InventoryPOS.Application.DTOs.Customers;
+using InventoryPOS.Application.DTOs.Sales;
 using InventoryPOS.Application.Interfaces;
 using InventoryPOS.Domain.Entities;
 using InventoryPOS.Domain.Enums;
@@ -7,99 +8,188 @@ using Microsoft.EntityFrameworkCore;
 
 namespace InventoryPOS.Infrastructure.Services;
 
-public sealed class CustomerAccountService : ICustomerAccountService
+public sealed class CustomerAccountService :
+    ICustomerAccountService
 {
     private readonly InventoryPosDbContext _dbContext;
+    private readonly ISaleFinancialService _financialService;
 
     public CustomerAccountService(
-        InventoryPosDbContext dbContext)
+        InventoryPosDbContext dbContext,
+        ISaleFinancialService financialService)
     {
         _dbContext = dbContext;
+        _financialService = financialService;
     }
 
     // ============================================================
     // GET CUSTOMER ACCOUNT
     // ============================================================
 
-    public async Task<CustomerAccountDto?> GetAccountAsync(
-        Guid customerId,
-        CancellationToken cancellationToken = default)
+    public async Task<CustomerAccountDto?>
+        GetAccountAsync(
+            Guid customerId,
+            CancellationToken cancellationToken = default)
     {
-        var customer = await _dbContext.Customers
-            .AsNoTracking()
-            .Where(x => x.Id == customerId)
-            .Select(x => new
-            {
-                x.Id,
-                x.CustomerCode,
-                x.Name,
-                x.Phone,
-                x.CreditLimit
-            })
-            .FirstOrDefaultAsync(cancellationToken);
+        var customer =
+            await _dbContext.Customers
+                .AsNoTracking()
+                .Where(x =>
+                    x.Id == customerId)
+                .Select(x => new
+                {
+                    x.Id,
+                    x.CustomerCode,
+                    x.Name,
+                    x.Phone,
+                    x.CreditLimit
+                })
+                .FirstOrDefaultAsync(
+                    cancellationToken);
 
         if (customer is null)
             return null;
 
-        var outstandingSales = await _dbContext.Sales
-            .AsNoTracking()
-            .Where(x =>
-                x.CustomerId == customerId &&
-                x.DueAmount > 0 &&
-                x.Status != SaleStatus.Cancelled &&
-                x.Status != SaleStatus.Refunded)
-            .OrderBy(x => x.SaleDate)
-            .ThenBy(x => x.InvoiceNumber)
-            .Select(x => new CustomerOutstandingSaleDto
-            {
-                SaleId = x.Id,
-                InvoiceNumber = x.InvoiceNumber,
-                SaleDate = x.SaleDate,
-                TotalAmount = x.TotalAmount,
-                PaidAmount = x.PaidAmount,
-                DueAmount = x.DueAmount,
-                Status = x.Status
-            })
-            .ToListAsync(cancellationToken);
+        var sales =
+            await _dbContext.Sales
+                .AsNoTracking()
+                .Where(x =>
+                    x.CustomerId ==
+                        customerId &&
+                    x.Status !=
+                        SaleStatus.Cancelled &&
+                    x.Status !=
+                        SaleStatus.Refunded)
+                .OrderBy(x => x.SaleDate)
+                .ThenBy(x => x.InvoiceNumber)
+                .Select(x => new
+                {
+                    x.Id,
+                    x.InvoiceNumber,
+                    x.SaleDate
+                })
+                .ToListAsync(
+                    cancellationToken);
 
-        var paymentHistory = await _dbContext.SalePayments
-            .AsNoTracking()
-            .Where(x =>
-                x.Sale != null &&
-                x.Sale.CustomerId == customerId)
-            .OrderByDescending(x => x.PaymentDate)
-            .ThenByDescending(x => x.CreatedAtUtc)
-            .Select(x => new CustomerPaymentHistoryDto
-            {
-                SalePaymentId = x.Id,
-                SaleId = x.SaleId,
-                InvoiceNumber = x.Sale!.InvoiceNumber,
-                PaymentDate = x.PaymentDate,
-                PaymentMethod = x.PaymentMethod,
-                Amount = x.Amount,
-                ReferenceNumber = x.ReferenceNumber,
-                Notes = x.Notes
-            })
-            .ToListAsync(cancellationToken);
+        var financialStates =
+            await _financialService.GetStatesAsync(
+                sales.Select(x => x.Id),
+                cancellationToken);
+
+        var outstandingSales =
+            new List<CustomerOutstandingSaleDto>();
+
+        foreach (var sale in sales)
+        {
+            var state =
+                financialStates[sale.Id];
+
+            if (state.DueAmount <= 0)
+                continue;
+
+            outstandingSales.Add(
+                new CustomerOutstandingSaleDto
+                {
+                    SaleId =
+                        sale.Id,
+
+                    InvoiceNumber =
+                        sale.InvoiceNumber,
+
+                    SaleDate =
+                        sale.SaleDate,
+
+                    TotalAmount =
+                        state.EffectiveTotal,
+
+                    PaidAmount =
+                        state.NetPaidAmount,
+
+                    DueAmount =
+                        state.DueAmount,
+
+                    Status =
+                        state.NetPaidAmount > 0
+                            ? SaleStatus.PartiallyPaid
+                            : SaleStatus.Credit
+                });
+        }
+
+        var paymentHistory =
+            await _dbContext.SalePayments
+                .AsNoTracking()
+                .Where(x =>
+                    x.Sale != null &&
+                    x.Sale.CustomerId ==
+                        customerId)
+                .OrderByDescending(
+                    x => x.PaymentDate)
+                .ThenByDescending(
+                    x => x.CreatedAtUtc)
+                .Select(x =>
+                    new CustomerPaymentHistoryDto
+                    {
+                        SalePaymentId =
+                            x.Id,
+
+                        SaleId =
+                            x.SaleId,
+
+                        InvoiceNumber =
+                            x.Sale!.InvoiceNumber,
+
+                        PaymentDate =
+                            x.PaymentDate,
+
+                        PaymentMethod =
+                            x.PaymentMethod,
+
+                        Amount =
+                            x.Amount,
+
+                        ReferenceNumber =
+                            x.ReferenceNumber,
+
+                        Notes =
+                            x.Notes
+                    })
+                .ToListAsync(
+                    cancellationToken);
 
         var outstandingBalance =
-            outstandingSales.Sum(x => x.DueAmount);
+            outstandingSales
+                .Sum(x => x.DueAmount);
 
         return new CustomerAccountDto
         {
-            CustomerId = customer.Id,
-            CustomerCode = customer.CustomerCode,
-            CustomerName = customer.Name,
-            Phone = customer.Phone,
-            CreditLimit = customer.CreditLimit,
-            OutstandingBalance = outstandingBalance,
-            OutstandingSales = outstandingSales,
-            PaymentHistory = paymentHistory
+            CustomerId =
+                customer.Id,
+
+            CustomerCode =
+                customer.CustomerCode,
+
+            CustomerName =
+                customer.Name,
+
+            Phone =
+                customer.Phone,
+
+            CreditLimit =
+                customer.CreditLimit,
+
+            OutstandingBalance =
+                outstandingBalance,
+
+            OutstandingSales =
+                outstandingSales,
+
+            PaymentHistory =
+                paymentHistory
         };
     }
 
     // ============================================================
-    // RECEIVE PAYMENT FOR ONE SPECIFIC INVOICE
+    // RECEIVE PAYMENT FOR ONE INVOICE
     // ============================================================
 
     public async Task<CustomerPaymentResultDto>
@@ -108,18 +198,21 @@ public sealed class CustomerAccountService : ICustomerAccountService
             ReceiveCustomerPaymentRequest request,
             CancellationToken cancellationToken = default)
     {
-        ValidatePaymentRequest(request);
+        ValidatePaymentRequest(
+            request);
 
         await using var transaction =
-            await _dbContext.Database.BeginTransactionAsync(
-                cancellationToken);
+            await _dbContext.Database
+                .BeginTransactionAsync(
+                    cancellationToken);
 
         try
         {
-            var sale = await _dbContext.Sales
-                .FirstOrDefaultAsync(
-                    x => x.Id == saleId,
-                    cancellationToken);
+            var sale =
+                await _dbContext.Sales
+                    .FirstOrDefaultAsync(
+                        x => x.Id == saleId,
+                        cancellationToken);
 
             if (sale is null)
             {
@@ -127,65 +220,66 @@ public sealed class CustomerAccountService : ICustomerAccountService
                     "Sale was not found.");
             }
 
-            if (sale.CustomerId != request.CustomerId)
+            if (sale.CustomerId !=
+                request.CustomerId)
             {
                 throw new InvalidOperationException(
                     "The selected invoice does not belong to this customer.");
             }
 
-            EnsureSaleCanReceivePayment(sale);
+            EnsureSaleCanReceivePayment(
+                sale);
 
-            // Payment rows are authoritative.
-            var existingPaidAmount =
-                await GetPaidAmountAsync(
+            var state =
+                await _financialService.GetStateAsync(
                     sale.Id,
                     cancellationToken);
 
-            ValidateExistingPaymentState(
-                sale,
-                existingPaidAmount);
-
-            var currentDue =
-                Math.Max(
-                    0m,
-                    sale.TotalAmount - existingPaidAmount);
-
-            if (currentDue <= 0)
+            if (state.DueAmount <= 0)
             {
                 throw new InvalidOperationException(
                     "This invoice is already fully paid.");
             }
 
-            if (request.Amount > currentDue)
+            if (request.Amount >
+                state.DueAmount)
             {
                 throw new InvalidOperationException(
-                    $"Payment cannot exceed the invoice due amount of {currentDue:N2}.");
+                    $"Payment cannot exceed the invoice due amount of {state.DueAmount:N2}.");
             }
 
-            var payment = CreatePayment(
-                sale.Id,
-                request,
-                request.Amount);
+            var payment =
+                CreatePayment(
+                    sale.Id,
+                    request,
+                    request.Amount);
 
-            _dbContext.SalePayments.Add(payment);
+            _dbContext.SalePayments.Add(
+                payment);
 
-            var newPaidAmount =
-                existingPaidAmount + request.Amount;
+            /*
+             * NetPaidAmount already accounts for previous
+             * physical refunds.
+             */
+            var newNetPaid =
+                state.NetPaidAmount +
+                request.Amount;
 
             ApplyPaymentState(
                 sale,
-                newPaidAmount);
+                state.EffectiveTotal,
+                newNetPaid);
 
             await _dbContext.SaveChangesAsync(
                 cancellationToken);
 
-            await transaction.CommitAsync(
-                cancellationToken);
-
             var remainingOutstanding =
-                await GetOutstandingBalanceAsync(
+                await CalculateOutstandingBalanceAsync(
                     request.CustomerId,
                     cancellationToken);
+
+            await transaction.CommitAsync(
+                cancellationToken);
 
             return new CustomerPaymentResultDto
             {
@@ -227,10 +321,7 @@ public sealed class CustomerAccountService : ICustomerAccountService
     }
 
     // ============================================================
-    // RECEIVE GENERAL CUSTOMER ACCOUNT PAYMENT
-    //
-    // FIFO:
-    // oldest outstanding invoice receives payment first.
+    // RECEIVE GENERAL ACCOUNT PAYMENT - FIFO
     // ============================================================
 
     public async Task<CustomerPaymentResultDto>
@@ -238,11 +329,13 @@ public sealed class CustomerAccountService : ICustomerAccountService
             ReceiveCustomerPaymentRequest request,
             CancellationToken cancellationToken = default)
     {
-        ValidatePaymentRequest(request);
+        ValidatePaymentRequest(
+            request);
 
         await using var transaction =
-            await _dbContext.Database.BeginTransactionAsync(
-                cancellationToken);
+            await _dbContext.Database
+                .BeginTransactionAsync(
+                    cancellationToken);
 
         try
         {
@@ -250,7 +343,8 @@ public sealed class CustomerAccountService : ICustomerAccountService
                 await _dbContext.Customers
                     .AnyAsync(
                         x =>
-                            x.Id == request.CustomerId &&
+                            x.Id ==
+                                request.CustomerId &&
                             x.IsActive,
                         cancellationToken);
 
@@ -260,86 +354,75 @@ public sealed class CustomerAccountService : ICustomerAccountService
                     "Customer was not found or is inactive.");
             }
 
-            var sales = await _dbContext.Sales
-                .Where(x =>
-                    x.CustomerId == request.CustomerId &&
-                    x.Status != SaleStatus.Cancelled &&
-                    x.Status != SaleStatus.Refunded)
-                .OrderBy(x => x.SaleDate)
-                .ThenBy(x => x.InvoiceNumber)
-                .ToListAsync(cancellationToken);
-
-            if (sales.Count == 0)
-            {
-                throw new InvalidOperationException(
-                    "This customer has no sales eligible for payment.");
-            }
-
             /*
-             * We intentionally calculate the outstanding amounts from
-             * SalePayment records instead of trusting the cached
-             * Sale.PaidAmount / Sale.DueAmount values.
+             * FIFO:
+             * oldest sale first.
              */
-
-            var saleIds =
-                sales.Select(x => x.Id)
-                    .ToList();
-
-            var paymentTotals =
-                await _dbContext.SalePayments
-                    .AsNoTracking()
+            var sales =
+                await _dbContext.Sales
                     .Where(x =>
-                        saleIds.Contains(x.SaleId))
-                    .GroupBy(x => x.SaleId)
-                    .Select(x => new
-                    {
-                        SaleId = x.Key,
-                        PaidAmount =
-                            x.Sum(y => y.Amount)
-                    })
-                    .ToDictionaryAsync(
-                        x => x.SaleId,
-                        x => x.PaidAmount,
+                        x.CustomerId ==
+                            request.CustomerId &&
+                        x.Status !=
+                            SaleStatus.Cancelled &&
+                        x.Status !=
+                            SaleStatus.Refunded)
+                    .OrderBy(x => x.SaleDate)
+                    .ThenBy(x => x.InvoiceNumber)
+                    .ToListAsync(
                         cancellationToken);
 
-            var outstandingSales =
-                new List<(Sale Sale, decimal Paid, decimal Due)>();
-
-            foreach (var sale in sales)
-            {
-                var paid =
-                    paymentTotals.TryGetValue(
-                        sale.Id,
-                        out var paymentTotal)
-                            ? paymentTotal
-                            : 0m;
-
-                ValidateExistingPaymentState(
-                    sale,
-                    paid);
-
-                var due =
-                    Math.Max(
-                        0m,
-                        sale.TotalAmount - paid);
-
-                if (due > 0)
-                {
-                    outstandingSales.Add(
-                        (sale, paid, due));
-                }
-            }
-
-            if (outstandingSales.Count == 0)
+            if (sales.Count == 0)
             {
                 throw new InvalidOperationException(
                     "This customer has no outstanding invoices.");
             }
 
-            var totalOutstanding =
-                outstandingSales.Sum(x => x.Due);
+            var states =
+                await _financialService.GetStatesAsync(
+                    sales.Select(x => x.Id),
+                    cancellationToken);
 
-            if (request.Amount > totalOutstanding)
+            var outstandingSales =
+                new List<OutstandingSaleState>();
+
+            foreach (var sale in sales)
+            {
+                var state =
+                    states[sale.Id];
+
+                if (state.DueAmount <= 0)
+                    continue;
+
+                outstandingSales.Add(
+                    new OutstandingSaleState
+                    {
+                        Sale =
+                            sale,
+
+                        EffectiveTotal =
+                            state.EffectiveTotal,
+
+                        NetPaidAmount =
+                            state.NetPaidAmount,
+
+                        DueAmount =
+                            state.DueAmount
+                    });
+            }
+
+            if (outstandingSales.Count == 0)
+            {
+                throw new InvalidOperationException(
+                    "This customer has no outstanding balance.");
+            }
+
+            var totalOutstanding =
+                outstandingSales
+                    .Sum(x => x.DueAmount);
+
+            if (request.Amount >
+                totalOutstanding)
             {
                 throw new InvalidOperationException(
                     $"Payment cannot exceed the customer's outstanding balance of {totalOutstanding:N2}.");
@@ -355,7 +438,8 @@ public sealed class CustomerAccountService : ICustomerAccountService
                         request.Amount
                 };
 
-            foreach (var item in outstandingSales)
+            foreach (var item
+                     in outstandingSales)
             {
                 if (remaining <= 0)
                     break;
@@ -363,10 +447,7 @@ public sealed class CustomerAccountService : ICustomerAccountService
                 var amountToApply =
                     Math.Min(
                         remaining,
-                        item.Due);
-
-                if (amountToApply <= 0)
-                    continue;
+                        item.DueAmount);
 
                 var payment =
                     CreatePayment(
@@ -377,12 +458,14 @@ public sealed class CustomerAccountService : ICustomerAccountService
                 _dbContext.SalePayments.Add(
                     payment);
 
-                var newPaidAmount =
-                    item.Paid + amountToApply;
+                var newNetPaid =
+                    item.NetPaidAmount +
+                    amountToApply;
 
                 ApplyPaymentState(
                     item.Sale,
-                    newPaidAmount);
+                    item.EffectiveTotal,
+                    newNetPaid);
 
                 remaining -=
                     amountToApply;
@@ -405,9 +488,11 @@ public sealed class CustomerAccountService : ICustomerAccountService
             }
 
             result.AmountApplied =
-                request.Amount - remaining;
+                request.Amount -
+                remaining;
 
-            if (result.AmountApplied != request.Amount)
+            if (result.AmountApplied !=
+                request.Amount)
             {
                 throw new InvalidOperationException(
                     "The full customer payment could not be allocated.");
@@ -416,13 +501,13 @@ public sealed class CustomerAccountService : ICustomerAccountService
             await _dbContext.SaveChangesAsync(
                 cancellationToken);
 
-            await transaction.CommitAsync(
-                cancellationToken);
-
             result.RemainingOutstanding =
-                await GetOutstandingBalanceAsync(
+                await CalculateOutstandingBalanceAsync(
                     request.CustomerId,
                     cancellationToken);
+
+            await transaction.CommitAsync(
+                cancellationToken);
 
             return result;
         }
@@ -436,30 +521,48 @@ public sealed class CustomerAccountService : ICustomerAccountService
     }
 
     // ============================================================
-    // PAYMENT TOTAL
+    // CUSTOMER OUTSTANDING
     // ============================================================
 
-    private async Task<decimal> GetPaidAmountAsync(
-        Guid saleId,
-        CancellationToken cancellationToken)
+    private async Task<decimal>
+        CalculateOutstandingBalanceAsync(
+            Guid customerId,
+            CancellationToken cancellationToken)
     {
-        return await _dbContext.SalePayments
-            .AsNoTracking()
-            .Where(x => x.SaleId == saleId)
-            .SumAsync(
-                x => (decimal?)x.Amount,
-                cancellationToken)
-            ?? 0m;
+        var saleIds =
+            await _dbContext.Sales
+                .AsNoTracking()
+                .Where(x =>
+                    x.CustomerId ==
+                        customerId &&
+                    x.Status !=
+                        SaleStatus.Cancelled &&
+                    x.Status !=
+                        SaleStatus.Refunded)
+                .Select(x => x.Id)
+                .ToListAsync(
+                    cancellationToken);
+
+        if (saleIds.Count == 0)
+            return 0m;
+
+        var states =
+            await _financialService.GetStatesAsync(
+                saleIds,
+                cancellationToken);
+
+        return states.Values
+            .Sum(x => x.DueAmount);
     }
 
     // ============================================================
-    // CREATE PAYMENT ENTITY
+    // PAYMENT CREATION
     // ============================================================
 
     private static SalePayment CreatePayment(
-    Guid saleId,
-    ReceiveCustomerPaymentRequest request,
-    decimal amount)
+        Guid saleId,
+        ReceiveCustomerPaymentRequest request,
+        decimal amount)
     {
         return new SalePayment
         {
@@ -476,21 +579,68 @@ public sealed class CustomerAccountService : ICustomerAccountService
                 request.PaymentDate,
 
             ReferenceNumber =
-                Clean(request.ReferenceNumber),
+                Clean(
+                    request.ReferenceNumber),
 
             Notes =
-                Clean(request.Notes)
+                Clean(
+                    request.Notes)
         };
     }
 
     // ============================================================
-    // PAYMENT REQUEST VALIDATION
+    // CACHE / STATUS
+    // ============================================================
+
+    private static void ApplyPaymentState(
+        Sale sale,
+        decimal effectiveTotal,
+        decimal netPaidAmount)
+    {
+        if (effectiveTotal < 0)
+        {
+            throw new InvalidOperationException(
+                $"Invoice {sale.InvoiceNumber} has an invalid effective total.");
+        }
+
+        if (netPaidAmount < 0)
+        {
+            throw new InvalidOperationException(
+                $"Invoice {sale.InvoiceNumber} has an invalid net payment total.");
+        }
+
+        sale.PaidAmount =
+            netPaidAmount;
+
+        sale.DueAmount =
+            Math.Max(
+                0m,
+                effectiveTotal -
+                netPaidAmount);
+
+        if (sale.DueAmount <= 0)
+        {
+            sale.Status =
+                SaleStatus.Completed;
+
+            return;
+        }
+
+        sale.Status =
+            netPaidAmount > 0
+                ? SaleStatus.PartiallyPaid
+                : SaleStatus.Credit;
+    }
+
+    // ============================================================
+    // VALIDATION
     // ============================================================
 
     private static void ValidatePaymentRequest(
         ReceiveCustomerPaymentRequest request)
     {
-        if (request.CustomerId == Guid.Empty)
+        if (request.CustomerId ==
+            Guid.Empty)
         {
             throw new InvalidOperationException(
                 "Customer is required.");
@@ -502,7 +652,8 @@ public sealed class CustomerAccountService : ICustomerAccountService
                 "Payment amount must be greater than zero.");
         }
 
-        if (request.PaymentDate == default)
+        if (request.PaymentDate ==
+            default)
         {
             throw new InvalidOperationException(
                 "Payment date is required.");
@@ -524,10 +675,6 @@ public sealed class CustomerAccountService : ICustomerAccountService
         return paymentMethod !=
                PaymentMethod.Cash;
     }
-
-    // ============================================================
-    // SALE VALIDATION
-    // ============================================================
 
     private static void EnsureSaleCanReceivePayment(
         Sale sale)
@@ -553,93 +700,23 @@ public sealed class CustomerAccountService : ICustomerAccountService
         }
     }
 
-    private static void ValidateExistingPaymentState(
-        Sale sale,
-        decimal paidAmount)
-    {
-        if (paidAmount < 0)
-        {
-            throw new InvalidOperationException(
-                $"Invoice {sale.InvoiceNumber} has an invalid negative payment total.");
-        }
-
-        if (paidAmount > sale.TotalAmount)
-        {
-            throw new InvalidOperationException(
-                $"Payments for invoice {sale.InvoiceNumber} exceed the sale total.");
-        }
-    }
-
-    // ============================================================
-    // APPLY SALE PAYMENT SUMMARY
-    // ============================================================
-
-    private static void ApplyPaymentState(
-        Sale sale,
-        decimal paidAmount)
-    {
-        ValidateExistingPaymentState(
-            sale,
-            paidAmount);
-
-        sale.PaidAmount =
-            paidAmount;
-
-        sale.DueAmount =
-            Math.Max(
-                0m,
-                sale.TotalAmount - paidAmount);
-
-        if (sale.DueAmount <= 0)
-        {
-            sale.Status =
-                SaleStatus.Completed;
-
-            return;
-        }
-
-        if (sale.PaidAmount > 0)
-        {
-            sale.Status =
-                SaleStatus.PartiallyPaid;
-
-            return;
-        }
-
-        sale.Status =
-            SaleStatus.Credit;
-    }
-
-    // ============================================================
-    // CUSTOMER OUTSTANDING BALANCE
-    // ============================================================
-
-    private async Task<decimal>
-        GetOutstandingBalanceAsync(
-            Guid customerId,
-            CancellationToken cancellationToken)
-    {
-        return await _dbContext.Sales
-            .AsNoTracking()
-            .Where(x =>
-                x.CustomerId == customerId &&
-                x.DueAmount > 0 &&
-                x.Status != SaleStatus.Cancelled &&
-                x.Status != SaleStatus.Refunded)
-            .SumAsync(
-                x => x.DueAmount,
-                cancellationToken);
-    }
-
-    // ============================================================
-    // STRING CLEANUP
-    // ============================================================
-
     private static string? Clean(
         string? value)
     {
-        return string.IsNullOrWhiteSpace(value)
+        return string.IsNullOrWhiteSpace(
+                value)
             ? null
             : value.Trim();
+    }
+
+    private sealed class OutstandingSaleState
+    {
+        public required Sale Sale { get; set; }
+
+        public decimal EffectiveTotal { get; set; }
+
+        public decimal NetPaidAmount { get; set; }
+
+        public decimal DueAmount { get; set; }
     }
 }

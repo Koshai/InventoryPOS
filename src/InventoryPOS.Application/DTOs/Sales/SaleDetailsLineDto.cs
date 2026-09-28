@@ -21,6 +21,11 @@ public class SaleDetailsLineDto
     public decimal TaxAmount { get; set; }
 
     public decimal LineTotal { get; set; }
+    public int? WarrantyMonths { get; set; }
+
+    public DateTime? WarrantyStartDate { get; set; }
+
+    public DateTime? WarrantyEndDate { get; set; }
 
     public string FormattedQuantity =>
         $"{Quantity:N3} {UnitSymbol}";
@@ -36,4 +41,17 @@ public class SaleDetailsLineDto
 
     public string FormattedLineTotal =>
         $"৳{LineTotal:N2}";
+    public bool HasWarranty =>
+    WarrantyMonths.HasValue &&
+    WarrantyMonths.Value > 0;
+
+    public string WarrantyDisplay =>
+        HasWarranty
+            ? $"{WarrantyMonths} month{(WarrantyMonths == 1 ? "" : "s")}"
+            : "No warranty";
+
+    public string WarrantyEndDateDisplay =>
+        WarrantyEndDate.HasValue
+            ? WarrantyEndDate.Value.ToString("dd MMM yyyy")
+            : "-";
 }

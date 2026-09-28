@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
@@ -24,8 +24,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Remove="appsettings.json" />
+    <None Remove="ViewModels\SalesReturnDetailsPage.xaml" />
     <None Remove="Views\AddProductPage.xaml" />
     <None Remove="Views\CreatePurchaseOrderPage.xaml" />
+    <None Remove="Views\CreatePurchaseRequisitionPage.xaml" />
     <None Remove="Views\CustomerAccountPage.xaml" />
     <None Remove="Views\CustomerDetailsPage.xaml" />
     <None Remove="Views\CustomerFormPage.xaml" />
@@ -41,7 +43,14 @@
     <None Remove="Views\ProductPage.xaml" />
     <None Remove="Views\PurchaseOrderDetailsPage.xaml" />
     <None Remove="Views\PurchaseOrdersPage.xaml" />
+    <None Remove="Views\PurchaseRequisitionDetailsPage.xaml" />
+    <None Remove="Views\PurchaseRequisitionHistoryPage.xaml" />
+    <None Remove="Views\PurchaseReturnDetailsPage.xaml" />
+    <None Remove="Views\PurchaseReturnHistoryPage.xaml" />
+    <None Remove="Views\PurchaseReturnPage.xaml" />
     <None Remove="Views\SalesPage.xaml" />
+    <None Remove="Views\SalesReturnPage.xaml" />
+    <None Remove="Views\SalesReturnsPage.xaml" />
     <None Remove="Views\SetOpeningStockPage.xaml" />
     <None Remove="Views\SettingsPage.xaml" />
     <None Remove="Views\StockAdjustmentDetailsPage.xaml" />
@@ -100,6 +109,51 @@
   <ItemGroup>
     <ProjectReference Include="..\InventoryPOS.Application\InventoryPOS.Application.csproj" />
     <ProjectReference Include="..\InventoryPOS.Infrastructure\InventoryPOS.Infrastructure.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Views\PurchaseRequisitionDetailsPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Views\PurchaseRequisitionHistoryPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Views\CreatePurchaseRequisitionPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Views\PurchaseReturnDetailsPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Views\PurchaseReturnHistoryPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Views\PurchaseReturnPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="ViewModels\SalesReturnDetailsPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Views\SalesReturnsPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Views\SalesReturnPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Page Update="Views\CustomerAccountPage.xaml">

@@ -23,6 +23,10 @@ public class ProductVariant : BaseEntity
 
     public decimal ReorderLevel { get; set; }
 
+    // Default customer warranty offered when this variant is sold.
+    // Null means no warranty is configured.
+    public int? DefaultWarrantyMonths { get; set; }
+
     public bool IsActive { get; set; } = true;
 
     public Product? Product { get; set; }

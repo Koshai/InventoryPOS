@@ -361,6 +361,19 @@ public class SaleService : ISaleService
                     requestLine.DiscountAmount +
                     requestLine.TaxAmount;
 
+                DateTime? warrantyStartDate = null;
+                DateTime? warrantyEndDate = null;
+
+                if (productVariant.DefaultWarrantyMonths.HasValue &&
+                    productVariant.DefaultWarrantyMonths.Value > 0)
+                {
+                    warrantyStartDate = sale.SaleDate;
+
+                    warrantyEndDate =
+                        sale.SaleDate.AddMonths(
+                            productVariant.DefaultWarrantyMonths.Value);
+                }
+
                 var saleLine = new SaleLine
                 {
                     Sale = sale,
@@ -381,7 +394,16 @@ public class SaleService : ISaleService
                         requestLine.TaxAmount,
 
                     LineTotal =
-                        lineTotal
+                        lineTotal,
+                    
+                    WarrantyMonths =
+                        productVariant.DefaultWarrantyMonths,
+
+                    WarrantyStartDate =
+                        warrantyStartDate,
+
+                    WarrantyEndDate =
+                        warrantyEndDate
                 };
 
                 _dbContext.SaleLines.Add(
@@ -986,7 +1008,16 @@ public class SaleService : ISaleService
                                         line.TaxAmount,
 
                                     LineTotal =
-                                        line.LineTotal
+                                        line.LineTotal,
+
+                                    WarrantyMonths =
+                                        line.WarrantyMonths,
+
+                                    WarrantyStartDate =
+                                        line.WarrantyStartDate,
+
+                                    WarrantyEndDate =
+                                        line.WarrantyEndDate
                                 })
                             .ToList(),
 

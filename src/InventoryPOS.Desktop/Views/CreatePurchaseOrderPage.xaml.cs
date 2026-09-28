@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
+using System;
 
 namespace InventoryPOS.Desktop.Views;
 
@@ -22,15 +23,21 @@ public sealed partial class CreatePurchaseOrderPage : Page
     }
 
     protected override async void OnNavigatedTo(
-        NavigationEventArgs e)
+    NavigationEventArgs e)
     {
         base.OnNavigatedTo(e);
 
-        await ViewModel.LoadAsync();
+        if (e.Parameter is Guid requisitionId &&
+            requisitionId != Guid.Empty)
+        {
+            await ViewModel
+                .LoadFromRequisitionAsync(
+                    requisitionId);
 
-        ErrorInfoBar.IsOpen =
-            !string.IsNullOrWhiteSpace(
-                ViewModel.ErrorMessage);
+            return;
+        }
+
+        await ViewModel.LoadAsync();
     }
 
     private void AddProductButton_Click(

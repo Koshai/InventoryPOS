@@ -47,12 +47,22 @@
 
                     </StackPanel>
 
-                    <Button
+                    <StackPanel
                         Grid.Column="1"
-                        Content="Back"
-                        Padding="18,9"
-                        VerticalAlignment="Center"
-                        Click="BackButton_Click" />
+                        Orientation="Horizontal"
+                        Spacing="10"
+                        VerticalAlignment="Center">
+
+                        <Button
+                            Content="Back"
+                            Padding="18,9"
+                            Click="BackButton_Click" />
+
+                        <Button
+                            Padding="18,9"
+                            Content="Return to Supplier"
+                            Click="ReturnToSupplier_Click"/>
+                    </StackPanel>
 
                 </Grid>
 

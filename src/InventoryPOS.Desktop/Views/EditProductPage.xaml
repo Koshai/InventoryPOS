@@ -445,6 +445,58 @@
 
                             </Grid>
 
+                            <!-- Customer Warranty -->
+
+                            <Border
+                                Padding="16"
+                                CornerRadius="8"
+                                BorderThickness="1"
+                                BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}">
+
+                                <Grid ColumnSpacing="24">
+
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="220" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel
+                                        Grid.Column="0"
+                                        Spacing="4">
+
+                                        <TextBlock
+                                            Text="Customer Warranty"
+                                            FontWeight="SemiBold" />
+
+                                        <TextBlock
+                                            Text="Default warranty given to the customer when this SKU is sold. Enter 0 for no warranty."
+                                            FontSize="11"
+                                            Opacity="0.60"
+                                            TextWrapping="Wrap" />
+
+                                    </StackPanel>
+
+                                    <StackPanel
+                                        Grid.Column="1"
+                                        Spacing="6">
+
+                                        <TextBlock
+                                            Text="Warranty (Months)"
+                                            FontWeight="SemiBold" />
+
+                                        <NumberBox
+                                            Minimum="0"
+                                            SmallChange="1"
+                                            SpinButtonPlacementMode="Compact"
+                                            Value="{Binding DefaultWarrantyMonths,
+                                                            Mode=TwoWay}" />
+
+                                    </StackPanel>
+
+                                </Grid>
+
+                            </Border>
+
                             <!-- Variant Status -->
 
                             <Grid>

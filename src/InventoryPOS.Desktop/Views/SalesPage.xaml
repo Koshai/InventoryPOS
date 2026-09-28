@@ -46,12 +46,23 @@
 
             </StackPanel>
 
-            <Button
-                Grid.Column="1"
-                Content="Refresh"
-                Padding="16,8"
-                VerticalAlignment="Center"
-                Click="RefreshButton_Click" />
+            <StackPanel
+    Grid.Column="1"
+    Orientation="Horizontal"
+    Spacing="10"
+    VerticalAlignment="Center">
+
+                <Button
+        Content="Refresh"
+        Padding="16,9"
+        Click="RefreshButton_Click" />
+
+                <Button
+        Content="Returns"
+        Padding="16,9"
+        Click="ReturnsButton_Click" />
+
+            </StackPanel>
 
         </Grid>
 

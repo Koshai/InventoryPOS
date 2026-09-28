@@ -1,0 +1,441 @@
+<Page
+    x:Class="InventoryPOS.Desktop.Views.PurchaseReturnDetailsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:dto="using:InventoryPOS.Application.DTOs.Purchasing"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+    <Grid>
+
+        <ScrollViewer>
+            <Grid
+                Padding="28"
+                MaxWidth="1400"
+                HorizontalAlignment="Stretch">
+
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- HEADER -->
+
+                <Grid Grid.Row="0">
+
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Button
+                        Grid.Row="0"
+                        Content="← Back to Purchase Returns"
+                        HorizontalAlignment="Left"
+                        Padding="12,7"
+                        Margin="0,0,0,14"
+                        Click="Back_Click" />
+
+                    <Grid Grid.Row="1">
+
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Spacing="4">
+
+                            <TextBlock
+                                Text="Purchase Return"
+                                FontSize="28"
+                                FontWeight="SemiBold" />
+
+                            <TextBlock
+                                Text="{x:Bind ViewModel.ReturnNumber, Mode=OneWay}"
+                                FontSize="14"
+                                Opacity="0.65" />
+
+                        </StackPanel>
+
+                        <Border
+                            Grid.Column="1"
+                            Padding="14,7"
+                            CornerRadius="14"
+                            VerticalAlignment="Center"
+                            Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
+
+                            <TextBlock
+                                Text="{x:Bind ViewModel.Status, Mode=OneWay}"
+                                FontWeight="SemiBold" />
+
+                        </Border>
+
+                    </Grid>
+                </Grid>
+
+                <!-- ERROR -->
+
+                <InfoBar
+                    Grid.Row="1"
+                    Margin="0,18,0,0"
+                    IsOpen="{x:Bind ViewModel.HasError, Mode=OneWay}"
+                    Severity="Error"
+                    Title="Unable to load purchase return"
+                    Message="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}" />
+
+                <!-- SUMMARY -->
+
+                <Border
+                    Grid.Row="2"
+                    Margin="0,20,0,0"
+                    Padding="20"
+                    CornerRadius="10"
+                    BorderThickness="1"
+                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                    <Grid ColumnSpacing="32">
+
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Spacing="5">
+
+                            <TextBlock
+                                Text="SUPPLIER"
+                                FontSize="11"
+                                Opacity="0.55" />
+
+                            <TextBlock
+                                Text="{x:Bind ViewModel.SupplierName, Mode=OneWay}"
+                                FontSize="15"
+                                FontWeight="SemiBold"
+                                TextWrapping="Wrap" />
+
+                        </StackPanel>
+
+                        <StackPanel
+                            Grid.Column="1"
+                            Spacing="5">
+
+                            <TextBlock
+                                Text="GOODS RECEIPT"
+                                FontSize="11"
+                                Opacity="0.55" />
+
+                            <TextBlock
+                                Text="{x:Bind ViewModel.ReceiptNumber, Mode=OneWay}"
+                                FontSize="15"
+                                FontWeight="SemiBold" />
+
+                        </StackPanel>
+
+                        <StackPanel
+                            Grid.Column="2"
+                            Spacing="5">
+
+                            <TextBlock
+                                Text="PURCHASE ORDER"
+                                FontSize="11"
+                                Opacity="0.55" />
+
+                            <TextBlock
+                                Text="{x:Bind ViewModel.PurchaseOrderNumber, Mode=OneWay}"
+                                FontSize="15"
+                                FontWeight="SemiBold" />
+
+                        </StackPanel>
+
+                        <StackPanel
+                            Grid.Column="3"
+                            Spacing="5">
+
+                            <TextBlock
+                                Text="LOCATION"
+                                FontSize="11"
+                                Opacity="0.55" />
+
+                            <TextBlock
+                                Text="{x:Bind ViewModel.LocationName, Mode=OneWay}"
+                                FontSize="15"
+                                FontWeight="SemiBold" />
+
+                        </StackPanel>
+
+                    </Grid>
+                </Border>
+
+                <!-- DATE / REASON / NOTES -->
+
+                <Border
+                    Grid.Row="3"
+                    Margin="0,16,0,0"
+                    Padding="20"
+                    CornerRadius="10"
+                    BorderThickness="1"
+                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                    <Grid ColumnSpacing="28">
+
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1*" />
+                            <ColumnDefinition Width="1.5*" />
+                            <ColumnDefinition Width="2*" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Spacing="5">
+
+                            <TextBlock
+                                Text="RETURN DATE"
+                                FontSize="11"
+                                Opacity="0.55" />
+
+                            <TextBlock
+                                Text="{x:Bind ViewModel.ReturnDateDisplay, Mode=OneWay}"
+                                FontWeight="SemiBold" />
+
+                        </StackPanel>
+
+                        <StackPanel
+                            Grid.Column="1"
+                            Spacing="5">
+
+                            <TextBlock
+                                Text="REASON"
+                                FontSize="11"
+                                Opacity="0.55" />
+
+                            <TextBlock
+                                Text="{x:Bind ViewModel.ReasonDisplay, Mode=OneWay}"
+                                TextWrapping="Wrap" />
+
+                        </StackPanel>
+
+                        <StackPanel
+                            Grid.Column="2"
+                            Spacing="5">
+
+                            <TextBlock
+                                Text="NOTES"
+                                FontSize="11"
+                                Opacity="0.55" />
+
+                            <TextBlock
+                                Text="{x:Bind ViewModel.NotesDisplay, Mode=OneWay}"
+                                TextWrapping="Wrap" />
+
+                        </StackPanel>
+
+                    </Grid>
+                </Border>
+
+                <!-- ITEMS -->
+
+                <Grid
+                    Grid.Row="4"
+                    Margin="0,20,0,30">
+
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Border
+                        Grid.Row="0"
+                        CornerRadius="10"
+                        BorderThickness="1"
+                        BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                        <StackPanel>
+
+                            <!-- TABLE HEADER -->
+
+                            <Grid
+                                Padding="16,12"
+                                ColumnSpacing="12"
+                                Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
+
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="2*" />
+                                    <ColumnDefinition Width="1.25*" />
+                                    <ColumnDefinition Width="0.8*" />
+                                    <ColumnDefinition Width="0.9*" />
+                                    <ColumnDefinition Width="1*" />
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock
+                                    Text="Product"
+                                    FontWeight="SemiBold" />
+
+                                <TextBlock
+                                    Grid.Column="1"
+                                    Text="Batch"
+                                    FontWeight="SemiBold" />
+
+                                <TextBlock
+                                    Grid.Column="2"
+                                    Text="Qty"
+                                    HorizontalAlignment="Right"
+                                    FontWeight="SemiBold" />
+
+                                <TextBlock
+                                    Grid.Column="3"
+                                    Text="Unit Cost"
+                                    HorizontalAlignment="Right"
+                                    FontWeight="SemiBold" />
+
+                                <TextBlock
+                                    Grid.Column="4"
+                                    Text="Total"
+                                    HorizontalAlignment="Right"
+                                    FontWeight="SemiBold" />
+
+                            </Grid>
+
+                            <ItemsControl
+                                ItemsSource="{x:Bind ViewModel.Lines, Mode=OneWay}">
+
+                                <ItemsControl.ItemTemplate>
+
+                                    <DataTemplate
+                                        x:DataType="dto:PurchaseReturnDetailsLineDto">
+
+                                        <Grid
+                                            Padding="16,13"
+                                            ColumnSpacing="12">
+
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="2*" />
+                                                <ColumnDefinition Width="1.25*" />
+                                                <ColumnDefinition Width="0.8*" />
+                                                <ColumnDefinition Width="0.9*" />
+                                                <ColumnDefinition Width="1*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <StackPanel Spacing="2">
+
+                                                <TextBlock
+                                                    Text="{x:Bind ProductName}"
+                                                    FontWeight="SemiBold" />
+
+                                                <TextBlock
+                                                    Text="{x:Bind SKU}"
+                                                    FontSize="11"
+                                                    Opacity="0.55" />
+
+                                            </StackPanel>
+
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Text="{x:Bind SupplierBatchNumber}"
+                                                VerticalAlignment="Center" />
+
+                                            <TextBlock
+                                                Grid.Column="2"
+                                                Text="{x:Bind FormattedQuantity}"
+                                                HorizontalAlignment="Right"
+                                                VerticalAlignment="Center" />
+
+                                            <TextBlock
+                                                Grid.Column="3"
+                                                Text="{x:Bind FormattedUnitCost}"
+                                                HorizontalAlignment="Right"
+                                                VerticalAlignment="Center" />
+
+                                            <TextBlock
+                                                Grid.Column="4"
+                                                Text="{x:Bind FormattedLineTotal}"
+                                                HorizontalAlignment="Right"
+                                                VerticalAlignment="Center"
+                                                FontWeight="SemiBold" />
+
+                                        </Grid>
+
+                                    </DataTemplate>
+
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                        </StackPanel>
+                    </Border>
+
+                    <!-- TOTAL -->
+
+                    <Grid
+                        Grid.Row="1"
+                        Margin="0,16,0,0">
+
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="360" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border
+                            Grid.Column="1"
+                            Padding="20"
+                            CornerRadius="10"
+                            BorderThickness="1"
+                            BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                            <StackPanel Spacing="14">
+
+                                <Grid>
+
+                                    <TextBlock
+                                        Text="Total Quantity"
+                                        Opacity="0.65" />
+
+                                    <TextBlock
+                                        HorizontalAlignment="Right"
+                                        Text="{x:Bind ViewModel.TotalQuantityDisplay, Mode=OneWay}"
+                                        FontWeight="SemiBold" />
+
+                                </Grid>
+
+                                <Border
+                                    Height="1"
+                                    Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
+
+                                <Grid>
+
+                                    <TextBlock
+                                        Text="Return Total"
+                                        FontSize="16"
+                                        FontWeight="SemiBold" />
+
+                                    <TextBlock
+                                        HorizontalAlignment="Right"
+                                        Text="{x:Bind ViewModel.TotalAmountDisplay, Mode=OneWay}"
+                                        FontSize="20"
+                                        FontWeight="SemiBold" />
+
+                                </Grid>
+
+                            </StackPanel>
+                        </Border>
+
+                    </Grid>
+
+                </Grid>
+
+            </Grid>
+        </ScrollViewer>
+
+        <ProgressRing
+            IsActive="{x:Bind ViewModel.IsBusy, Mode=OneWay}"
+            Width="42"
+            Height="42"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center" />
+
+    </Grid>
+</Page>

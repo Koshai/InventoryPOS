@@ -41,11 +41,28 @@
 
             </StackPanel>
 
-            <Button
+            <StackPanel
                 Grid.Column="1"
-                Content="+ New Purchase Order"
-                Padding="18,10"
-                Click="NewPurchaseOrderButton_Click" />
+                Orientation="Horizontal"
+                Spacing="10"
+                VerticalAlignment="Center">
+
+                <Button
+                    Content="Requisitions"
+                    Padding="18,10"
+                    Click="RequisitionsButton_Click"/>
+
+                <Button
+                    Content="Purchase Returns"
+                    Padding="18,10"
+                    Click="PurchaseReturnsButton_Click" />
+
+                <Button
+                    Content="+ New Purchase Order"
+                    Padding="18,10"
+                    Click="NewPurchaseOrderButton_Click" />
+
+            </StackPanel>
 
         </Grid>
 

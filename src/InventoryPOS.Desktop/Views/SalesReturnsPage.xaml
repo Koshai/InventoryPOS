@@ -1,0 +1,343 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<Page
+    x:Class="InventoryPOS.Desktop.Views.SalesReturnsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid
+        Padding="28"
+        RowSpacing="20">
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- ================================================= -->
+        <!-- HEADER -->
+        <!-- ================================================= -->
+
+        <Grid Grid.Row="0">
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel
+                Grid.Column="0"
+                Spacing="4">
+
+                <TextBlock
+                    Text="Sales Returns"
+                    FontSize="28"
+                    FontWeight="SemiBold" />
+
+                <TextBlock
+                    Text="Review completed customer returns and refunds."
+                    Opacity="0.65" />
+
+            </StackPanel>
+
+            <Button
+                Grid.Column="1"
+                Content="Back to Sales"
+                Padding="16,9"
+                VerticalAlignment="Center"
+                Click="BackToSalesButton_Click" />
+
+        </Grid>
+
+        <!-- ================================================= -->
+        <!-- SEARCH / RESULT COUNT -->
+        <!-- ================================================= -->
+
+        <Grid
+            Grid.Row="1"
+            ColumnSpacing="16">
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBox
+                Grid.Column="0"
+                MaxWidth="420"
+                HorizontalAlignment="Left"
+                PlaceholderText="Search return, invoice or customer..."
+                Text="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+            <TextBlock
+                Grid.Column="1"
+                Text="{Binding ResultText}"
+                Opacity="0.65"
+                VerticalAlignment="Center" />
+
+        </Grid>
+
+        <!-- ================================================= -->
+        <!-- TABLE -->
+        <!-- ================================================= -->
+
+        <Border
+            Grid.Row="2"
+            CornerRadius="10"
+            BorderThickness="1"
+            BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+            <Grid>
+
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- TABLE HEADER -->
+
+                <Grid
+                    Grid.Row="0"
+                    Padding="16,11"
+                    ColumnSpacing="10"
+                    Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.35*" />
+                        <ColumnDefinition Width="1.05*" />
+                        <ColumnDefinition Width="1.35*" />
+                        <ColumnDefinition Width="1.45*" />
+                        <ColumnDefinition Width="0.85*" />
+                        <ColumnDefinition Width="0.95*" />
+                        <ColumnDefinition Width="0.85*" />
+                        <ColumnDefinition Width="0.9*" />
+                        <ColumnDefinition Width="72" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock
+                        Grid.Column="0"
+                        Text="Return #"
+                        FontWeight="SemiBold" />
+
+                    <TextBlock
+                        Grid.Column="1"
+                        Text="Date"
+                        FontWeight="SemiBold" />
+
+                    <TextBlock
+                        Grid.Column="2"
+                        Text="Invoice"
+                        FontWeight="SemiBold" />
+
+                    <TextBlock
+                        Grid.Column="3"
+                        Text="Customer"
+                        FontWeight="SemiBold" />
+
+                    <TextBlock
+                        Grid.Column="4"
+                        Text="Return"
+                        FontWeight="SemiBold"
+                        HorizontalAlignment="Right" />
+
+                    <TextBlock
+                        Grid.Column="5"
+                        Text="To Balance"
+                        FontWeight="SemiBold"
+                        HorizontalAlignment="Right" />
+
+                    <TextBlock
+                        Grid.Column="6"
+                        Text="Refunded"
+                        FontWeight="SemiBold"
+                        HorizontalAlignment="Right" />
+
+                    <TextBlock
+                        Grid.Column="7"
+                        Text="Status"
+                        FontWeight="SemiBold"
+                        HorizontalAlignment="Center" />
+
+                    <TextBlock
+                        Grid.Column="8"
+                        Text=""
+                        FontWeight="SemiBold" />
+
+                </Grid>
+
+                <!-- ROWS -->
+
+                <ListView
+                    Grid.Row="1"
+                    ItemsSource="{Binding Items}"
+                    SelectionMode="None"
+                    HorizontalContentAlignment="Stretch">
+
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+
+                            <Setter
+                                Property="HorizontalContentAlignment"
+                                Value="Stretch" />
+
+                            <Setter
+                                Property="Padding"
+                                Value="0" />
+
+                            <Setter
+                                Property="Margin"
+                                Value="0" />
+
+                        </Style>
+                    </ListView.ItemContainerStyle>
+
+                    <ListView.ItemTemplate>
+
+                        <DataTemplate>
+
+                            <Border
+                                BorderThickness="0,1,0,0"
+                                BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}">
+
+                                <Grid
+                                    MinHeight="54"
+                                    Padding="16,9"
+                                    ColumnSpacing="10">
+
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="1.35*" />
+                                        <ColumnDefinition Width="1.05*" />
+                                        <ColumnDefinition Width="1.35*" />
+                                        <ColumnDefinition Width="1.45*" />
+                                        <ColumnDefinition Width="0.85*" />
+                                        <ColumnDefinition Width="0.95*" />
+                                        <ColumnDefinition Width="0.85*" />
+                                        <ColumnDefinition Width="0.9*" />
+                                        <ColumnDefinition Width="72" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock
+                                        Grid.Column="0"
+                                        Text="{Binding ReturnNumber}"
+                                        FontWeight="SemiBold"
+                                        VerticalAlignment="Center"
+                                        TextTrimming="CharacterEllipsis" />
+
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        Text="{Binding ReturnDate}"
+                                        VerticalAlignment="Center" />
+
+                                    <TextBlock
+                                        Grid.Column="2"
+                                        Text="{Binding InvoiceNumber}"
+                                        VerticalAlignment="Center"
+                                        TextTrimming="CharacterEllipsis" />
+
+                                    <TextBlock
+                                        Grid.Column="3"
+                                        Text="{Binding CustomerName}"
+                                        VerticalAlignment="Center"
+                                        TextTrimming="CharacterEllipsis" />
+
+                                    <TextBlock
+                                        Grid.Column="4"
+                                        Text="{Binding ReturnAmount}"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Center" />
+
+                                    <TextBlock
+                                        Grid.Column="5"
+                                        Text="{Binding CreditAdjustmentAmount}"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Center" />
+
+                                    <TextBlock
+                                        Grid.Column="6"
+                                        Text="{Binding RefundedAmount}"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Center" />
+
+                                    <TextBlock
+                                        Grid.Column="7"
+                                        Text="{Binding Status}"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center" />
+
+                                    <Button
+                                        Grid.Column="8"
+                                        Content="View"
+                                        Tag="{Binding SalesReturnId}"
+                                        Padding="10,5"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Click="ViewReturnButton_Click" />
+
+                                </Grid>
+
+                            </Border>
+
+                        </DataTemplate>
+
+                    </ListView.ItemTemplate>
+
+                </ListView>
+
+                <!-- LOADING -->
+
+                <ProgressRing
+                    Grid.RowSpan="2"
+                    IsActive="{Binding IsLoading}"
+                    Width="34"
+                    Height="34"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center" />
+
+            </Grid>
+
+        </Border>
+
+        <!-- ================================================= -->
+        <!-- FOOTER / PAGINATION -->
+        <!-- ================================================= -->
+
+        <Grid Grid.Row="3">
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock
+                Grid.Column="0"
+                Text="{Binding PageText}"
+                Opacity="0.65"
+                VerticalAlignment="Center" />
+
+            <StackPanel
+                Grid.Column="1"
+                Orientation="Horizontal"
+                Spacing="8">
+
+                <Button
+                    Content="Previous"
+                    Padding="14,7"
+                    IsEnabled="{Binding CanGoPrevious}"
+                    Click="PreviousButton_Click" />
+
+                <Button
+                    Content="Next"
+                    Padding="14,7"
+                    IsEnabled="{Binding CanGoNext}"
+                    Click="NextButton_Click" />
+
+            </StackPanel>
+
+        </Grid>
+
+    </Grid>
+
+</Page>

@@ -42,5 +42,14 @@ public class SaleLineConfiguration :
             .WithMany()
             .HasForeignKey(x => x.ProductVariantId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Property(x => x.WarrantyMonths)
+            .IsRequired(false);
+
+        builder.Property(x => x.WarrantyStartDate)
+            .IsRequired(false);
+
+        builder.Property(x => x.WarrantyEndDate)
+            .IsRequired(false);
     }
 }

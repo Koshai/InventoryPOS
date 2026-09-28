@@ -44,6 +44,7 @@ public class EditProductViewModel : INotifyPropertyChanged
     private double _costPrice;
     private double _sellingPrice;
     private double _reorderLevel;
+    private double _defaultWarrantyMonths;
     private bool _variantIsActive = true;
 
     // ---------------------------------------------------------
@@ -214,6 +215,19 @@ public class EditProductViewModel : INotifyPropertyChanged
                 return;
 
             _reorderLevel = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public double DefaultWarrantyMonths
+    {
+        get => _defaultWarrantyMonths;
+        set
+        {
+            if (_defaultWarrantyMonths == value)
+                return;
+
+            _defaultWarrantyMonths = value;
             OnPropertyChanged();
         }
     }
@@ -423,6 +437,9 @@ public class EditProductViewModel : INotifyPropertyChanged
                 Convert.ToDouble(
                     variant.ReorderLevel);
 
+            DefaultWarrantyMonths =
+                    variant.DefaultWarrantyMonths ?? 0;
+
             VariantIsActive =
                 variant.IsActive;
         }
@@ -517,6 +534,24 @@ public class EditProductViewModel : INotifyPropertyChanged
             return false;
         }
 
+        if (double.IsNaN(DefaultWarrantyMonths) ||
+            double.IsInfinity(DefaultWarrantyMonths) ||
+            DefaultWarrantyMonths < 0)
+        {
+            ErrorMessage =
+                "Please enter a valid warranty period.";
+
+            return false;
+        }
+
+        if (DefaultWarrantyMonths % 1 != 0)
+        {
+            ErrorMessage =
+                "Warranty must be entered as whole months.";
+
+            return false;
+        }
+
         // NumberBox can technically produce NaN.
         // Prevent invalid values from reaching decimal conversion.
 
@@ -603,6 +638,12 @@ public class EditProductViewModel : INotifyPropertyChanged
                     ReorderLevel =
                         Convert.ToDecimal(
                             ReorderLevel),
+
+                    DefaultWarrantyMonths =
+                        DefaultWarrantyMonths <= 0
+                            ? null
+                            : Convert.ToInt32(
+                                DefaultWarrantyMonths),
 
                     VariantIsActive =
                         VariantIsActive

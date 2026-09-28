@@ -50,4 +50,16 @@ public sealed partial class GoodsReceiptDetailsPage : Page
         else
             Frame.Navigate(typeof(PurchaseOrdersPage));
     }
+
+    private void ReturnToSupplier_Click(
+    object sender,
+    RoutedEventArgs e)
+    {
+        if (ViewModel.Receipt is null)
+            return;
+
+        Frame.Navigate(
+            typeof(PurchaseReturnPage),
+            ViewModel.Receipt.Id);
+    }
 }

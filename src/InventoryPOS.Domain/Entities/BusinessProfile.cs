@@ -23,6 +23,7 @@ public class BusinessProfile : BaseEntity
     public string CurrencySymbol { get; set; } = "৳";
 
     public string? LogoPath { get; set; }
+    public string InvoiceAccentColor { get; set; } = "#4F56D9";
 
     public string? InvoiceFooter { get; set; }
 }

@@ -12,6 +12,7 @@ public class PurchaseOrderLineEditViewModel
     private double _quantity = 1;
     private double _unitCost;
     private double _warrantyMonths;
+    private bool _requiresUnitCost;
 
     public InventoryProductLookupDto? SelectedProduct
     {
@@ -51,6 +52,8 @@ public class PurchaseOrderLineEditViewModel
                 return;
 
             _unitCost = value;
+            if (value > 0)
+                RequiresUnitCost = false;
             OnPropertyChanged();
             OnPropertyChanged(nameof(LineTotal));
             OnPropertyChanged(nameof(LineTotalDisplay));
@@ -76,6 +79,19 @@ public class PurchaseOrderLineEditViewModel
 
     public string LineTotalDisplay =>
         $"৳{LineTotal:N2}";
+
+    public bool RequiresUnitCost
+    {
+        get => _requiresUnitCost;
+        set
+        {
+            if (_requiresUnitCost == value)
+                return;
+
+            _requiresUnitCost = value;
+            OnPropertyChanged();
+        }
+    }
 
     public event PropertyChangedEventHandler?
         PropertyChanged;

@@ -61,6 +61,17 @@ public class InventoryPosDbContext : DbContext
 
     public DbSet<SalePayment> SalePayments => Set<SalePayment>();
     public DbSet<BusinessProfile> BusinessProfiles => Set<BusinessProfile>();
+    public DbSet<SalesReturn> SalesReturns => Set<SalesReturn>();
+
+    public DbSet<SalesReturnLine> SalesReturnLines => Set<SalesReturnLine>();
+
+    public DbSet<SalesRefund> SalesRefunds => Set<SalesRefund>();
+    public DbSet<PurchaseReturn> PurchaseReturns => Set<PurchaseReturn>();
+
+    public DbSet<PurchaseReturnLine> PurchaseReturnLines => Set<PurchaseReturnLine>();
+    public DbSet<PurchaseRequisition> PurchaseRequisitions => Set<PurchaseRequisition>();
+
+    public DbSet<PurchaseRequisitionLine> PurchaseRequisitionLines => Set<PurchaseRequisitionLine>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

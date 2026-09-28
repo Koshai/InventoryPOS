@@ -89,6 +89,7 @@ public class ProductService : IProductService
                         CostPrice = v.CostPrice,
                         SellingPrice = v.SellingPrice,
                         ReorderLevel = v.ReorderLevel,
+                        DefaultWarrantyMonths = v.DefaultWarrantyMonths,
                         IsActive = v.IsActive
                     })
                     .ToList()
@@ -164,6 +165,10 @@ public class ProductService : IProductService
 
                 ReorderLevel =
                     request.ReorderLevel,
+
+                DefaultWarrantyMonths =
+                    NormalizeWarrantyMonths(
+                        request.DefaultWarrantyMonths),
 
                 IsActive = true
             });
@@ -296,6 +301,10 @@ public class ProductService : IProductService
         variant.ReorderLevel =
             request.ReorderLevel;
 
+        variant.DefaultWarrantyMonths =
+            NormalizeWarrantyMonths(
+                request.DefaultWarrantyMonths);
+
         variant.IsActive =
             request.VariantIsActive;
 
@@ -399,5 +408,23 @@ public class ProductService : IProductService
         return string.IsNullOrWhiteSpace(value)
             ? null
             : value.Trim();
+    }
+
+    private static int? NormalizeWarrantyMonths(
+    int? warrantyMonths)
+    {
+        if (!warrantyMonths.HasValue ||
+            warrantyMonths.Value == 0)
+        {
+            return null;
+        }
+
+        if (warrantyMonths.Value < 0)
+        {
+            throw new ArgumentException(
+                "Warranty months cannot be negative.");
+        }
+
+        return warrantyMonths.Value;
     }
 }

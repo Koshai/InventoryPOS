@@ -80,6 +80,15 @@ public partial class App : Microsoft.UI.Xaml.Application
                 services.AddTransient<InvoiceViewModel>();
                 services.AddTransient<BusinessProfileViewModel>();
                 services.AddTransient<CustomerAccountViewModel>();
+                services.AddTransient<SalesReturnViewModel>();
+                services.AddTransient<SalesReturnsViewModel>();
+                services.AddTransient<SalesReturnDetailsViewModel>();
+                services.AddTransient<PurchaseReturnViewModel>();
+                services.AddTransient<PurchaseReturnHistoryViewModel>();
+                services.AddTransient<PurchaseReturnDetailsViewModel>();
+                services.AddTransient<CreatePurchaseRequisitionViewModel>();
+                services.AddTransient<PurchaseRequisitionHistoryViewModel>();
+                services.AddTransient<PurchaseRequisitionDetailsViewModel>();
             })
             .Build();
     }

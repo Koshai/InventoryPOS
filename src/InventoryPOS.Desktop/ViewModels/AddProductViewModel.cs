@@ -23,6 +23,7 @@ public class AddProductViewModel : INotifyPropertyChanged
     private double _costPrice;
     private double _sellingPrice;
     private double _reorderLevel;
+    private double _defaultWarrantyMonths;
 
     private CategoryLookupDto? _selectedCategory;
     private BrandLookupDto? _selectedBrand;
@@ -101,6 +102,19 @@ public class AddProductViewModel : INotifyPropertyChanged
         set
         {
             _reorderLevel = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public double DefaultWarrantyMonths
+    {
+        get => _defaultWarrantyMonths;
+        set
+        {
+            if (_defaultWarrantyMonths == value)
+                return;
+
+            _defaultWarrantyMonths = value;
             OnPropertyChanged();
         }
     }
@@ -214,6 +228,24 @@ public class AddProductViewModel : INotifyPropertyChanged
             return null;
         }
 
+        if (double.IsNaN(DefaultWarrantyMonths) ||
+            double.IsInfinity(DefaultWarrantyMonths) ||
+            DefaultWarrantyMonths < 0)
+        {
+            ErrorMessage =
+                "Please enter a valid warranty period.";
+
+            return null;
+        }
+
+        if (DefaultWarrantyMonths % 1 != 0)
+        {
+            ErrorMessage =
+                "Warranty must be entered as whole months.";
+
+            return null;
+        }
+
         try
         {
             IsSaving = true;
@@ -231,6 +263,7 @@ public class AddProductViewModel : INotifyPropertyChanged
                     CostPrice = Convert.ToDecimal(CostPrice),
                     SellingPrice = Convert.ToDecimal(SellingPrice),
                     ReorderLevel = Convert.ToDecimal(ReorderLevel),
+                    DefaultWarrantyMonths = DefaultWarrantyMonths <= 0 ? null : Convert.ToInt32(DefaultWarrantyMonths),
                     IsActive = true
                 });
         }
