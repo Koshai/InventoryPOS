@@ -49,6 +49,8 @@
     <None Remove="Views\PurchaseReturnHistoryPage.xaml" />
     <None Remove="Views\PurchaseReturnPage.xaml" />
     <None Remove="Views\SalesPage.xaml" />
+    <None Remove="Views\SalesQuoteDetailsPage.xaml" />
+    <None Remove="Views\SalesQuoteHistoryPage.xaml" />
     <None Remove="Views\SalesReturnPage.xaml" />
     <None Remove="Views\SalesReturnsPage.xaml" />
     <None Remove="Views\SetOpeningStockPage.xaml" />
@@ -58,6 +60,8 @@
     <None Remove="Views\SupplierDetailsPage.xaml" />
     <None Remove="Views\SupplierFormPage.xaml" />
     <None Remove="Views\SuppliersPage.xaml" />
+    <None Remove="Views\WarrantyClaimsPage.xaml" />
+    <None Remove="Views\WarrantyLookupPage.xaml" />
   </ItemGroup>
 
   <ItemGroup>
@@ -109,6 +113,26 @@
   <ItemGroup>
     <ProjectReference Include="..\InventoryPOS.Application\InventoryPOS.Application.csproj" />
     <ProjectReference Include="..\InventoryPOS.Infrastructure\InventoryPOS.Infrastructure.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Views\WarrantyClaimsPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Views\WarrantyLookupPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Views\SalesQuoteDetailsPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Views\SalesQuoteHistoryPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Page Update="Views\PurchaseRequisitionDetailsPage.xaml">

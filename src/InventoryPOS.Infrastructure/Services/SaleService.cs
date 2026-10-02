@@ -112,6 +112,67 @@ public class SaleService : ISaleService
 
         try
         {
+            // Lock the accepted quotation before creating a sale.
+            // This lock is held until the sale and quote are committed together.
+            SalesQuote? sourceQuote = null;
+
+            if (request.SalesQuoteId.HasValue)
+            {
+                var quoteId = request.SalesQuoteId.Value;
+
+                sourceQuote = await _dbContext.SalesQuotes
+                    .FromSqlInterpolated(
+                        $"SELECT * FROM \"SalesQuotes\" WHERE \"Id\" = {quoteId} FOR UPDATE")
+                    .SingleOrDefaultAsync(cancellationToken);
+
+                if (sourceQuote is null)
+                    throw new InvalidOperationException(
+                        "The source quotation was not found.");
+
+                if (sourceQuote.Status != SalesQuoteStatus.Accepted ||
+                    sourceQuote.SaleId.HasValue)
+                    throw new InvalidOperationException(
+                        "This quotation has already been converted or is no longer accepted.");
+
+                if (sourceQuote.ValidUntilDate.HasValue &&
+                    sourceQuote.ValidUntilDate.Value.Date < DateTime.UtcNow.Date)
+                    throw new InvalidOperationException(
+                        "This quotation has expired.");
+
+                if (sourceQuote.LocationId != request.LocationId ||
+                    sourceQuote.CustomerId != request.CustomerId)
+                    throw new InvalidOperationException(
+                        "The sale's customer or location differs from the accepted quotation.");
+
+                await _dbContext.Entry(sourceQuote)
+                    .Collection(x => x.Lines)
+                    .LoadAsync(cancellationToken);
+
+                if (sourceQuote.Lines.Count != request.Lines.Count)
+                    throw new InvalidOperationException(
+                        "The sale must contain exactly the quoted products.");
+
+                foreach (var quotedLine in sourceQuote.Lines)
+                {
+                    var matchingLines = request.Lines
+                        .Where(x => x.ProductVariantId == quotedLine.ProductVariantId)
+                        .ToList();
+
+                    if (matchingLines.Count != 1 ||
+                        matchingLines[0].Quantity != quotedLine.Quantity ||
+                        matchingLines[0].UnitPrice != quotedLine.UnitPrice ||
+                        matchingLines[0].DiscountAmount != quotedLine.DiscountAmount ||
+                        matchingLines[0].TaxAmount != quotedLine.TaxAmount)
+                        throw new InvalidOperationException(
+                            "The sale's products, quantities or prices differ from the accepted quotation.");
+                }
+
+                if (request.OrderDiscountAmount != sourceQuote.DiscountAmount ||
+                    request.TaxAmount != sourceQuote.TaxAmount)
+                    throw new InvalidOperationException(
+                        "The sale's discounts or taxes differ from the accepted quotation.");
+            }
+
             var locationExists =
                 await _dbContext.Locations.AnyAsync(
                     x =>
@@ -361,17 +422,25 @@ public class SaleService : ISaleService
                     requestLine.DiscountAmount +
                     requestLine.TaxAmount;
 
+                // Quoted warranties are historical snapshots. Ordinary sales
+                // continue using the product's current default warranty.
+                int? warrantyMonths = sourceQuote is null
+                    ? productVariant.DefaultWarrantyMonths
+                    : sourceQuote.Lines.Single(x =>
+                        x.ProductVariantId == requestLine.ProductVariantId)
+                        .WarrantyMonths;
+
                 DateTime? warrantyStartDate = null;
                 DateTime? warrantyEndDate = null;
 
-                if (productVariant.DefaultWarrantyMonths.HasValue &&
-                    productVariant.DefaultWarrantyMonths.Value > 0)
+                if (warrantyMonths.HasValue &&
+                    warrantyMonths.Value > 0)
                 {
                     warrantyStartDate = sale.SaleDate;
 
                     warrantyEndDate =
                         sale.SaleDate.AddMonths(
-                            productVariant.DefaultWarrantyMonths.Value);
+                            warrantyMonths.Value);
                 }
 
                 var saleLine = new SaleLine
@@ -395,9 +464,9 @@ public class SaleService : ISaleService
 
                     LineTotal =
                         lineTotal,
-                    
+
                     WarrantyMonths =
-                        productVariant.DefaultWarrantyMonths,
+                        warrantyMonths,
 
                     WarrantyStartDate =
                         warrantyStartDate,
@@ -442,6 +511,16 @@ public class SaleService : ISaleService
 
             await _dbContext.SaveChangesAsync(
                 cancellationToken);
+
+            // Persist the quotation link in the SAME transaction as the sale,
+            // payments, inventory batches and stock movements.
+            if (sourceQuote is not null)
+            {
+                sourceQuote.SaleId = sale.Id;
+                sourceQuote.Status = SalesQuoteStatus.ConvertedToSale;
+
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
 
             await transaction.CommitAsync(
                 cancellationToken);

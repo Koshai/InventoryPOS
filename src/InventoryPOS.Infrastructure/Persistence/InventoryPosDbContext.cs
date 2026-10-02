@@ -72,6 +72,14 @@ public class InventoryPosDbContext : DbContext
     public DbSet<PurchaseRequisition> PurchaseRequisitions => Set<PurchaseRequisition>();
 
     public DbSet<PurchaseRequisitionLine> PurchaseRequisitionLines => Set<PurchaseRequisitionLine>();
+    public DbSet<SalesQuote> SalesQuotes => Set<SalesQuote>();
+
+    public DbSet<SalesQuoteLine> SalesQuoteLines => Set<SalesQuoteLine>();
+    public DbSet<WarrantyClaim> WarrantyClaims => Set<WarrantyClaim>();
+
+    public DbSet<WarrantyClaimItem> WarrantyClaimItems => Set<WarrantyClaimItem>();
+    public DbSet<WarrantyReplacement> WarrantyReplacements => Set<WarrantyReplacement>();
+    public DbSet<WarrantyClaimEvent> WarrantyClaimEvents => Set<WarrantyClaimEvent>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

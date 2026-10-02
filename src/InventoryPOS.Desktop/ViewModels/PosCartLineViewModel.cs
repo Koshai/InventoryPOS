@@ -1,4 +1,5 @@
-﻿using InventoryPOS.Application.DTOs.Sales;
+﻿
+using InventoryPOS.Application.DTOs.Sales;
 using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -8,34 +9,30 @@ namespace InventoryPOS.Desktop.ViewModels;
 public class PosCartLineViewModel : INotifyPropertyChanged
 {
     private double _quantity = 1;
+    private readonly decimal? _quotedUnitPrice;
 
     public PosProductDto Product { get; }
 
-    public Guid ProductVariantId =>
-        Product.ProductVariantId;
-
-    public string SKU =>
-        Product.SKU;
-
-    public string ProductName =>
-        Product.ProductName;
-
-    public string UnitSymbol =>
-        Product.UnitSymbol;
+    public Guid ProductVariantId => Product.ProductVariantId;
+    public string SKU => Product.SKU;
+    public string ProductName => Product.ProductName;
+    public string UnitSymbol => Product.UnitSymbol;
 
     public decimal UnitPrice =>
-        Product.SellingPrice;
+        _quotedUnitPrice ?? Product.SellingPrice;
+
+    public bool HasQuotedPrice =>
+        _quotedUnitPrice.HasValue;
 
     public decimal QuantityAvailable =>
-    Product.QuantityAvailable;
+        Product.QuantityAvailable;
 
     public double QuantityAvailableForNumberBox =>
-        Convert.ToDouble(Product.QuantityAvailable);
+        Convert.ToDouble(QuantityAvailable);
 
     public double Quantity
     {
         get => _quantity;
-
         set
         {
             if (_quantity == value)
@@ -62,9 +59,11 @@ public class PosCartLineViewModel : INotifyPropertyChanged
         $"{QuantityAvailable:N3} {UnitSymbol}";
 
     public PosCartLineViewModel(
-        PosProductDto product)
+        PosProductDto product,
+        decimal? quotedUnitPrice = null)
     {
         Product = product;
+        _quotedUnitPrice = quotedUnitPrice;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

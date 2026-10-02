@@ -25,6 +25,9 @@ public class CreatePurchaseOrderViewModel
     private bool _isSaving;
     private string? _errorMessage;
     public bool IsFromRequisition => _sourcePurchaseRequisitionId.HasValue;
+    private bool _hasCompletedSave;
+
+    public bool HasCompletedSave => _hasCompletedSave;
 
     public ObservableCollection<SupplierLookupDto>
         Suppliers
@@ -362,16 +365,27 @@ public class CreatePurchaseOrderViewModel
                         .ToList()
                 };
 
-            var purchaseOrderId =
-                await _purchaseOrderService.CreateAsync(request);
+            Guid purchaseOrderId;
 
             if (_sourcePurchaseRequisitionId.HasValue)
             {
-                await _purchaseRequisitionService
-                    .CompletePurchaseOrderConversionAsync(
-                        _sourcePurchaseRequisitionId.Value,
-                        purchaseOrderId);
+                purchaseOrderId =
+                    await _purchaseRequisitionService
+                        .ConvertToPurchaseOrderAsync(
+                            _sourcePurchaseRequisitionId.Value,
+                            request);
             }
+            else
+            {
+                purchaseOrderId =
+                    await _purchaseOrderService
+                        .CreateAsync(request);
+            }
+
+            _hasCompletedSave = true;
+
+            OnPropertyChanged(
+                nameof(HasCompletedSave));
 
             return purchaseOrderId;
         }
@@ -389,6 +403,9 @@ public class CreatePurchaseOrderViewModel
     public async Task LoadFromRequisitionAsync(
     Guid purchaseRequisitionId)
     {
+        if (_hasCompletedSave)
+            return;
+
         try
         {
             IsLoading = true;

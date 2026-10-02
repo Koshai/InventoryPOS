@@ -89,6 +89,10 @@ public partial class App : Microsoft.UI.Xaml.Application
                 services.AddTransient<CreatePurchaseRequisitionViewModel>();
                 services.AddTransient<PurchaseRequisitionHistoryViewModel>();
                 services.AddTransient<PurchaseRequisitionDetailsViewModel>();
+                services.AddTransient<SalesQuoteHistoryViewModel>();
+                services.AddTransient<SalesQuoteDetailsViewModel>();
+                services.AddTransient<WarrantyLookupViewModel>();
+                services.AddTransient<WarrantyClaimsViewModel>();
             })
             .Build();
     }

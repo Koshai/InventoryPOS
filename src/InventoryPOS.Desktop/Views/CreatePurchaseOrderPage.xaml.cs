@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using System;
+using System.Linq;
 
 namespace InventoryPOS.Desktop.Views;
 
@@ -65,23 +66,26 @@ public sealed partial class CreatePurchaseOrderPage : Page
         object sender,
         RoutedEventArgs e)
     {
-        ErrorInfoBar.IsOpen = false;
-
         var purchaseOrderId =
-            await ViewModel.SaveAsync();
+    await ViewModel.SaveAsync();
 
         if (!purchaseOrderId.HasValue)
-        {
-            ErrorInfoBar.IsOpen =
-                !string.IsNullOrWhiteSpace(
-                    ViewModel.ErrorMessage);
-
             return;
-        }
 
         Frame.Navigate(
             typeof(PurchaseOrderDetailsPage),
             purchaseOrderId.Value);
+
+        if (Frame.BackStack.Count > 0)
+        {
+            var createPage =
+                Frame.BackStack.LastOrDefault(
+                    x => x.SourcePageType ==
+                        typeof(CreatePurchaseOrderPage));
+
+            if (createPage is not null)
+                Frame.BackStack.Remove(createPage);
+        }
     }
 
     private void CancelButton_Click(

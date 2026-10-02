@@ -12,6 +12,8 @@ public class CreateSaleRequest
 
     public string? Notes { get; set; }
 
+    public Guid? SalesQuoteId { get; set; }
+
     public IReadOnlyList<CreateSaleLineRequest> Lines { get; set; }
         = Array.Empty<CreateSaleLineRequest>();
 

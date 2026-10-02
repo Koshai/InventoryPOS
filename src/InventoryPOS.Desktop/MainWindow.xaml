@@ -36,6 +36,30 @@
             </NavigationViewItem>
 
             <NavigationViewItem
+                Content="Quotations"
+                Tag="Quotations">
+                <NavigationViewItem.Icon>
+                    <SymbolIcon Symbol="Document" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+
+            <NavigationViewItem
+                Content="Warranty Lookup"
+                Tag="Warranties">
+                <NavigationViewItem.Icon>
+                    <SymbolIcon Symbol="Find" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+
+            <NavigationViewItem
+                Content="Warranty Claims"
+                Tag="WarrantyClaims">
+                <NavigationViewItem.Icon>
+                    <SymbolIcon Symbol="Document" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+
+            <NavigationViewItem
                 Content="Products"
                 Tag="products">
                 <NavigationViewItem.Icon>

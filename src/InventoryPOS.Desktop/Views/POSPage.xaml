@@ -262,6 +262,15 @@
                             FontSize="11"
                             Opacity="0.60" />
 
+
+                        <TextBlock
+                            Text="{Binding LoadedQuoteNumber}"
+                            Visibility="{Binding HasLoadedQuote}"
+                            FontSize="12"
+                            FontWeight="SemiBold"
+                            Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+
+
                     </StackPanel>
 
                     <TextBlock
@@ -860,16 +869,38 @@
                 <!-- COMPLETE -->
                 <!-- ================================================= -->
 
-                <Button
+                <Grid
                     Grid.Row="5"
-                    Content="Complete Sale"
-                    HorizontalAlignment="Stretch"
-                    HorizontalContentAlignment="Center"
-                    Padding="20,10"
-                    FontSize="15"
-                    FontWeight="SemiBold"
-                    IsEnabled="{Binding HasItems}"
-                    Click="CompleteSaleButton_Click" />
+                    ColumnSpacing="10">
+
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="0.42*" />
+                        <ColumnDefinition Width="0.58*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Button
+                        Grid.Column="0"
+                        Content="Create Quote"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Center"
+                        Padding="20,10"
+                        FontSize="15"
+                        FontWeight="SemiBold"
+                        IsEnabled="{Binding HasItems}"
+                        Click="CreateQuoteButton_Click" />
+
+                    <Button
+                        Grid.Column="1"
+                        Content="Complete Sale"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Center"
+                        Padding="20,10"
+                        FontSize="15"
+                        FontWeight="SemiBold"
+                        IsEnabled="{Binding HasItems}"
+                        Click="CompleteSaleButton_Click" />
+
+                </Grid>
 
             </Grid>
 

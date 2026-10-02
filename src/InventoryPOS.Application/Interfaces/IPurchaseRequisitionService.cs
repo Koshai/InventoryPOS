@@ -29,8 +29,8 @@ public interface IPurchaseRequisitionService
         Guid purchaseRequisitionId,
         CancellationToken cancellationToken = default);
 
-    Task CompletePurchaseOrderConversionAsync(
+    Task<Guid> ConvertToPurchaseOrderAsync(
         Guid purchaseRequisitionId,
-        Guid purchaseOrderId,
+        CreatePurchaseOrderRequest request,
         CancellationToken cancellationToken = default);
 }

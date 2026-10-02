@@ -586,79 +586,253 @@ public class PurchaseRequisitionService : IPurchaseRequisitionService
         return requisition;
     }
 
-    public async Task CompletePurchaseOrderConversionAsync(
+    public async Task<Guid> ConvertToPurchaseOrderAsync(
     Guid purchaseRequisitionId,
-    Guid purchaseOrderId,
+    CreatePurchaseOrderRequest request,
     CancellationToken cancellationToken = default)
     {
         if (purchaseRequisitionId == Guid.Empty)
-        {
-            throw new ArgumentException(
-                "Purchase requisition ID is required.",
-                nameof(purchaseRequisitionId));
-        }
-
-        if (purchaseOrderId == Guid.Empty)
-        {
-            throw new ArgumentException(
-                "Purchase Order ID is required.",
-                nameof(purchaseOrderId));
-        }
-
-        var requisition =
-            await _dbContext.PurchaseRequisitions
-                .FirstOrDefaultAsync(
-                    x => x.Id ==
-                        purchaseRequisitionId,
-                    cancellationToken);
-
-        if (requisition is null)
-        {
             throw new InvalidOperationException(
-                "Purchase requisition was not found.");
-        }
+                "Purchase requisition is required.");
 
-        if (requisition.Status ==
+        await using var transaction =
+            await _dbContext.Database.BeginTransactionAsync(
+                cancellationToken);
+
+        try
+        {
+            var requisition =
+                await _dbContext.PurchaseRequisitions
+                    .FirstOrDefaultAsync(
+                        x => x.Id == purchaseRequisitionId,
+                        cancellationToken);
+
+            if (requisition is null)
+                throw new InvalidOperationException(
+                    "Purchase requisition was not found.");
+
+            if (requisition.Status ==
+                    PurchaseRequisitionStatus
+                        .ConvertedToPurchaseOrder ||
+                requisition.PurchaseOrderId.HasValue)
+            {
+                throw new InvalidOperationException(
+                    "This requisition has already been " +
+                    "converted to a Purchase Order.");
+            }
+
+            if (requisition.Status !=
+                    PurchaseRequisitionStatus.Sent &&
+                requisition.Status !=
+                    PurchaseRequisitionStatus.Approved)
+            {
+                throw new InvalidOperationException(
+                    "Only a Sent or Approved requisition " +
+                    "can be converted to a Purchase Order.");
+            }
+
+            if (request.SupplierId != requisition.SupplierId)
+            {
+                throw new InvalidOperationException(
+                    "The Purchase Order supplier must match " +
+                    "the requisition supplier.");
+            }
+
+            if (request.LocationId != requisition.LocationId)
+            {
+                throw new InvalidOperationException(
+                    "The Purchase Order location must match " +
+                    "the requisition location.");
+            }
+
+            var requisitionProductIds =
+                await _dbContext.PurchaseRequisitionLines
+                    .Where(x =>
+                        x.PurchaseRequisitionId ==
+                        purchaseRequisitionId)
+                    .Select(x => x.ProductVariantId)
+                    .ToListAsync(cancellationToken);
+
+            var purchaseOrderProductIds =
+                request.Lines
+                    .Select(x => x.ProductVariantId)
+                    .ToList();
+
+            if (requisitionProductIds.Count !=
+                    purchaseOrderProductIds.Count ||
+                requisitionProductIds
+                    .Except(purchaseOrderProductIds)
+                    .Any())
+            {
+                throw new InvalidOperationException(
+                    "The Purchase Order products must match " +
+                    "the products on the requisition.");
+            }
+
+            ValidatePurchaseOrderRequest(request);
+
+            var productIds =
+                request.Lines
+                    .Select(x => x.ProductVariantId)
+                    .Distinct()
+                    .ToList();
+
+            var validProductCount =
+                await _dbContext.ProductVariants
+                    .CountAsync(
+                        x =>
+                            productIds.Contains(x.Id) &&
+                            x.IsActive &&
+                            x.Product != null &&
+                            x.Product.IsActive,
+                        cancellationToken);
+
+            if (validProductCount != productIds.Count)
+            {
+                throw new InvalidOperationException(
+                    "One or more selected products " +
+                    "are not available.");
+            }
+
+            var purchaseOrder =
+                new PurchaseOrder
+                {
+                    OrderNumber =
+                        await GeneratePurchaseOrderNumberAsync(
+                            cancellationToken),
+
+                    SupplierId =
+                        request.SupplierId,
+
+                    LocationId =
+                        request.LocationId,
+
+                    Status =
+                        PurchaseOrderStatus.Ordered,
+
+                    OrderDate =
+                        DateTime.UtcNow,
+
+                    ExpectedDate =
+                        request.ExpectedDate,
+
+                    Notes =
+                        string.IsNullOrWhiteSpace(request.Notes)
+                            ? null
+                            : request.Notes.Trim()
+                };
+
+            foreach (var requestLine in request.Lines)
+            {
+                purchaseOrder.Lines.Add(
+                    new PurchaseOrderLine
+                    {
+                        ProductVariantId =
+                            requestLine.ProductVariantId,
+
+                        OrderedQuantity =
+                            requestLine.Quantity,
+
+                        ReceivedQuantity = 0,
+
+                        UnitCost =
+                            requestLine.UnitCost,
+
+                        WarrantyMonths =
+                            requestLine.WarrantyMonths
+                    });
+            }
+
+            _dbContext.PurchaseOrders.Add(
+                purchaseOrder);
+
+            requisition.PurchaseOrderId =
+                purchaseOrder.Id;
+
+            requisition.Status =
                 PurchaseRequisitionStatus
-                    .ConvertedToPurchaseOrder ||
-            requisition.PurchaseOrderId.HasValue)
+                    .ConvertedToPurchaseOrder;
+
+            await _dbContext.SaveChangesAsync(
+                cancellationToken);
+
+            await transaction.CommitAsync(
+                cancellationToken);
+
+            return purchaseOrder.Id;
+        }
+        catch
+        {
+            await transaction.RollbackAsync(
+                cancellationToken);
+
+            throw;
+        }
+    }
+
+    private static void ValidatePurchaseOrderRequest(
+        CreatePurchaseOrderRequest request)
+    {
+        if (request is null)
+            throw new ArgumentNullException(nameof(request));
+
+        if (request.SupplierId == Guid.Empty)
+            throw new InvalidOperationException(
+                "Supplier is required.");
+
+        if (request.LocationId == Guid.Empty)
+            throw new InvalidOperationException(
+                "Location is required.");
+
+        if (request.Lines is null ||
+            request.Lines.Count == 0)
         {
             throw new InvalidOperationException(
-                "This requisition has already been " +
-                "converted to a Purchase Order.");
+                "At least one product is required.");
         }
 
-        if (requisition.Status !=
-                PurchaseRequisitionStatus.Sent &&
-            requisition.Status !=
-                PurchaseRequisitionStatus.Approved)
+        if (request.Lines
+            .GroupBy(x => x.ProductVariantId)
+            .Any(x => x.Count() > 1))
         {
             throw new InvalidOperationException(
-                "Only a Sent or Approved requisition " +
-                "can be converted.");
+                "The same product cannot appear more than once.");
         }
 
-        var purchaseOrderExists =
+        foreach (var line in request.Lines)
+        {
+            if (line.ProductVariantId == Guid.Empty)
+                throw new InvalidOperationException(
+                    "A product is required for every line.");
+
+            if (line.Quantity <= 0)
+                throw new InvalidOperationException(
+                    "Ordered quantity must be greater than zero.");
+
+            if (line.UnitCost < 0)
+                throw new InvalidOperationException(
+                    "Unit cost cannot be negative.");
+
+            if (line.WarrantyMonths < 0)
+                throw new InvalidOperationException(
+                    "Warranty months cannot be negative.");
+        }
+    }
+
+    private async Task<string>
+    GeneratePurchaseOrderNumberAsync(
+        CancellationToken cancellationToken)
+    {
+        var prefix =
+            $"PO-{DateTime.UtcNow:yyyyMMdd}";
+
+        var count =
             await _dbContext.PurchaseOrders
-                .AnyAsync(
-                    x => x.Id == purchaseOrderId,
+                .CountAsync(
+                    x => x.OrderNumber.StartsWith(prefix),
                     cancellationToken);
 
-        if (!purchaseOrderExists)
-        {
-            throw new InvalidOperationException(
-                "The Purchase Order was not found.");
-        }
-
-        requisition.PurchaseOrderId =
-            purchaseOrderId;
-
-        requisition.Status =
-            PurchaseRequisitionStatus
-                .ConvertedToPurchaseOrder;
-
-        await _dbContext.SaveChangesAsync(
-            cancellationToken);
+        return $"{prefix}-{count + 1:000}";
     }
 
     private static string? Normalize(

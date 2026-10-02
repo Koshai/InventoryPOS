@@ -44,8 +44,16 @@ public static class DependencyInjection
         services.AddScoped<ISaleFinancialService, SaleFinancialService>();
         services.AddScoped<IPurchaseReturnService, PurchaseReturnService>();
         services.AddScoped<IPurchaseRequisitionService, PurchaseRequisitionService>();
+        services.AddScoped<ISalesQuoteService, SalesQuoteService>();
+        services.AddScoped<IWarrantyLookupService, WarrantyLookupService>();
+        services.AddScoped<IWarrantyClaimService, WarrantyClaimService>();
+        services.AddScoped<IWarrantyClaimQueryService, WarrantyClaimQueryService>();
+        services.AddScoped<IWarrantyClaimManagementService, WarrantyClaimManagementService>();
+        services.AddScoped<IWarrantyReplacementService, WarrantyReplacementService>();
         services.AddSingleton<IInvoicePdfService, InvoicePdfService>();
         services.AddSingleton<IPurchaseRequisitionPdfService, PurchaseRequisitionPdfService>();
+        services.AddSingleton<ISalesQuotePdfService, SalesQuotePdfService>();
+        services.AddSingleton<IWarrantyClaimPdfService, WarrantyClaimPdfService>();
 
         return services;
     }

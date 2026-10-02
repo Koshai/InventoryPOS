@@ -23,6 +23,7 @@ public sealed partial class POSPage : Page
             ViewModel;
     }
 
+
     protected override async void OnNavigatedTo(
         NavigationEventArgs e)
     {
@@ -30,8 +31,15 @@ public sealed partial class POSPage : Page
 
         await ViewModel.LoadAsync();
 
+        if (e.Parameter is Guid quoteId &&
+            quoteId != Guid.Empty)
+        {
+            await ViewModel.LoadQuoteAsync(quoteId);
+        }
+
         ShowError();
     }
+
 
     // ---------------------------------------------------------
     // Product
@@ -131,6 +139,146 @@ public sealed partial class POSPage : Page
         ViewModel.SelectWalkInCustomer();
 
         ShowError();
+    }
+
+    // ---------------------------------------------------------
+    // Quote
+    // ---------------------------------------------------------
+
+    private async void CreateQuoteButton_Click(
+    object sender,
+    RoutedEventArgs e)
+    {
+        ErrorInfoBar.IsOpen =
+            false;
+
+        var validUntilPicker =
+            new CalendarDatePicker
+            {
+                Header = "Valid Until",
+                PlaceholderText = "Optional"
+            };
+
+        var notesBox =
+            new TextBox
+            {
+                Header = "Notes",
+                PlaceholderText =
+                    "Optional notes for the customer",
+                AcceptsReturn = true,
+                TextWrapping =
+                    TextWrapping.Wrap,
+                MinHeight = 70
+            };
+
+        var termsBox =
+            new TextBox
+            {
+                Header = "Terms",
+                PlaceholderText =
+                    "Optional quotation terms",
+                AcceptsReturn = true,
+                TextWrapping =
+                    TextWrapping.Wrap,
+                MinHeight = 70
+            };
+
+        var content =
+            new StackPanel
+            {
+                Spacing = 12
+            };
+
+        content.Children.Add(
+            validUntilPicker);
+
+        content.Children.Add(
+            notesBox);
+
+        content.Children.Add(
+            termsBox);
+
+        var dialog =
+            new ContentDialog
+            {
+                Title =
+                    "Create Quotation",
+
+                Content =
+                    content,
+
+                PrimaryButtonText =
+                    "Create Quote",
+
+                CloseButtonText =
+                    "Cancel",
+
+                DefaultButton =
+                    ContentDialogButton.Primary,
+
+                XamlRoot =
+                    XamlRoot
+            };
+
+        var dialogResult =
+            await dialog.ShowAsync();
+
+        if (dialogResult !=
+            ContentDialogResult.Primary)
+        {
+            return;
+        }
+
+        DateTime? validUntilDate = null;
+
+        if (validUntilPicker.Date.HasValue)
+        {
+            var selectedDate =
+                validUntilPicker.Date.Value;
+
+            validUntilDate =
+                new DateTime(
+                    selectedDate.Year,
+                    selectedDate.Month,
+                    selectedDate.Day,
+                    0,
+                    0,
+                    0,
+                    DateTimeKind.Utc);
+        }
+
+        var result =
+            await ViewModel.CreateQuoteAsync(
+                validUntilDate,
+                notesBox.Text,
+                termsBox.Text);
+
+        if (result is null)
+        {
+            ShowError();
+            return;
+        }
+
+        var successDialog =
+            new ContentDialog
+            {
+                Title =
+                    "Quotation Created",
+
+                Content =
+                    $"Quote: {result.QuoteNumber}\n" +
+                    $"Items: {result.LineCount}\n" +
+                    $"Quantity: {result.TotalQuantity:N3}\n" +
+                    $"Total: ৳{result.TotalAmount:N2}",
+
+                CloseButtonText =
+                    "OK",
+
+                XamlRoot =
+                    XamlRoot
+            };
+
+        await successDialog.ShowAsync();
     }
 
     // ---------------------------------------------------------

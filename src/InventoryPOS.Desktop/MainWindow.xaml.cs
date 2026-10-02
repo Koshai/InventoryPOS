@@ -50,6 +50,17 @@ public sealed partial class MainWindow : Window
                 ContentFrame.Navigate(typeof(SalesPage));
                 break;
 
+            case "Quotations":
+                ContentFrame.Navigate(
+                    typeof(SalesQuoteHistoryPage));
+                break;
+            case "Warranties":
+                ContentFrame.Navigate(
+                    typeof(WarrantyLookupPage));
+                break;
+            case "WarrantyClaims":
+                ContentFrame.Navigate(typeof(WarrantyClaimsPage));
+                break;
             case "inventory":
                 ContentFrame.Navigate(
                     typeof(InventoryPage));

@@ -18,5 +18,7 @@ public enum InventoryMovementType
 
     TransferIn = 8,
 
-    TransferOut = 9
+    TransferOut = 9,
+
+    WarrantyReplacement = 10
 }

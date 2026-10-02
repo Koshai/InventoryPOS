@@ -1080,6 +1080,133 @@ namespace InventoryPOS.Infrastructure.Persistence.Migrations
                     b.ToTable("SalePayments", (string)null);
                 });
 
+            modelBuilder.Entity("InventoryPOS.Domain.Entities.SalesQuote", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("DiscountAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("LocationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime>("QuoteDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("QuoteNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid?>("SaleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Subtotal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TaxAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("Terms")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ValidUntilDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("LocationId");
+
+                    b.HasIndex("QuoteNumber")
+                        .IsUnique();
+
+                    b.HasIndex("SaleId");
+
+                    b.ToTable("SalesQuotes", (string)null);
+                });
+
+            modelBuilder.Entity("InventoryPOS.Domain.Entities.SalesQuoteLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<decimal>("DiscountAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("LineTotal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("ProductVariantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("numeric(18,3)");
+
+                    b.Property<Guid>("SalesQuoteId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("TaxAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("WarrantyMonths")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductVariantId");
+
+                    b.HasIndex("SalesQuoteId");
+
+                    b.ToTable("SalesQuoteLines", (string)null);
+                });
+
             modelBuilder.Entity("InventoryPOS.Domain.Entities.SalesRefund", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1531,6 +1658,228 @@ namespace InventoryPOS.Infrastructure.Persistence.Migrations
                     b.ToTable("Units", (string)null);
                 });
 
+            modelBuilder.Entity("InventoryPOS.Domain.Entities.WarrantyClaim", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ClaimDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ClaimNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CustomerComplaint")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid?>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("InspectionNotes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid>("LocationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ResolutionNotes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime?>("ResolvedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("SaleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClaimDate");
+
+                    b.HasIndex("ClaimNumber")
+                        .IsUnique();
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("LocationId");
+
+                    b.HasIndex("SaleId");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("WarrantyClaims", (string)null);
+                });
+
+            modelBuilder.Entity("InventoryPOS.Domain.Entities.WarrantyClaimEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("EventType")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("FromStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int?>("ToStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("WarrantyClaimId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventType");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("WarrantyClaimId");
+
+                    b.HasIndex("WarrantyClaimId", "CreatedAtUtc");
+
+                    b.ToTable("WarrantyClaimEvents", (string)null);
+                });
+
+            modelBuilder.Entity("InventoryPOS.Domain.Entities.WarrantyClaimItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("OriginalWarrantyEndDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("numeric(18,3)");
+
+                    b.Property<string>("ReportedDefect")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int>("ResolutionType")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("SaleLineId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SerialNumber")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("TechnicianNotes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("WarrantyClaimId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SaleLineId");
+
+                    b.HasIndex("SerialNumber");
+
+                    b.HasIndex("WarrantyClaimId");
+
+                    b.ToTable("WarrantyClaimItems", (string)null);
+                });
+
+            modelBuilder.Entity("InventoryPOS.Domain.Entities.WarrantyReplacement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("InventoryBatchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("IssuedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("LocationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("numeric(18,3)");
+
+                    b.Property<Guid>("ReplacementVariantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("StockMovementId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("WarrantyClaimItemId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InventoryBatchId");
+
+                    b.HasIndex("LocationId");
+
+                    b.HasIndex("StockMovementId")
+                        .IsUnique();
+
+                    b.HasIndex("WarrantyClaimItemId");
+
+                    b.HasIndex("ReplacementVariantId", "LocationId");
+
+                    b.ToTable("WarrantyReplacements", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_WarrantyReplacements_PositiveQuantity", "\"Quantity\" > 0");
+                        });
+                });
+
             modelBuilder.Entity("InventoryPOS.Domain.Entities.Category", b =>
                 {
                     b.HasOne("InventoryPOS.Domain.Entities.Category", null)
@@ -1867,6 +2216,50 @@ namespace InventoryPOS.Infrastructure.Persistence.Migrations
                     b.Navigation("Sale");
                 });
 
+            modelBuilder.Entity("InventoryPOS.Domain.Entities.SalesQuote", b =>
+                {
+                    b.HasOne("InventoryPOS.Domain.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("InventoryPOS.Domain.Entities.Location", "Location")
+                        .WithMany()
+                        .HasForeignKey("LocationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("InventoryPOS.Domain.Entities.Sale", "Sale")
+                        .WithMany()
+                        .HasForeignKey("SaleId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Location");
+
+                    b.Navigation("Sale");
+                });
+
+            modelBuilder.Entity("InventoryPOS.Domain.Entities.SalesQuoteLine", b =>
+                {
+                    b.HasOne("InventoryPOS.Domain.Entities.ProductVariant", "ProductVariant")
+                        .WithMany()
+                        .HasForeignKey("ProductVariantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("InventoryPOS.Domain.Entities.SalesQuote", "SalesQuote")
+                        .WithMany("Lines")
+                        .HasForeignKey("SalesQuoteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ProductVariant");
+
+                    b.Navigation("SalesQuote");
+                });
+
             modelBuilder.Entity("InventoryPOS.Domain.Entities.SalesRefund", b =>
                 {
                     b.HasOne("InventoryPOS.Domain.Entities.SalesReturn", "SalesReturn")
@@ -2006,6 +2399,104 @@ namespace InventoryPOS.Infrastructure.Persistence.Migrations
                     b.Navigation("ProductVariant");
                 });
 
+            modelBuilder.Entity("InventoryPOS.Domain.Entities.WarrantyClaim", b =>
+                {
+                    b.HasOne("InventoryPOS.Domain.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("InventoryPOS.Domain.Entities.Location", "Location")
+                        .WithMany()
+                        .HasForeignKey("LocationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("InventoryPOS.Domain.Entities.Sale", "Sale")
+                        .WithMany()
+                        .HasForeignKey("SaleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Location");
+
+                    b.Navigation("Sale");
+                });
+
+            modelBuilder.Entity("InventoryPOS.Domain.Entities.WarrantyClaimEvent", b =>
+                {
+                    b.HasOne("InventoryPOS.Domain.Entities.WarrantyClaim", "WarrantyClaim")
+                        .WithMany("Events")
+                        .HasForeignKey("WarrantyClaimId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("WarrantyClaim");
+                });
+
+            modelBuilder.Entity("InventoryPOS.Domain.Entities.WarrantyClaimItem", b =>
+                {
+                    b.HasOne("InventoryPOS.Domain.Entities.SaleLine", "SaleLine")
+                        .WithMany()
+                        .HasForeignKey("SaleLineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("InventoryPOS.Domain.Entities.WarrantyClaim", "WarrantyClaim")
+                        .WithMany("Items")
+                        .HasForeignKey("WarrantyClaimId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("SaleLine");
+
+                    b.Navigation("WarrantyClaim");
+                });
+
+            modelBuilder.Entity("InventoryPOS.Domain.Entities.WarrantyReplacement", b =>
+                {
+                    b.HasOne("InventoryPOS.Domain.Entities.InventoryBatch", "InventoryBatch")
+                        .WithMany()
+                        .HasForeignKey("InventoryBatchId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("InventoryPOS.Domain.Entities.Location", "Location")
+                        .WithMany()
+                        .HasForeignKey("LocationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("InventoryPOS.Domain.Entities.ProductVariant", "ReplacementVariant")
+                        .WithMany()
+                        .HasForeignKey("ReplacementVariantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("InventoryPOS.Domain.Entities.StockMovement", "StockMovement")
+                        .WithMany()
+                        .HasForeignKey("StockMovementId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("InventoryPOS.Domain.Entities.WarrantyClaimItem", "WarrantyClaimItem")
+                        .WithMany()
+                        .HasForeignKey("WarrantyClaimItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("InventoryBatch");
+
+                    b.Navigation("Location");
+
+                    b.Navigation("ReplacementVariant");
+
+                    b.Navigation("StockMovement");
+
+                    b.Navigation("WarrantyClaimItem");
+                });
+
             modelBuilder.Entity("InventoryPOS.Domain.Entities.Customer", b =>
                 {
                     b.Navigation("Sales");
@@ -2049,6 +2540,11 @@ namespace InventoryPOS.Infrastructure.Persistence.Migrations
                     b.Navigation("Returns");
                 });
 
+            modelBuilder.Entity("InventoryPOS.Domain.Entities.SalesQuote", b =>
+                {
+                    b.Navigation("Lines");
+                });
+
             modelBuilder.Entity("InventoryPOS.Domain.Entities.SalesReturn", b =>
                 {
                     b.Navigation("Lines");
@@ -2059,6 +2555,13 @@ namespace InventoryPOS.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("InventoryPOS.Domain.Entities.StockAdjustment", b =>
                 {
                     b.Navigation("Lines");
+                });
+
+            modelBuilder.Entity("InventoryPOS.Domain.Entities.WarrantyClaim", b =>
+                {
+                    b.Navigation("Events");
+
+                    b.Navigation("Items");
                 });
 #pragma warning restore 612, 618
         }

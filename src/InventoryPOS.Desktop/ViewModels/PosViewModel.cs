@@ -15,6 +15,7 @@ namespace InventoryPOS.Desktop.ViewModels;
 public class PosViewModel : INotifyPropertyChanged
 {
     private readonly ISaleService _saleService;
+    private readonly ISalesQuoteService _salesQuoteService;
 
     private LocationLookupDto? _selectedLocation;
     private PosCustomerDto? _selectedCustomer;
@@ -27,6 +28,13 @@ public class PosViewModel : INotifyPropertyChanged
 
     private string? _errorMessage;
     private string? _lastInvoiceNumber;
+    private Task _productLoadTask = Task.CompletedTask;
+    private Guid? _loadedQuoteId;
+    private string? _loadedQuoteNumber;
+
+    public Guid? LoadedQuoteId => _loadedQuoteId;
+    public string? LoadedQuoteNumber => _loadedQuoteNumber;
+    public bool HasLoadedQuote => _loadedQuoteId.HasValue;
 
     // ---------------------------------------------------------
     // Collections
@@ -73,7 +81,7 @@ public class PosViewModel : INotifyPropertyChanged
 
             OnPropertyChanged();
 
-            _ = LoadProductsAsync();
+            _productLoadTask = LoadProductsAsync();
         }
     }
 
@@ -298,10 +306,14 @@ public class PosViewModel : INotifyPropertyChanged
     // ---------------------------------------------------------
 
     public PosViewModel(
-        ISaleService saleService)
+    ISaleService saleService,
+    ISalesQuoteService salesQuoteService)
     {
         _saleService =
             saleService;
+
+        _salesQuoteService =
+            salesQuoteService;
     }
 
     // ---------------------------------------------------------
@@ -345,6 +357,7 @@ public class PosViewModel : INotifyPropertyChanged
             {
                 SelectedLocation =
                     Locations[0];
+                await _productLoadTask;
             }
         }
         catch (Exception ex)
@@ -731,12 +744,272 @@ public class PosViewModel : INotifyPropertyChanged
     }
 
     // ---------------------------------------------------------
+    // Load an accepted quotation into POS (Q8)
+    // ---------------------------------------------------------
+
+    public async Task<bool> LoadQuoteAsync(Guid quoteId)
+    {
+        if (IsSaving || IsLoading)
+        {
+            ErrorMessage = "POS is busy. Please try again.";
+            return false;
+        }
+
+        if (CartLines.Count > 0 || HasLoadedQuote)
+        {
+            ErrorMessage = "Clear the existing sale before loading a quotation.";
+            return false;
+        }
+
+        try
+        {
+            IsLoading = true;
+            ErrorMessage = null;
+
+            var quote = await _salesQuoteService.GetByIdAsync(quoteId);
+            if (quote is null)
+                throw new InvalidOperationException("Quotation not found.");
+
+            if (quote.Status != SalesQuoteStatus.Accepted || quote.SaleId.HasValue)
+                throw new InvalidOperationException("Only unconverted accepted quotations can be loaded.");
+
+            if (quote.ValidUntilDate.HasValue &&
+                quote.ValidUntilDate.Value.Date < DateTime.UtcNow.Date)
+                throw new InvalidOperationException("This quotation has expired.");
+
+            // The current POS UI supports price × quantity only.
+            if (quote.DiscountAmount != 0 || quote.TaxAmount != 0 ||
+                quote.Lines.Any(x => x.DiscountAmount != 0 || x.TaxAmount != 0))
+                throw new InvalidOperationException(
+                    "Quotations containing discounts or taxes require the extended POS checkout UI.");
+
+            var location = Locations.FirstOrDefault(x => x.Id == quote.LocationId)
+                ?? throw new InvalidOperationException("The quotation's location is unavailable.");
+
+            PosCustomerDto? customer = null;
+            if (quote.CustomerId.HasValue)
+            {
+                customer = Customers.FirstOrDefault(x => x.Id == quote.CustomerId.Value)
+                    ?? throw new InvalidOperationException("The quotation's customer is unavailable.");
+            }
+
+            if (SelectedLocation?.Id != location.Id)
+            {
+                SelectedLocation = location;
+                await _productLoadTask;
+            }
+            else
+            {
+                await _productLoadTask;
+            }
+
+            if (!string.IsNullOrWhiteSpace(ErrorMessage))
+                throw new InvalidOperationException(ErrorMessage);
+
+            var imported = new List<PosCartLineViewModel>();
+            foreach (var quotedLine in quote.Lines)
+            {
+                var product = Products.FirstOrDefault(
+                    x => x.ProductVariantId == quotedLine.ProductVariantId)
+                    ?? throw new InvalidOperationException(
+                        $"Product {quotedLine.SKU} is unavailable at this location.");
+
+                if (quotedLine.Quantity <= 0 ||
+                    quotedLine.Quantity > product.QuantityAvailable)
+                    throw new InvalidOperationException(
+                        $"Insufficient stock for {quotedLine.SKU}. " +
+                        $"Required: {quotedLine.Quantity:N3}; " +
+                        $"Available: {product.QuantityAvailable:N3}.");
+
+                imported.Add(new PosCartLineViewModel(product, quotedLine.UnitPrice)
+                {
+                    Quantity = Convert.ToDouble(quotedLine.Quantity)
+                });
+            }
+
+            SelectedCustomer = customer;
+            foreach (var line in imported)
+            {
+                line.PropertyChanged += CartLine_PropertyChanged;
+                CartLines.Add(line);
+            }
+
+            _loadedQuoteId = quote.Id;
+            _loadedQuoteNumber = quote.QuoteNumber;
+            NotifyQuoteStateChanged();
+            RefreshTotals();
+
+            if (PaymentLines.Count == 0 && Total > 0)
+                AddPayment();
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+            return false;
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private void NotifyQuoteStateChanged()
+    {
+        OnPropertyChanged(nameof(LoadedQuoteId));
+        OnPropertyChanged(nameof(LoadedQuoteNumber));
+        OnPropertyChanged(nameof(HasLoadedQuote));
+    }
+
+    // ---------------------------------------------------------
+    // Create Quotation
+    // ---------------------------------------------------------
+
+    public async Task<SalesQuoteResultDto?>
+        CreateQuoteAsync(
+            DateTime? validUntilDate,
+            string? notes,
+            string? terms)
+    {
+        ErrorMessage = null;
+
+        if (IsSaving || HasLoadedQuote)
+        {
+            ErrorMessage = HasLoadedQuote
+                ? "Finish the imported quotation instead of creating another quotation."
+                : "POS is busy.";
+            return null;
+        }
+
+        // -----------------------------------------------------
+        // Location
+        // -----------------------------------------------------
+
+        if (SelectedLocation is null)
+        {
+            ErrorMessage =
+                "Please select a location.";
+
+            return null;
+        }
+
+        // -----------------------------------------------------
+        // Cart
+        // -----------------------------------------------------
+
+        if (CartLines.Count == 0)
+        {
+            ErrorMessage =
+                "Add at least one product to the cart.";
+
+            return null;
+        }
+
+        foreach (var line in CartLines)
+        {
+            if (line.Quantity <= 0)
+            {
+                ErrorMessage =
+                    $"Quantity must be greater than zero for {line.SKU}.";
+
+                return null;
+            }
+        }
+
+        try
+        {
+            IsSaving = true;
+            ErrorMessage = null;
+
+            var quoteDate =
+                DateTime.UtcNow;
+
+            var request =
+                new CreateSalesQuoteRequest
+                {
+                    LocationId =
+                        SelectedLocation.Id,
+
+                    CustomerId =
+                        SelectedCustomer?.Id,
+
+                    QuoteDate =
+                        quoteDate,
+
+                    ValidUntilDate =
+                        validUntilDate,
+
+                    DiscountAmount =
+                        0,
+
+                    TaxAmount =
+                        0,
+
+                    Notes =
+                        string.IsNullOrWhiteSpace(notes)
+                            ? null
+                            : notes.Trim(),
+
+                    Terms =
+                        string.IsNullOrWhiteSpace(terms)
+                            ? null
+                            : terms.Trim(),
+
+                    Lines =
+                        CartLines
+                            .Select(
+                                line =>
+                                    new CreateSalesQuoteLineRequest
+                                    {
+                                        ProductVariantId =
+                                            line.ProductVariantId,
+
+                                        Quantity =
+                                            Convert.ToDecimal(
+                                                line.Quantity),
+
+                                        UnitPrice =
+                                            line.UnitPrice,
+
+                                        DiscountAmount =
+                                            0,
+
+                                        TaxAmount =
+                                            0,
+
+                                        WarrantyMonths =
+                                            null
+                                    })
+                            .ToList()
+                };
+
+            return await _salesQuoteService
+                .CreateAsync(request);
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage =
+                ex.Message;
+
+            return null;
+        }
+        finally
+        {
+            IsSaving = false;
+        }
+    }
+
+    // ---------------------------------------------------------
     // Complete Sale
     // ---------------------------------------------------------
 
     public async Task<SaleResultDto?>
         CompleteSaleAsync()
     {
+        if (IsSaving)
+            return null;
+
         ErrorMessage = null;
 
         // -----------------------------------------------------
@@ -901,6 +1174,9 @@ public class PosViewModel : INotifyPropertyChanged
             var request =
                 new CreateSaleRequest
                 {
+                    SalesQuoteId =
+                        LoadedQuoteId,
+
                     LocationId =
                         SelectedLocation.Id,
 
@@ -950,6 +1226,11 @@ public class PosViewModel : INotifyPropertyChanged
                     .CreateSaleAsync(
                         request);
 
+            // The service committed the sale and quotation together.
+            _loadedQuoteId = null;
+            _loadedQuoteNumber = null;
+            NotifyQuoteStateChanged();
+
             LastInvoiceNumber =
                 result.InvoiceNumber;
 
@@ -973,39 +1254,47 @@ public class PosViewModel : INotifyPropertyChanged
             // Refresh customer credit
             // -------------------------------------------------
 
-            var selectedCustomerId =
-                SelectedCustomer?.Id;
-
-            var customers =
-                await _saleService
-                    .GetCustomersAsync();
-
-            Customers.Clear();
-
-            foreach (var customer in customers)
+            try
             {
-                Customers.Add(
-                    customer);
-            }
+                var selectedCustomerId =
+                    SelectedCustomer?.Id;
 
-            if (selectedCustomerId.HasValue)
+                var customers =
+                    await _saleService
+                        .GetCustomersAsync();
+
+                Customers.Clear();
+
+                foreach (var customer in customers)
+                {
+                    Customers.Add(
+                        customer);
+                }
+
+                if (selectedCustomerId.HasValue)
+                {
+                    SelectedCustomer =
+                        Customers.FirstOrDefault(
+                            x =>
+                                x.Id ==
+                                selectedCustomerId.Value);
+                }
+                else
+                {
+                    SelectedCustomer = null;
+                }
+
+                // -------------------------------------------------
+                // Refresh inventory
+                // -------------------------------------------------
+
+                await LoadProductsAsync();
+            }
+            catch (Exception refreshError)
             {
-                SelectedCustomer =
-                    Customers.FirstOrDefault(
-                        x =>
-                            x.Id ==
-                            selectedCustomerId.Value);
+                // Sale already committed. Never report checkout failure here.
+                ErrorMessage = "Sale completed, but POS refresh failed: " + refreshError.Message;
             }
-            else
-            {
-                SelectedCustomer = null;
-            }
-
-            // -------------------------------------------------
-            // Refresh inventory
-            // -------------------------------------------------
-
-            await LoadProductsAsync();
 
             return result;
         }
