@@ -14,9 +14,20 @@ public class CreateSaleRequest
 
     public Guid? SalesQuoteId { get; set; }
 
+    public decimal TransportAmount { get; set; }
+
+    public decimal SalesTaxRate { get; set; }
+
+    public int OrderDiscountType { get; set; } = 1;
+
+    public decimal OrderDiscountValue { get; set; }
+
     public IReadOnlyList<CreateSaleLineRequest> Lines { get; set; }
         = Array.Empty<CreateSaleLineRequest>();
 
     public IReadOnlyList<CreateSalePaymentRequest> Payments { get; set; }
         = Array.Empty<CreateSalePaymentRequest>();
+
+    public bool UsePricingCalculator { get; set; }
+    public Guid CheckoutRequestId { get; set; }
 }

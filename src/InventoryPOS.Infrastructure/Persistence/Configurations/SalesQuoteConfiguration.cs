@@ -58,5 +58,27 @@ public class SalesQuoteConfiguration
             .WithOne(x => x.SalesQuote)
             .HasForeignKey(x => x.SalesQuoteId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Property(x => x.LineDiscountAmount)
+    .HasPrecision(18, 2);
+
+        builder.Property(x => x.OrderDiscountAmount)
+            .HasPrecision(18, 2);
+
+        builder.Property(x => x.OrderDiscountType)
+            .HasDefaultValue(1);
+
+        builder.Property(x => x.OrderDiscountValue)
+            .HasPrecision(18, 2);
+
+        builder.Property(x => x.SalesTaxRate)
+            .HasPrecision(5, 2);
+
+        builder.Property(x => x.TransportAmount)
+            .HasPrecision(18, 2);
+
+        builder.Property(x => x.PricingVersion)
+    .IsRequired()
+    .HasDefaultValue(1);
     }
 }

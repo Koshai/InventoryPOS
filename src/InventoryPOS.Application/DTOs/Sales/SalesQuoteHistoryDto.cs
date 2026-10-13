@@ -27,5 +27,21 @@ public class SalesQuoteHistoryDto
 
     public decimal TotalAmount { get; set; }
 
+    public int PricingVersion { get; set; } = 1;
+
+    public decimal Subtotal { get; set; }
+
+    public decimal LineDiscountAmount { get; set; }
+
+    public decimal OrderDiscountAmount { get; set; }
+
+    public decimal DiscountAmount { get; set; }
+
+    public decimal TaxAmount { get; set; }
+
+    public decimal SalesTaxRate { get; set; }
+
+    public decimal TransportAmount { get; set; }
+
     public Guid? SaleId { get; set; }
 }

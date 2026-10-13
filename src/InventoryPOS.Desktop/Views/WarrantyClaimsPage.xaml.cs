@@ -2,6 +2,7 @@
 using InventoryPOS.Application.DTOs.WarrantyClaims;
 using InventoryPOS.Application.Interfaces;
 using InventoryPOS.Desktop.ViewModels;
+using InventoryPOS.Domain.Enums;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -42,10 +43,18 @@ public sealed partial class WarrantyClaimsPage : Page
     }
 
     protected override async void OnNavigatedTo(
-        NavigationEventArgs e)
+    NavigationEventArgs e)
     {
         base.OnNavigatedTo(e);
+
         await ViewModel.LoadAsync();
+
+        if (e.Parameter is Guid claimId &&
+            claimId != Guid.Empty)
+        {
+            await ViewModel.SelectClaimAsync(
+                claimId);
+        }
     }
 
     private async void Search_Click(

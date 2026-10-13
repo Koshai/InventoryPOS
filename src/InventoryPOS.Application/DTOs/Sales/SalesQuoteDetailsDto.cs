@@ -31,6 +31,18 @@ public class SalesQuoteDetailsDto
 
     public decimal Subtotal { get; set; }
 
+    public decimal LineDiscountAmount { get; set; }
+
+    public decimal OrderDiscountAmount { get; set; }
+
+    public int OrderDiscountType { get; set; } = 1;
+
+    public decimal OrderDiscountValue { get; set; }
+
+    public decimal SalesTaxRate { get; set; }
+
+    public decimal TransportAmount { get; set; }
+
     public decimal DiscountAmount { get; set; }
 
     public decimal TaxAmount { get; set; }
@@ -44,6 +56,8 @@ public class SalesQuoteDetailsDto
     public Guid? SaleId { get; set; }
 
     public string? InvoiceNumber { get; set; }
+
+    public int PricingVersion { get; set; } = 1;
 
     public List<SalesQuoteDetailsLineDto> Lines { get; set; }
         = new();
@@ -67,6 +81,12 @@ public class SalesQuoteDetailsLineDto
     public decimal Quantity { get; set; }
 
     public decimal UnitPrice { get; set; }
+
+    public int DiscountType { get; set; } = 1;
+
+    public decimal DiscountValue { get; set; }
+
+    public decimal TaxRate { get; set; }
 
     public decimal DiscountAmount { get; set; }
 

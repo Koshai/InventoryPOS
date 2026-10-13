@@ -1,6 +1,7 @@
 ﻿using InventoryPOS.Application.DTOs.Settings;
 using InventoryPOS.Application.DTOs.WarrantyClaims;
 using InventoryPOS.Application.Interfaces;
+using InventoryPOS.Domain.Enums;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -16,20 +17,27 @@ public sealed class WarrantyClaimPdfService
     private const string MutedText = "#747784";
 
     private readonly IBusinessProfileService
-        _businessProfileService;
+    _businessProfileService;
 
     private readonly IBusinessLogoProvider
         _businessLogoProvider;
 
+    private readonly IDocumentQrService
+    _documentQrService;
+
     public WarrantyClaimPdfService(
-        IBusinessProfileService businessProfileService,
-        IBusinessLogoProvider businessLogoProvider)
+    IBusinessProfileService businessProfileService,
+    IBusinessLogoProvider businessLogoProvider,
+    IDocumentQrService documentQrService)
     {
         _businessProfileService =
             businessProfileService;
 
         _businessLogoProvider =
             businessLogoProvider;
+
+        _documentQrService =
+            documentQrService;
     }
 
     public async Task<byte[]> GenerateWarrantyClaimPdfAsync(
@@ -56,6 +64,15 @@ public sealed class WarrantyClaimPdfService
         var accent =
             GetAccentColor(business);
 
+        var documentQr =
+            await _documentQrService.GenerateAsync(
+                DocumentType.WarrantyClaim,
+                claim.Id,
+                cancellationToken);
+
+        var qrBytes =
+            documentQr.PngBytes;
+
         return Document
             .Create(document =>
             {
@@ -81,6 +98,7 @@ public sealed class WarrantyClaimPdfService
                                 claim,
                                 business,
                                 logoBytes,
+                                qrBytes,
                                 accent));
 
                     page.Content()
@@ -107,11 +125,12 @@ public sealed class WarrantyClaimPdfService
     // =========================================================
 
     private static void ComposeHeader(
-        IContainer container,
-        WarrantyClaimDetailsDto claim,
-        BusinessProfileDto? business,
-        byte[]? logoBytes,
-        string accent)
+    IContainer container,
+    WarrantyClaimDetailsDto claim,
+    BusinessProfileDto? business,
+    byte[]? logoBytes,
+    byte[] qrBytes,
+    string accent)
     {
         container.Column(column =>
         {
@@ -195,39 +214,60 @@ public sealed class WarrantyClaimPdfService
                             }
                         });
 
-                    row.ConstantItem(170)
-                        .AlignRight()
-                        .Column(meta =>
+                    row.ConstantItem(190)
+                        .Row(right =>
                         {
-                            meta.Item()
-                                .AlignRight()
-                                .Text("WARRANTY CLAIM")
-                                .FontSize(17)
-                                .SemiBold()
-                                .FontColor(accent);
+                            right.RelativeItem()
+                                .PaddingRight(8)
+                                .Column(meta =>
+                                {
+                                    meta.Item()
+                                        .AlignRight()
+                                        .Text("WARRANTY CLAIM")
+                                        .FontSize(17)
+                                        .SemiBold()
+                                        .FontColor(accent);
 
-                            meta.Item()
-                                .PaddingTop(1)
-                                .AlignRight()
-                                .Text("ওয়ারেন্টি দাবি")
-                                .FontSize(10)
-                                .SemiBold();
+                                    meta.Item()
+                                        .PaddingTop(1)
+                                        .AlignRight()
+                                        .Text("ওয়ারেন্টি দাবি")
+                                        .FontSize(10)
+                                        .SemiBold();
 
-                            meta.Item()
-                                .PaddingTop(7)
-                                .AlignRight()
-                                .Text(claim.ClaimNumber)
-                                .FontSize(9)
-                                .SemiBold();
+                                    meta.Item()
+                                        .PaddingTop(7)
+                                        .AlignRight()
+                                        .Text(claim.ClaimNumber)
+                                        .FontSize(9)
+                                        .SemiBold();
 
-                            meta.Item()
-                                .PaddingTop(2)
-                                .AlignRight()
-                                .Text(
-                                    $"Status: " +
-                                    $"{FormatStatus(claim.Status)}")
-                                .FontSize(7.5f)
-                                .FontColor(MutedText);
+                                    meta.Item()
+                                        .PaddingTop(2)
+                                        .AlignRight()
+                                        .Text(
+                                            $"Status: " +
+                                            $"{FormatStatus(claim.Status)}")
+                                        .FontSize(7.5f)
+                                        .FontColor(MutedText);
+                                });
+
+                            right.ConstantItem(58)
+                                .Column(qr =>
+                                {
+                                    qr.Item()
+                                        .Width(54)
+                                        .Height(54)
+                                        .Image(qrBytes)
+                                        .FitArea();
+
+                                    qr.Item()
+                                        .PaddingTop(2)
+                                        .AlignCenter()
+                                        .Text("Document QR")
+                                        .FontSize(5.5f)
+                                        .FontColor(MutedText);
+                                });
                         });
                 });
 

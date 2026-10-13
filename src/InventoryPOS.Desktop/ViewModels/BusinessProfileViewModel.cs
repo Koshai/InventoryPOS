@@ -33,6 +33,12 @@ public sealed class BusinessProfileViewModel : INotifyPropertyChanged
     private string _currencyCode = "BDT";
     private string _currencySymbol = "৳";
 
+    private bool _enableSalesLineDiscount = true;
+    private bool _enableSalesOrderDiscount = true;
+    private bool _enableSalesTax;
+    private double _defaultSalesTaxRate;
+    private bool _enableSalesTransportCharge;
+
     private string _logoPath = string.Empty;
     private string _invoiceFooter = string.Empty;
 
@@ -128,6 +134,46 @@ public sealed class BusinessProfileViewModel : INotifyPropertyChanged
     {
         get => _currencySymbol;
         set => SetProperty(ref _currencySymbol, value);
+    }
+
+    public bool EnableSalesLineDiscount
+    {
+        get => _enableSalesLineDiscount;
+        set => SetProperty(
+            ref _enableSalesLineDiscount,
+            value);
+    }
+
+    public bool EnableSalesOrderDiscount
+    {
+        get => _enableSalesOrderDiscount;
+        set => SetProperty(
+            ref _enableSalesOrderDiscount,
+            value);
+    }
+
+    public bool EnableSalesTax
+    {
+        get => _enableSalesTax;
+        set => SetProperty(
+            ref _enableSalesTax,
+            value);
+    }
+
+    public double DefaultSalesTaxRate
+    {
+        get => _defaultSalesTaxRate;
+        set => SetProperty(
+            ref _defaultSalesTaxRate,
+            value);
+    }
+
+    public bool EnableSalesTransportCharge
+    {
+        get => _enableSalesTransportCharge;
+        set => SetProperty(
+            ref _enableSalesTransportCharge,
+            value);
     }
 
     public string LogoPath
@@ -274,6 +320,21 @@ public sealed class BusinessProfileViewModel : INotifyPropertyChanged
                 CurrencyCode = CurrencyCode,
                 CurrencySymbol = CurrencySymbol,
 
+                EnableSalesLineDiscount =
+    EnableSalesLineDiscount,
+
+                EnableSalesOrderDiscount =
+    EnableSalesOrderDiscount,
+
+                EnableSalesTax =
+    EnableSalesTax,
+
+                DefaultSalesTaxRate =
+    Convert.ToDecimal(DefaultSalesTaxRate),
+
+                EnableSalesTransportCharge =
+    EnableSalesTransportCharge,
+
                 LogoPath = LogoPath,
 
                 InvoiceFooter = InvoiceFooter
@@ -361,6 +422,15 @@ public sealed class BusinessProfileViewModel : INotifyPropertyChanged
             return false;
         }
 
+        if (DefaultSalesTaxRate < 0 ||
+    DefaultSalesTaxRate > 100)
+        {
+            ErrorMessage =
+                "Default sales tax rate must be between 0 and 100.";
+
+            return false;
+        }
+
         return true;
     }
 
@@ -393,6 +463,22 @@ public sealed class BusinessProfileViewModel : INotifyPropertyChanged
                 ? "৳"
                 : profile.CurrencySymbol;
 
+        EnableSalesLineDiscount =
+    profile.EnableSalesLineDiscount;
+
+        EnableSalesOrderDiscount =
+            profile.EnableSalesOrderDiscount;
+
+        EnableSalesTax =
+            profile.EnableSalesTax;
+
+        DefaultSalesTaxRate =
+    Convert.ToDouble(
+        profile.DefaultSalesTaxRate);
+
+        EnableSalesTransportCharge =
+            profile.EnableSalesTransportCharge;
+
         LogoPath = profile.LogoPath ?? string.Empty;
 
         InvoiceFooter =
@@ -419,6 +505,14 @@ public sealed class BusinessProfileViewModel : INotifyPropertyChanged
 
         CurrencyCode = "BDT";
         CurrencySymbol = "৳";
+
+        EnableSalesLineDiscount = true;
+        EnableSalesOrderDiscount = true;
+
+        EnableSalesTax = false;
+        DefaultSalesTaxRate = 0d;
+
+        EnableSalesTransportCharge = false;
 
         LogoPath = string.Empty;
         InvoiceFooter = string.Empty;

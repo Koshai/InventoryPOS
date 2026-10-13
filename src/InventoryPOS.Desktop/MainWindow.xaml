@@ -98,9 +98,51 @@
                     <SymbolIcon Symbol="People" />
                 </NavigationViewItem.Icon>
             </NavigationViewItem>
+
         </NavigationView.MenuItems>
 
-        <Frame x:Name="ContentFrame" />
+        <!-- CONTENT AREA -->
+        <Grid>
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- GLOBAL SCANNER -->
+            <Grid
+                Grid.Row="0"
+                Margin="20,8,20,8">
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBox
+                    x:Name="GlobalScanBox"
+                    Grid.Column="1"
+                    Width="280"
+                    Margin="0,0,8,0"
+                    VerticalAlignment="Center"
+                    PlaceholderText="Scan document QR or barcode..."
+                    KeyDown="GlobalScanBox_KeyDown" />
+
+                <Button
+                    Grid.Column="2"
+                    VerticalAlignment="Center"
+                    Content="Open"
+                    Click="OpenScan_Click" />
+
+            </Grid>
+
+            <!-- PAGE NAVIGATION -->
+            <Frame
+                x:Name="ContentFrame"
+                Grid.Row="1" />
+
+        </Grid>
 
     </NavigationView>
 

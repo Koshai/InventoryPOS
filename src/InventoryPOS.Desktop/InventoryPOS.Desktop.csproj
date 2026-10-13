@@ -100,7 +100,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Controls\" />
-    <Folder Include="Converters\" />
     <Folder Include="Localization\" />
     <Folder Include="Navigation\" />
     <Folder Include="Themes\" />

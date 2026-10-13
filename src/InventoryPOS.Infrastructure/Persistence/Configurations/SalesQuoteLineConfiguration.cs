@@ -36,5 +36,14 @@ public class SalesQuoteLineConfiguration
             .WithMany()
             .HasForeignKey(x => x.ProductVariantId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Property(x => x.DiscountType)
+    .HasDefaultValue(1);
+
+        builder.Property(x => x.DiscountValue)
+            .HasPrecision(18, 2);
+
+        builder.Property(x => x.TaxRate)
+            .HasPrecision(5, 2);
     }
 }

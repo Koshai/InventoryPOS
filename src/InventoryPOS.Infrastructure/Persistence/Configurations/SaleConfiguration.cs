@@ -27,6 +27,18 @@ public class SaleConfiguration :
         builder.Property(x => x.DiscountAmount)
             .HasPrecision(18, 2);
 
+        builder.Property(x => x.LineDiscountAmount)
+    .HasPrecision(18, 2);
+
+        builder.Property(x => x.OrderDiscountAmount)
+            .HasPrecision(18, 2);
+
+        builder.Property(x => x.TransportAmount)
+            .HasPrecision(18, 2);
+
+        builder.Property(x => x.SalesTaxRate)
+            .HasPrecision(5, 2);
+
         builder.Property(x => x.TaxAmount)
             .HasPrecision(18, 2);
 

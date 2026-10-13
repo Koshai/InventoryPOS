@@ -19,6 +19,14 @@ public class Sale : BaseEntity
 
     public decimal DiscountAmount { get; set; }
 
+    public decimal LineDiscountAmount { get; set; }
+
+    public decimal OrderDiscountAmount { get; set; }
+
+    public decimal TransportAmount { get; set; }
+
+    public decimal SalesTaxRate { get; set; }
+
     public decimal TaxAmount { get; set; }
 
     public decimal TotalAmount { get; set; }
@@ -32,6 +40,8 @@ public class Sale : BaseEntity
     public Location? Location { get; set; }
 
     public Customer? Customer { get; set; }
+    public Guid? CheckoutRequestId { get; set; }
+    public string? CheckoutRequestFingerprint { get; set; }
 
     public ICollection<SaleLine> Lines { get; set; }
         = new List<SaleLine>();

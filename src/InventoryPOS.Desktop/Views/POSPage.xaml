@@ -29,6 +29,7 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
@@ -48,10 +49,50 @@
 
             </StackPanel>
 
+            <!-- ===================================================== -->
+            <!-- BARCODE SCANNER -->
+            <!-- ===================================================== -->
+
+            <Border
+                Grid.Row="1"
+                Padding="10"
+                CornerRadius="8"
+                BorderThickness="1"
+                BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+
+                <Grid ColumnSpacing="8">
+
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBox
+                        x:Name="BarcodeScanBox"
+                        Grid.Column="0"
+                        PlaceholderText="Scan product barcode..."
+                        KeyDown="BarcodeScanBox_KeyDown"
+                        IsEnabled="{Binding CanEditCart}"
+                        VerticalAlignment="Center" />
+
+                    <Button
+                        x:Name="BarcodeAddButton"
+                        Grid.Column="1"
+                        Content="Add"
+                        Padding="14,6"
+                        IsEnabled="{Binding CanEditCart}"
+                        Click="BarcodeAddButton_Click"
+                        VerticalAlignment="Center" />
+
+                </Grid>
+
+            </Border>
+
             <!-- SEARCH / LOCATION -->
 
             <Grid
-                Grid.Row="1"
+                Grid.Row="2"
                 ColumnSpacing="12">
 
                 <Grid.ColumnDefinitions>
@@ -72,6 +113,7 @@
                     ItemsSource="{Binding Locations}"
                     SelectedItem="{Binding SelectedLocation,
                                            Mode=TwoWay}"
+                    IsEnabled="{Binding CanEditCart}"
                     DisplayMemberPath="Name"
                     HorizontalAlignment="Stretch" />
 
@@ -80,7 +122,7 @@
             <!-- PRODUCTS -->
 
             <Border
-                Grid.Row="2"
+                Grid.Row="3"
                 Padding="14"
                 CornerRadius="10"
                 BorderThickness="1"
@@ -215,487 +257,757 @@
             BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
             Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
 
-            <Grid RowSpacing="10">
+            <ScrollViewer
+                VerticalScrollMode="Auto"
+                VerticalScrollBarVisibility="Auto"
+                HorizontalScrollMode="Disabled"
+                HorizontalScrollBarVisibility="Disabled">
 
-                <Grid.RowDefinitions>
+                <Grid
+                    RowSpacing="10"
+                    Padding="0,0,4,0">
 
-                    <!-- Header -->
-                    <RowDefinition Height="Auto" />
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
 
-                    <!-- Error -->
-                    <RowDefinition Height="Auto" />
+                    <!-- ================================================= -->
+                    <!-- HEADER -->
+                    <!-- ================================================= -->
 
-                    <!-- Customer -->
-                    <RowDefinition Height="Auto" />
-
-                    <!-- Cart owns remaining space -->
-                    <RowDefinition Height="*" />
-
-                    <!-- Checkout has controlled height -->
-                    <RowDefinition Height="210" />
-
-                    <!-- Complete Sale -->
-                    <RowDefinition Height="Auto" />
-
-                </Grid.RowDefinitions>
-
-                <!-- ================================================= -->
-                <!-- HEADER -->
-                <!-- ================================================= -->
-
-                <Grid Grid.Row="0">
-
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-
-                    <StackPanel Spacing="2">
-
-                        <TextBlock
-                            Text="Current Sale"
-                            FontSize="20"
-                            FontWeight="SemiBold" />
-
-                        <TextBlock
-                            Text="Review items, customer and payment."
-                            FontSize="11"
-                            Opacity="0.60" />
-
-
-                        <TextBlock
-                            Text="{Binding LoadedQuoteNumber}"
-                            Visibility="{Binding HasLoadedQuote}"
-                            FontSize="12"
-                            FontWeight="SemiBold"
-                            Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
-
-
-                    </StackPanel>
-
-                    <TextBlock
-                        Grid.Column="1"
-                        Text="{Binding LastInvoiceNumber}"
-                        FontSize="11"
-                        Opacity="0.60"
-                        VerticalAlignment="Center" />
-
-                </Grid>
-
-                <!-- ================================================= -->
-                <!-- ERROR -->
-                <!-- ================================================= -->
-
-                <InfoBar
-                    x:Name="ErrorInfoBar"
-                    Grid.Row="1"
-                    Severity="Error"
-                    IsClosable="True"
-                    IsOpen="False"
-                    Message="{Binding ErrorMessage}" />
-
-                <!-- ================================================= -->
-                <!-- CUSTOMER -->
-                <!-- ================================================= -->
-
-                <Border
-                    Grid.Row="2"
-                    Padding="10"
-                    CornerRadius="8"
-                    BorderThickness="1"
-                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}">
-
-                    <Grid ColumnSpacing="14">
+                    <Grid Grid.Row="0">
 
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="1.4*" />
                             <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
 
-                        <!-- CUSTOMER SELECTOR -->
-
-                        <StackPanel
-                            Grid.Column="0"
-                            Spacing="4">
+                        <StackPanel Spacing="2">
 
                             <TextBlock
-                                Text="Customer"
-                                FontSize="11"
+                                Text="Current Sale"
+                                FontSize="20"
                                 FontWeight="SemiBold" />
 
-                            <Grid ColumnSpacing="8">
+                            <TextBlock
+                                Text="Review items, customer and payment."
+                                FontSize="11"
+                                Opacity="0.60" />
+
+                            <TextBlock
+                                Text="{Binding LoadedQuoteNumber}"
+                                Visibility="{Binding HasLoadedQuote}"
+                                FontSize="12"
+                                FontWeight="SemiBold"
+                                Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+
+                        </StackPanel>
+
+                        <TextBlock
+                            Grid.Column="1"
+                            Text="{Binding LastInvoiceNumber}"
+                            FontSize="11"
+                            Opacity="0.60"
+                            VerticalAlignment="Center" />
+
+                    </Grid>
+
+                    <!-- ================================================= -->
+                    <!-- ERROR -->
+                    <!-- ================================================= -->
+
+                    <InfoBar
+                        x:Name="ErrorInfoBar"
+                        Grid.Row="1"
+                        Severity="Error"
+                        IsClosable="True"
+                        IsOpen="False"
+                        Message="{Binding ErrorMessage}" />
+
+                    <!-- ================================================= -->
+                    <!-- CUSTOMER -->
+                    <!-- ================================================= -->
+
+                    <Border
+                        Grid.Row="2"
+                        Padding="10"
+                        CornerRadius="8"
+                        BorderThickness="1"
+                        BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}">
+
+                        <Grid ColumnSpacing="14">
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1.4*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel
+                                Grid.Column="0"
+                                Spacing="4">
+
+                                <TextBlock
+                                    Text="Customer"
+                                    FontSize="11"
+                                    FontWeight="SemiBold" />
+
+                                <Grid ColumnSpacing="8">
+
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <ComboBox
+                                        Grid.Column="0"
+                                        ItemsSource="{Binding Customers}"
+                                        SelectedItem="{Binding SelectedCustomer,
+                                                             Mode=TwoWay}"
+                                        DisplayMemberPath="DisplayName"
+                                        PlaceholderText="Walk-in Customer"
+                                        IsEnabled="{Binding CanEditCart}"
+                                        HorizontalAlignment="Stretch" />
+
+                                    <Button
+                                        Grid.Column="1"
+                                        Content="Walk-in"
+                                        IsEnabled="{Binding CanEditCart}"
+                                        Padding="12,6"
+                                        Click="WalkInCustomerButton_Click" />
+
+                                </Grid>
+
+                            </StackPanel>
+
+                            <StackPanel
+                                Grid.Column="1"
+                                Spacing="2"
+                                VerticalAlignment="Center"
+                                Visibility="{Binding HasSelectedCustomer}">
+
+                                <TextBlock
+                                    Text="Available Credit"
+                                    FontSize="10"
+                                    Opacity="0.60" />
+
+                                <TextBlock
+                                    Text="{Binding FormattedCustomerAvailableCredit}"
+                                    FontSize="17"
+                                    FontWeight="SemiBold" />
+
+                                <StackPanel
+                                    Orientation="Horizontal"
+                                    Spacing="5">
+
+                                    <TextBlock
+                                        Text="Outstanding:"
+                                        FontSize="10"
+                                        Opacity="0.55" />
+
+                                    <TextBlock
+                                        Text="{Binding FormattedCustomerOutstanding}"
+                                        FontSize="10"
+                                        Opacity="0.75" />
+
+                                </StackPanel>
+
+                            </StackPanel>
+
+                        </Grid>
+
+                    </Border>
+
+                    <!-- ================================================= -->
+                    <!-- CART -->
+                    <!-- ================================================= -->
+
+                    <Border
+                        Grid.Row="3"
+                        Height="210"
+                        CornerRadius="8"
+                        BorderThickness="1"
+                        BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}">
+
+                        <Grid>
+
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <!-- CART TITLE -->
+
+                            <Grid
+                                Grid.Row="0"
+                                Padding="12,8"
+                                Background="{ThemeResource SubtleFillColorSecondaryBrush}">
 
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
 
-                                <ComboBox
-                                    Grid.Column="0"
-                                    ItemsSource="{Binding Customers}"
-                                    SelectedItem="{Binding SelectedCustomer,
-                                                         Mode=TwoWay}"
-                                    DisplayMemberPath="DisplayName"
-                                    PlaceholderText="Walk-in Customer"
-                                    HorizontalAlignment="Stretch" />
+                                <TextBlock
+                                    Text="Cart"
+                                    FontSize="15"
+                                    FontWeight="SemiBold" />
 
-                                <Button
+                                <TextBlock
                                     Grid.Column="1"
-                                    Content="Walk-in"
-                                    Padding="12,6"
-                                    Click="WalkInCustomerButton_Click" />
+                                    Text="Scroll for additional items"
+                                    FontSize="10"
+                                    Opacity="0.55"
+                                    VerticalAlignment="Center" />
 
                             </Grid>
 
-                        </StackPanel>
+                            <!-- CART COLUMN HEADERS -->
 
-                        <!-- CUSTOMER CREDIT -->
+                            <Grid
+                                Grid.Row="1"
+                                Padding="12,6"
+                                ColumnSpacing="8">
 
-                        <StackPanel
-                            Grid.Column="1"
-                            Spacing="2"
-                            VerticalAlignment="Center"
-                            Visibility="{Binding HasSelectedCustomer}">
-
-                            <TextBlock
-                                Text="Available Credit"
-                                FontSize="10"
-                                Opacity="0.60" />
-
-                            <TextBlock
-                                Text="{Binding FormattedCustomerAvailableCredit}"
-                                FontSize="17"
-                                FontWeight="SemiBold" />
-
-                            <StackPanel
-                                Orientation="Horizontal"
-                                Spacing="5">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="90" />
+                                    <ColumnDefinition Width="220" />
+                                    <ColumnDefinition Width="85" />
+                                    <ColumnDefinition Width="40" />
+                                </Grid.ColumnDefinitions>
 
                                 <TextBlock
-                                    Text="Outstanding:"
+                                    Grid.Column="0"
+                                    Text="Product"
                                     FontSize="10"
                                     Opacity="0.55" />
 
                                 <TextBlock
-                                    Text="{Binding FormattedCustomerOutstanding}"
+                                    Grid.Column="1"
+                                    Text="Quantity"
                                     FontSize="10"
-                                    Opacity="0.75" />
+                                    Opacity="0.55" />
 
-                            </StackPanel>
+                                <TextBlock
+                                    Grid.Column="2"
+                                    Text="Discount"
+                                    FontSize="10"
+                                    Opacity="0.55"
+                                    Visibility="{Binding DataContext.EnableLineDiscount,
+                                                         ElementName=PageRoot}" />
 
-                        </StackPanel>
+                                <TextBlock
+                                    Grid.Column="3"
+                                    Text="Total"
+                                    FontSize="10"
+                                    Opacity="0.55" />
 
-                    </Grid>
+                            </Grid>
 
-                </Border>
+                            <!-- CART ITEM VIEWPORT -->
 
-                <!-- ================================================= -->
-                <!-- CART -->
-                <!-- ================================================= -->
+                            <ScrollViewer
+                                Grid.Row="2"
+                                VerticalScrollMode="Enabled"
+                                VerticalScrollBarVisibility="Auto"
+                                HorizontalScrollMode="Disabled"
+                                HorizontalScrollBarVisibility="Disabled">
 
-                <Border
-                    Grid.Row="3"
-                    MinHeight="180"
-                    CornerRadius="8"
-                    BorderThickness="1"
-                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}">
+                                <ItemsControl
+                                    ItemsSource="{Binding CartLines}">
 
-                    <Grid>
+                                    <ItemsControl.ItemTemplate>
 
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
+                                        <DataTemplate
+                                            x:DataType="vm:PosCartLineViewModel">
 
-                        <!-- CART TITLE -->
+                                            <Border
+                                                Padding="12,8"
+                                                BorderThickness="0,1,0,0"
+                                                BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}">
 
-                        <Grid
-                            Grid.Row="0"
-                            Padding="12,8"
-                            Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+                                                <Grid ColumnSpacing="8">
 
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="90" />
+                                                        <ColumnDefinition Width="220" />
+                                                        <ColumnDefinition Width="85" />
+                                                        <ColumnDefinition Width="40" />
+                                                    </Grid.ColumnDefinitions>
 
-                            <TextBlock
-                                Text="Cart"
-                                FontSize="15"
-                                FontWeight="SemiBold" />
-
-                            <TextBlock
-                                Grid.Column="1"
-                                Text="Scroll for additional items"
-                                FontSize="10"
-                                Opacity="0.55"
-                                VerticalAlignment="Center" />
-
-                        </Grid>
-
-                        <!-- COLUMN HEADERS -->
-
-                        <Grid
-                            Grid.Row="1"
-                            Padding="12,6"
-                            ColumnSpacing="10">
-
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="125" />
-                                <ColumnDefinition Width="100" />
-                                <ColumnDefinition Width="40" />
-                            </Grid.ColumnDefinitions>
-
-                            <TextBlock
-                                Grid.Column="0"
-                                Text="Product"
-                                FontSize="10"
-                                Opacity="0.55" />
-
-                            <TextBlock
-                                Grid.Column="1"
-                                Text="Quantity"
-                                FontSize="10"
-                                Opacity="0.55" />
-
-                            <TextBlock
-                                Grid.Column="2"
-                                Text="Total"
-                                FontSize="10"
-                                Opacity="0.55" />
-
-                        </Grid>
-
-                        <!--
-                            IMPORTANT:
-                            This is a genuinely constrained viewport.
-
-                            The ScrollViewer lives in the * row.
-                            It therefore receives the remaining finite
-                            height of the Cart Grid and can scroll its
-                            ItemsControl independently.
-                        -->
-
-                        <ScrollViewer
-                            Grid.Row="2"
-                            VerticalScrollMode="Enabled"
-                            VerticalScrollBarVisibility="Auto"
-                            HorizontalScrollMode="Disabled"
-                            HorizontalScrollBarVisibility="Disabled">
-
-                            <ItemsControl
-                                ItemsSource="{Binding CartLines}">
-
-                                <ItemsControl.ItemTemplate>
-
-                                    <DataTemplate
-                                        x:DataType="vm:PosCartLineViewModel">
-
-                                        <Border
-                                            Padding="12,8"
-                                            BorderThickness="0,1,0,0"
-                                            BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}">
-
-                                            <Grid ColumnSpacing="10">
-
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="125" />
-                                                    <ColumnDefinition Width="100" />
-                                                    <ColumnDefinition Width="40" />
-                                                </Grid.ColumnDefinitions>
-
-                                                <!-- PRODUCT -->
-
-                                                <StackPanel
-                                                    Grid.Column="0"
-                                                    Spacing="2"
-                                                    VerticalAlignment="Center">
-
-                                                    <TextBlock
-                                                        Text="{x:Bind ProductName}"
-                                                        FontSize="13"
-                                                        FontWeight="SemiBold"
-                                                        TextTrimming="CharacterEllipsis" />
+                                                    <!-- PRODUCT -->
 
                                                     <StackPanel
-                                                        Orientation="Horizontal"
-                                                        Spacing="5">
+                                                        Grid.Column="0"
+                                                        Spacing="2"
+                                                        VerticalAlignment="Center">
 
                                                         <TextBlock
-                                                            Text="{x:Bind SKU}"
-                                                            FontSize="10"
-                                                            Opacity="0.55" />
+                                                            Text="{x:Bind ProductName}"
+                                                            FontSize="13"
+                                                            FontWeight="SemiBold"
+                                                            TextTrimming="CharacterEllipsis" />
 
-                                                        <TextBlock
-                                                            Text="•"
-                                                            FontSize="10"
-                                                            Opacity="0.35" />
+                                                        <StackPanel
+                                                            Orientation="Horizontal"
+                                                            Spacing="5">
 
-                                                        <TextBlock
-                                                            Text="{x:Bind FormattedUnitPrice}"
-                                                            FontSize="10"
-                                                            Opacity="0.70" />
+                                                            <TextBlock
+                                                                Text="{x:Bind SKU}"
+                                                                FontSize="10"
+                                                                Opacity="0.55" />
+
+                                                            <TextBlock
+                                                                Text="•"
+                                                                FontSize="10"
+                                                                Opacity="0.35" />
+
+                                                            <TextBlock
+                                                                Text="{x:Bind FormattedUnitPrice}"
+                                                                FontSize="10"
+                                                                Opacity="0.70" />
+
+                                                        </StackPanel>
 
                                                     </StackPanel>
 
-                                                </StackPanel>
+                                                    <!-- QUANTITY -->
 
-                                                <!-- QUANTITY -->
+                                                    <NumberBox
+                                                        Grid.Column="1"
+                                                        Minimum="0.001"
+                                                        Maximum="{x:Bind QuantityAvailableForNumberBox}"
+                                                        SmallChange="1"
+                                                        Value="{x:Bind Quantity,
+                                                                      Mode=TwoWay}"
+                                                        SpinButtonPlacementMode="Compact"
+                                                        VerticalAlignment="Center"
+                                                        IsEnabled="{Binding DataContext.CanEditCart, ElementName=PageRoot}"
+                                                        ValueChanged="Quantity_ValueChanged" />
 
-                                                <NumberBox
-                                                    Grid.Column="1"
-                                                    Minimum="0.001"
-                                                    Maximum="{x:Bind QuantityAvailableForNumberBox}"
-                                                    SmallChange="1"
-                                                    Value="{x:Bind Quantity,
-                                                                  Mode=TwoWay}"
-                                                    SpinButtonPlacementMode="Compact"
-                                                    VerticalAlignment="Center"
-                                                    ValueChanged="Quantity_ValueChanged" />
+                                                    <!-- LINE DISCOUNT -->
 
-                                                <!-- TOTAL -->
+                                                    <Grid
+    Grid.Column="2"
+    ColumnSpacing="6"
+    Visibility="{Binding DataContext.EnableLineDiscount,
+                         ElementName=PageRoot}">
 
-                                                <TextBlock
-                                                    Grid.Column="2"
-                                                    Text="{x:Bind FormattedLineTotal,
-                                                                  Mode=OneWay}"
-                                                    FontSize="13"
-                                                    FontWeight="SemiBold"
-                                                    VerticalAlignment="Center" />
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="105" />
+                                                            <ColumnDefinition Width="105" />
+                                                        </Grid.ColumnDefinitions>
 
-                                                <!-- REMOVE -->
+                                                        <ComboBox
+        Grid.Column="0"
+        ItemsSource="{x:Bind DiscountTypes}"
+        SelectedItem="{x:Bind DiscountType,
+                               Mode=TwoWay}"
+                                                            IsEnabled="{Binding DataContext.CanEditCart, ElementName=PageRoot}"
+        HorizontalAlignment="Stretch"
+        VerticalAlignment="Center" />
 
-                                                <Button
-                                                    Grid.Column="3"
-                                                    Content="×"
-                                                    Tag="{x:Bind}"
-                                                    Width="34"
-                                                    Height="34"
-                                                    Padding="0"
-                                                    FontSize="17"
-                                                    HorizontalAlignment="Center"
-                                                    VerticalAlignment="Center"
-                                                    ToolTipService.ToolTip="Remove item"
-                                                    Click="RemoveLineButton_Click" />
+                                                        <NumberBox
+        Grid.Column="1"
+        Width="105"
+        Minimum="0"
+        Value="{x:Bind DiscountValue,
+                       Mode=TwoWay}"
+        SmallChange="1"
+                                                            IsEnabled="{Binding DataContext.CanEditCart, ElementName=PageRoot}"
+        SpinButtonPlacementMode="Hidden"
+        HorizontalAlignment="Stretch"
+        VerticalAlignment="Center" />
 
-                                            </Grid>
+                                                    </Grid>
 
-                                        </Border>
+                                                    <!-- TOTAL -->
 
-                                    </DataTemplate>
+                                                    <TextBlock
+                                                        Grid.Column="3"
+                                                        Text="{x:Bind FormattedLineTotal,
+                                                                      Mode=OneWay}"
+                                                        FontSize="13"
+                                                        FontWeight="SemiBold"
+                                                        VerticalAlignment="Center" />
 
-                                </ItemsControl.ItemTemplate>
+                                                    <!-- REMOVE -->
 
-                            </ItemsControl>
+                                                    <Button
+                                                        Grid.Column="4"
+                                                        Content="×"
+                                                        Tag="{x:Bind}"
+                                                        Width="34"
+                                                        Height="34"
+                                                        Padding="0"
+                                                        FontSize="17"
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center"
+                                                        ToolTipService.ToolTip="Remove item"
+                                                        Click="RemoveLineButton_Click" />
 
-                        </ScrollViewer>
+                                                </Grid>
 
-                    </Grid>
+                                            </Border>
 
-                </Border>
+                                        </DataTemplate>
 
-                <!-- ================================================= -->
-                <!-- CHECKOUT -->
-                <!-- ================================================= -->
+                                    </ItemsControl.ItemTemplate>
 
-                <Border
-                    Grid.Row="4"
-                    Padding="10"
-                    CornerRadius="8"
-                    Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+                                </ItemsControl>
 
-                    <Grid
-                        RowSpacing="7">
-
-                        <Grid.RowDefinitions>
-
-                            <!-- Total / Add payment -->
-                            <RowDefinition Height="Auto" />
-
-                            <!-- Payment list owns remaining checkout space -->
-                            <RowDefinition Height="*" />
-
-                            <!-- Summary always visible -->
-                            <RowDefinition Height="Auto" />
-
-                        </Grid.RowDefinitions>
-
-                        <!-- ========================================= -->
-                        <!-- TOTAL / PAYMENT HEADER -->
-                        <!-- ========================================= -->
-
-                        <Grid Grid.Row="0">
-
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-
-                            <!-- TOTAL -->
-
-                            <StackPanel
-                                Grid.Column="0"
-                                Orientation="Horizontal"
-                                Spacing="7"
-                                VerticalAlignment="Center">
-
-                                <TextBlock
-                                    Text="Total"
-                                    FontSize="11"
-                                    Opacity="0.60"
-                                    VerticalAlignment="Center" />
-
-                                <TextBlock
-                                    Text="{Binding FormattedTotal}"
-                                    FontSize="19"
-                                    FontWeight="SemiBold"
-                                    VerticalAlignment="Center" />
-
-                            </StackPanel>
-
-                            <!-- PAYMENT LABEL -->
-
-                            <TextBlock
-                                Grid.Column="1"
-                                Margin="12,0"
-                                Text="Payments"
-                                FontSize="12"
-                                FontWeight="SemiBold"
-                                VerticalAlignment="Center" />
-
-                            <!-- ADD PAYMENT -->
-
-                            <Button
-                                Grid.Column="2"
-                                Content="+ Add Payment"
-                                Padding="10,4"
-                                Click="AddPaymentButton_Click" />
+                            </ScrollViewer>
 
                         </Grid>
 
-                        <!-- ========================================= -->
-                        <!-- PAYMENT SCROLLER -->
-                        <!-- ========================================= -->
+                    </Border>
 
-                        <Border
-                            Grid.Row="1"
-                            CornerRadius="6"
-                            BorderThickness="1"
-                            BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
-                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                    <!-- ================================================= -->
+                    <!-- PRICING -->
+                    <!-- ================================================= -->
 
-                            <Grid>
+                    <Border
+                        Grid.Row="4"
+                        Padding="10"
+                        CornerRadius="8"
+                        BorderThickness="1"
+                        BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
 
-                                <!--
-                                    Payment list has its own independent
-                                    bounded viewport because this Border
-                                    occupies the * row of the 210px
-                                    Checkout area.
-                                -->
+                        <Grid ColumnSpacing="14">
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- PRICING INPUTS -->
+
+                            <StackPanel
+                                Grid.Column="0"
+                                Spacing="7">
+
+                                <!-- ORDER DISCOUNT -->
+
+                                <StackPanel
+                                    Spacing="4"
+                                    Visibility="{Binding EnableOrderDiscount}">
+
+                                    <TextBlock
+                                        Text="Order Discount"
+                                        FontSize="10"
+                                        Opacity="0.60" />
+
+                                    <Grid ColumnSpacing="6">
+
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="135" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <ComboBox
+                                            Grid.Column="0"
+                                            ItemsSource="{Binding DiscountTypes}"
+                                            SelectedItem="{Binding OrderDiscountType,
+                                                                   Mode=TwoWay}"
+                                            
+                                            IsEnabled="{Binding CanEditCart}"
+                                            HorizontalAlignment="Stretch" />
+
+                                        <NumberBox
+                                            Grid.Column="1"
+                                            Minimum="0"
+                                            Value="{Binding OrderDiscountValue,
+                                                            Mode=TwoWay}"
+                                            
+                                            IsEnabled="{Binding CanEditCart}"
+                                            SmallChange="1"
+                                            SpinButtonPlacementMode="Compact" />
+
+                                    </Grid>
+
+                                </StackPanel>
+
+                                <!-- TRANSPORT -->
+
+                                <StackPanel
+                                    Spacing="4"
+                                    Visibility="{Binding EnableTransportCharge}">
+
+                                    <TextBlock
+                                        Text="Transport Charge"
+                                        FontSize="10"
+                                        Opacity="0.60" />
+
+                                    <NumberBox
+                                        Minimum="0"
+                                        Value="{Binding TransportCharge,
+                                                        Mode=TwoWay}"
+                                        
+                                        IsEnabled="{Binding CanEditCart}"
+                                        SmallChange="1"
+                                        SpinButtonPlacementMode="Compact" />
+
+                                </StackPanel>
+
+                            </StackPanel>
+
+                            <!-- CALCULATED SUMMARY -->
+
+                            <StackPanel
+                                Grid.Column="1"
+                                Spacing="5">
+
+                                <!-- GROSS -->
+
+                                <Grid>
+
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock
+                                        Text="Gross"
+                                        FontSize="11"
+                                        Opacity="0.65" />
+
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        Text="{Binding FormattedGrossAmount}"
+                                        FontSize="11"
+                                        FontWeight="SemiBold" />
+
+                                </Grid>
+
+                                <!-- LINE DISCOUNTS -->
+
+                                <Grid
+                                    Visibility="{Binding EnableLineDiscount}">
+
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock
+                                        Text="Line Discounts"
+                                        FontSize="11"
+                                        Opacity="0.65" />
+
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        Text="{Binding FormattedLineDiscountAmount}"
+                                        FontSize="11"
+                                        FontWeight="SemiBold" />
+
+                                </Grid>
+
+                                <!-- SUBTOTAL -->
+
+                                <Grid>
+
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock
+                                        Text="Subtotal"
+                                        FontSize="11"
+                                        Opacity="0.65" />
+
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        Text="{Binding FormattedSubtotal}"
+                                        FontSize="11"
+                                        FontWeight="SemiBold" />
+
+                                </Grid>
+
+                                <!-- ORDER DISCOUNT -->
+
+                                <Grid
+                                    Visibility="{Binding EnableOrderDiscount}">
+
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock
+                                        Text="Order Discount"
+                                        FontSize="11"
+                                        Opacity="0.65" />
+
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        Text="{Binding FormattedOrderDiscountAmount}"
+                                        FontSize="11"
+                                        FontWeight="SemiBold" />
+
+                                </Grid>
+
+                                <!-- TAX -->
+
+                                <Grid
+                                    Visibility="{Binding EnableTax}">
+
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock
+                                        Text="{Binding TaxDisplay}"
+                                        FontSize="11"
+                                        Opacity="0.65" />
+
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        Text="{Binding FormattedTaxAmount}"
+                                        FontSize="11"
+                                        FontWeight="SemiBold" />
+
+                                </Grid>
+
+                                <!-- TRANSPORT -->
+
+                                <Grid
+                                    Visibility="{Binding EnableTransportCharge}">
+
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock
+                                        Text="Transport"
+                                        FontSize="11"
+                                        Opacity="0.65" />
+
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        Text="{Binding FormattedTransportAmount}"
+                                        FontSize="11"
+                                        FontWeight="SemiBold" />
+
+                                </Grid>
+
+                                <Rectangle
+                                    Height="1"
+                                    Margin="0,2"
+                                    Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
+
+                                <!-- GRAND TOTAL -->
+
+                                <Grid>
+
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock
+                                        Text="Grand Total"
+                                        FontSize="13"
+                                        FontWeight="SemiBold" />
+
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        Text="{Binding FormattedTotal}"
+                                        FontSize="16"
+                                        FontWeight="SemiBold" />
+
+                                </Grid>
+
+                            </StackPanel>
+
+                        </Grid>
+
+                    </Border>
+
+                    <!-- ================================================= -->
+                    <!-- CHECKOUT / PAYMENTS -->
+                    <!-- ================================================= -->
+
+                    <Border
+                        Grid.Row="5"
+                        Padding="10"
+                        CornerRadius="8"
+                        Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+
+                        <Grid RowSpacing="7">
+
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <!-- PAYMENT HEADER -->
+
+                            <Grid Grid.Row="0">
+
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel
+                                    Grid.Column="0"
+                                    Orientation="Horizontal"
+                                    Spacing="7"
+                                    VerticalAlignment="Center">
+
+                                    <TextBlock
+                                        Text="Total"
+                                        FontSize="11"
+                                        Opacity="0.60"
+                                        VerticalAlignment="Center" />
+
+                                    <TextBlock
+                                        Text="{Binding FormattedTotal}"
+                                        FontSize="19"
+                                        FontWeight="SemiBold"
+                                        VerticalAlignment="Center" />
+
+                                </StackPanel>
+
+                                <TextBlock
+                                    Grid.Column="1"
+                                    Margin="12,0"
+                                    Text="Payments"
+                                    FontSize="12"
+                                    FontWeight="SemiBold"
+                                    VerticalAlignment="Center" />
+
+                                <Button
+                                    Grid.Column="2"
+                                    Content="+ Add Payment"
+                                    Padding="10,4"
+                                    Click="AddPaymentButton_Click" />
+
+                            </Grid>
+
+                            <!-- PAYMENT VIEWPORT -->
+
+                            <Border
+                                Grid.Row="1"
+                                Height="74"
+                                CornerRadius="6"
+                                BorderThickness="1"
+                                BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
 
                                 <ScrollViewer
                                     VerticalScrollMode="Enabled"
@@ -725,8 +1037,6 @@
                                                             <ColumnDefinition Width="36" />
                                                         </Grid.ColumnDefinitions>
 
-                                                        <!-- METHOD -->
-
                                                         <ComboBox
                                                             Grid.Column="0"
                                                             ItemsSource="{x:Bind PaymentMethods}"
@@ -734,8 +1044,6 @@
                                                                                  Mode=TwoWay}"
                                                             HorizontalAlignment="Stretch"
                                                             VerticalAlignment="Center" />
-
-                                                        <!-- AMOUNT -->
 
                                                         <NumberBox
                                                             Grid.Column="1"
@@ -745,8 +1053,6 @@
                                                             Value="{x:Bind Amount,
                                                                           Mode=TwoWay}"
                                                             VerticalAlignment="Center" />
-
-                                                        <!-- REFERENCE -->
 
                                                         <TextBox
                                                             Grid.Column="2"
@@ -758,8 +1064,6 @@
                                                             Visibility="{x:Bind RequiresReference,
                                                                                 Mode=OneWay}"
                                                             VerticalAlignment="Center" />
-
-                                                        <!-- REMOVE -->
 
                                                         <Button
                                                             Grid.Column="3"
@@ -786,123 +1090,115 @@
 
                                 </ScrollViewer>
 
+                            </Border>
+
+                            <!-- PAYMENT SUMMARY -->
+
+                            <Grid
+                                Grid.Row="2"
+                                ColumnSpacing="18"
+                                Padding="4,2,4,0">
+
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="1.25*" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel
+                                    Grid.Column="0"
+                                    Spacing="1">
+
+                                    <TextBlock
+                                        Text="Paid"
+                                        FontSize="9"
+                                        Opacity="0.55" />
+
+                                    <TextBlock
+                                        Text="{Binding FormattedPaidAmount}"
+                                        FontSize="13"
+                                        FontWeight="SemiBold" />
+
+                                </StackPanel>
+
+                                <StackPanel
+                                    Grid.Column="1"
+                                    Spacing="1">
+
+                                    <TextBlock
+                                        Text="Due"
+                                        FontSize="9"
+                                        Opacity="0.55" />
+
+                                    <TextBlock
+                                        Text="{Binding FormattedDueAmount}"
+                                        FontSize="13"
+                                        FontWeight="SemiBold" />
+
+                                </StackPanel>
+
+                                <StackPanel
+                                    Grid.Column="2"
+                                    Spacing="1">
+
+                                    <TextBlock
+                                        Text="Status"
+                                        FontSize="9"
+                                        Opacity="0.55" />
+
+                                    <TextBlock
+                                        Text="{Binding PaymentStatusDisplay}"
+                                        FontSize="12"
+                                        FontWeight="SemiBold" />
+
+                                </StackPanel>
+
                             </Grid>
-
-                        </Border>
-
-                        <!-- ========================================= -->
-                        <!-- ALWAYS-VISIBLE PAYMENT SUMMARY -->
-                        <!-- ========================================= -->
-
-                        <Grid
-                            Grid.Row="2"
-                            ColumnSpacing="18"
-                            Padding="4,2,4,0">
-
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="1.25*" />
-                            </Grid.ColumnDefinitions>
-
-                            <!-- PAID -->
-
-                            <StackPanel
-                                Grid.Column="0"
-                                Spacing="1">
-
-                                <TextBlock
-                                    Text="Paid"
-                                    FontSize="9"
-                                    Opacity="0.55" />
-
-                                <TextBlock
-                                    Text="{Binding FormattedPaidAmount}"
-                                    FontSize="13"
-                                    FontWeight="SemiBold" />
-
-                            </StackPanel>
-
-                            <!-- DUE -->
-
-                            <StackPanel
-                                Grid.Column="1"
-                                Spacing="1">
-
-                                <TextBlock
-                                    Text="Due"
-                                    FontSize="9"
-                                    Opacity="0.55" />
-
-                                <TextBlock
-                                    Text="{Binding FormattedDueAmount}"
-                                    FontSize="13"
-                                    FontWeight="SemiBold" />
-
-                            </StackPanel>
-
-                            <!-- STATUS -->
-
-                            <StackPanel
-                                Grid.Column="2"
-                                Spacing="1">
-
-                                <TextBlock
-                                    Text="Status"
-                                    FontSize="9"
-                                    Opacity="0.55" />
-
-                                <TextBlock
-                                    Text="{Binding PaymentStatusDisplay}"
-                                    FontSize="12"
-                                    FontWeight="SemiBold" />
-
-                            </StackPanel>
 
                         </Grid>
 
+                    </Border>
+
+                    <!-- ================================================= -->
+                    <!-- ACTIONS -->
+                    <!-- ================================================= -->
+
+                    <Grid
+                        Grid.Row="6"
+                        ColumnSpacing="10">
+
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="0.42*" />
+                            <ColumnDefinition Width="0.58*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Button
+                            Grid.Column="0"
+                            Content="Create Quote"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Center"
+                            Padding="20,10"
+                            FontSize="15"
+                            FontWeight="SemiBold"
+                            IsEnabled="{Binding CanCreateQuote}"
+                            Click="CreateQuoteButton_Click" />
+
+                        <Button
+                            Grid.Column="1"
+                            Content="Complete Sale"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Center"
+                            Padding="20,10"
+                            FontSize="15"
+                            FontWeight="SemiBold"
+                            IsEnabled="{Binding HasItems}"
+                            Click="CompleteSaleButton_Click" />
+
                     </Grid>
-
-                </Border>
-
-                <!-- ================================================= -->
-                <!-- COMPLETE -->
-                <!-- ================================================= -->
-
-                <Grid
-                    Grid.Row="5"
-                    ColumnSpacing="10">
-
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="0.42*" />
-                        <ColumnDefinition Width="0.58*" />
-                    </Grid.ColumnDefinitions>
-
-                    <Button
-                        Grid.Column="0"
-                        Content="Create Quote"
-                        HorizontalAlignment="Stretch"
-                        HorizontalContentAlignment="Center"
-                        Padding="20,10"
-                        FontSize="15"
-                        FontWeight="SemiBold"
-                        IsEnabled="{Binding HasItems}"
-                        Click="CreateQuoteButton_Click" />
-
-                    <Button
-                        Grid.Column="1"
-                        Content="Complete Sale"
-                        HorizontalAlignment="Stretch"
-                        HorizontalContentAlignment="Center"
-                        Padding="20,10"
-                        FontSize="15"
-                        FontWeight="SemiBold"
-                        IsEnabled="{Binding HasItems}"
-                        Click="CompleteSaleButton_Click" />
 
                 </Grid>
 
-            </Grid>
+            </ScrollViewer>
 
         </Border>
 

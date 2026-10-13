@@ -218,4 +218,27 @@ public sealed partial class SalesPage : Page
         Frame.Navigate(
             typeof(SalesReturnsPage));
     }
+
+    private void PricingButton_Click(
+    object sender,
+    RoutedEventArgs e)
+    {
+        if (sender is not Button button ||
+            button.Tag is not SalesHistoryDto sale)
+        {
+            return;
+        }
+
+        sale.IsPricingExpanded = !sale.IsPricingExpanded;
+
+        // Refresh this ListView item so x:Bind reflects
+        // the updated expansion state.
+        var index = ViewModel.Sales.IndexOf(sale);
+
+        if (index < 0)
+            return;
+
+        ViewModel.Sales.RemoveAt(index);
+        ViewModel.Sales.Insert(index, sale);
+    }
 }

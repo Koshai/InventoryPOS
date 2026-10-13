@@ -1,6 +1,8 @@
-﻿using InventoryPOS.Application.DTOs.Sales;
+﻿using InventoryPOS.Application.DTOs.Products;
+using InventoryPOS.Application.DTOs.Sales;
 using InventoryPOS.Application.DTOs.Settings;
 using InventoryPOS.Application.Interfaces;
+using InventoryPOS.Domain.Enums;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -21,13 +23,26 @@ public class InvoicePdfService : IInvoicePdfService
 
     private readonly IBusinessProfileService _businessProfileService;
     private readonly IBusinessLogoProvider _businessLogoProvider;
+    private readonly IDocumentQrService _documentQrService;
+    private readonly IProductBarcodeRenderService _productBarcodeRenderService;
 
     public InvoicePdfService(
-        IBusinessProfileService businessProfileService,
-        IBusinessLogoProvider businessLogoProvider)
+    IBusinessProfileService businessProfileService,
+    IBusinessLogoProvider businessLogoProvider,
+    IDocumentQrService documentQrService,
+    IProductBarcodeRenderService productBarcodeRenderService)
     {
-        _businessProfileService = businessProfileService;
-        _businessLogoProvider = businessLogoProvider;
+        _businessProfileService =
+            businessProfileService;
+
+        _businessLogoProvider =
+            businessLogoProvider;
+
+        _documentQrService =
+            documentQrService;
+
+        _productBarcodeRenderService =
+            productBarcodeRenderService;
     }
 
     public async Task<byte[]> GenerateInvoicePdfAsync(
@@ -55,6 +70,22 @@ public class InvoicePdfService : IInvoicePdfService
         var accent =
             GetAccentColor(business);
 
+        var documentQr =
+            await _documentQrService.GenerateAsync(
+                DocumentType.SaleInvoice,
+                sale.SaleId,
+                cancellationToken);
+
+        var qrBytes =
+            documentQr.PngBytes;
+
+        var productBarcodes =
+            await _productBarcodeRenderService
+                .GeneratePrimaryBarcodesAsync(
+                    sale.Lines.Select(
+                        x => x.ProductVariantId),
+                    cancellationToken);
+
         return Document
             .Create(document =>
             {
@@ -80,6 +111,7 @@ public class InvoicePdfService : IInvoicePdfService
                                 sale,
                                 business,
                                 logoBytes,
+                                qrBytes,
                                 accent));
 
                     page.Content()
@@ -89,6 +121,7 @@ public class InvoicePdfService : IInvoicePdfService
                                 container,
                                 sale,
                                 business,
+                                productBarcodes,
                                 accent));
 
                     page.Footer()
@@ -111,6 +144,7 @@ public class InvoicePdfService : IInvoicePdfService
         SaleDetailsDto sale,
         BusinessProfileDto? business,
         byte[]? logoBytes,
+        byte[] qrBytes,
         string accent)
     {
         container.Column(column =>
@@ -208,29 +242,23 @@ public class InvoicePdfService : IInvoicePdfService
                     // -----------------------------------------
 
                     row.ConstantItem(72)
-                        .AlignRight()
-                        .Column(qr =>
-                        {
-                            qr.Item()
-                                .AlignRight()
-                                .Width(52)
-                                .Height(52)
-                                .Border(1)
-                                .BorderColor(accent)
-                                .AlignCenter()
-                                .AlignMiddle()
-                                .Text("QR")
-                                .FontSize(9)
-                                .SemiBold()
-                                .FontColor(accent);
+    .AlignRight()
+    .Column(qr =>
+    {
+        qr.Item()
+            .AlignRight()
+            .Width(54)
+            .Height(54)
+            .Image(qrBytes)
+            .FitArea();
 
-                            qr.Item()
-                                .PaddingTop(2)
-                                .AlignRight()
-                                .Text("Invoice verification")
-                                .FontSize(5.5f)
-                                .FontColor(MutedText);
-                        });
+        qr.Item()
+            .PaddingTop(2)
+            .AlignRight()
+            .Text("Document QR")
+            .FontSize(5.5f)
+            .FontColor(MutedText);
+    });
                 });
 
             column.Item()
@@ -284,10 +312,12 @@ public class InvoicePdfService : IInvoicePdfService
     // =========================================================
 
     private static void ComposeContent(
-        IContainer container,
-        SaleDetailsDto sale,
-        BusinessProfileDto? business,
-        string accent)
+     IContainer container,
+     SaleDetailsDto sale,
+     BusinessProfileDto? business,
+     IReadOnlyDictionary<Guid, ProductBarcodeRenderDto>
+         productBarcodes,
+     string accent)
     {
         container.Column(column =>
         {
@@ -306,6 +336,7 @@ public class InvoicePdfService : IInvoicePdfService
                     ComposeItemsTable(
                         c,
                         sale,
+                        productBarcodes,
                         accent));
 
             column.Item()
@@ -480,6 +511,8 @@ public class InvoicePdfService : IInvoicePdfService
     private static void ComposeItemsTable(
     IContainer container,
     SaleDetailsDto sale,
+    IReadOnlyDictionary<Guid, ProductBarcodeRenderDto>
+        productBarcodes,
     string accent)
     {
         container.Table(table =>
@@ -573,6 +606,25 @@ public class InvoicePdfService : IInvoicePdfService
                         column.Item()
                             .Text(line.ProductName)
                             .SemiBold();
+
+                        if (productBarcodes.TryGetValue(
+        line.ProductVariantId,
+        out var barcode) &&
+    barcode.ImageBytes.Length > 0)
+                        {
+                            column.Item()
+                                .PaddingTop(4)
+                                .Width(105)
+                                .Height(27)
+                                .Image(barcode.ImageBytes)
+                                .FitArea();
+
+                            column.Item()
+                                .PaddingTop(1)
+                                .Text(barcode.Value)
+                                .FontSize(5.5f)
+                                .FontColor(MutedText);
+                        }
 
                         if (line.HasWarranty)
                         {
@@ -746,15 +798,51 @@ public class InvoicePdfService : IInvoicePdfService
                         "Subtotal / উপমোট",
                         sale.FormattedSubtotal);
 
-                    AddTotalRow(
-                        totals,
-                        "Discount / ছাড়",
-                        sale.FormattedDiscount);
+                    // Sale-level pricing snapshots: never recalculate from
+                    // current business settings or from the line table.
+                    if (sale.LineDiscountAmount != 0m)
+                    {
+                        AddTotalRow(
+                            totals,
+                            "Line discount / পণ্যে ছাড়",
+                            FormatMoney(-sale.LineDiscountAmount));
+                    }
 
-                    AddTotalRow(
-                        totals,
-                        "VAT / Tax",
-                        sale.FormattedTax);
+                    if (sale.OrderDiscountAmount != 0m)
+                    {
+                        AddTotalRow(
+                            totals,
+                            "Order discount / অর্ডারে ছাড়",
+                            FormatMoney(-sale.OrderDiscountAmount));
+                    }
+
+                    // Legacy sales may only have a combined discount.
+                    var remainingDiscount = sale.DiscountAmount
+                        - sale.LineDiscountAmount
+                        - sale.OrderDiscountAmount;
+                    if (remainingDiscount != 0m)
+                    {
+                        AddTotalRow(
+                            totals,
+                            "Other discount / অন্যান্য ছাড়",
+                            FormatMoney(-remainingDiscount));
+                    }
+
+                    if (sale.TaxAmount != 0m)
+                    {
+                        AddTotalRow(
+                            totals,
+                            "VAT / Tax",
+                            FormatMoney(sale.TaxAmount));
+                    }
+
+                    if (sale.TransportAmount != 0m)
+                    {
+                        AddTotalRow(
+                            totals,
+                            "Transport / পরিবহন",
+                            FormatMoney(sale.TransportAmount));
+                    }
 
                     totals.Item()
                         .PaddingTop(3)
@@ -852,6 +940,8 @@ public class InvoicePdfService : IInvoicePdfService
                 });
         });
     }
+
+    private static string FormatMoney(decimal amount) => $"৳{amount:N2}";
 
     private static void AddTotalRow(
         ColumnDescriptor column,

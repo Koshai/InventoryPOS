@@ -1,5 +1,6 @@
 ﻿using InventoryPOS.Application.DTOs.Sales;
 using InventoryPOS.Application.Interfaces;
+using InventoryPOS.Application.Pricing;
 using InventoryPOS.Domain.Entities;
 using InventoryPOS.Domain.Enums;
 using InventoryPOS.Infrastructure.Persistence;
@@ -10,11 +11,14 @@ namespace InventoryPOS.Infrastructure.Services;
 public class SalesQuoteService : ISalesQuoteService
 {
     private readonly InventoryPosDbContext _dbContext;
+    private readonly IPricingCalculator _pricingCalculator;
 
     public SalesQuoteService(
-        InventoryPosDbContext dbContext)
+        InventoryPosDbContext dbContext,
+        IPricingCalculator pricingCalculator)
     {
         _dbContext = dbContext;
+        _pricingCalculator = pricingCalculator;
     }
 
     // =========================================================
@@ -217,129 +221,143 @@ public class SalesQuoteService : ISalesQuoteService
         }
 
         // -----------------------------------------------------
-        // Create quote header
+        // Pricing: explicit calculator mode or legacy snapshots
         // -----------------------------------------------------
 
-        var quote =
-            new SalesQuote
-            {
-                QuoteNumber =
-                    await GenerateQuoteNumberAsync(
-                        quoteDate,
-                        cancellationToken),
+        PricingCalculationResult? pricing = null;
+        decimal grossSubtotal;
+        decimal lineDiscountTotal;
+        decimal orderDiscountTotal;
+        decimal totalTax;
+        decimal transportTotal;
+        decimal grandTotal;
 
-                LocationId =
-                    request.LocationId,
-
-                CustomerId =
-                    request.CustomerId,
-
-                QuoteDate =
-                    quoteDate,
-
-                ValidUntilDate =
-                    validUntilDate,
-
-                Status =
-                    SalesQuoteStatus.Draft,
-
-                DiscountAmount =
-                    request.DiscountAmount,
-
-                TaxAmount =
-                    request.TaxAmount,
-
-                Notes =
-                    Normalize(
-                        request.Notes),
-
-                Terms =
-                    Normalize(
-                        request.Terms)
-            };
-
-        // -----------------------------------------------------
-        // Create quote lines / calculate totals
-        // -----------------------------------------------------
-
-        decimal subtotal = 0m;
-        decimal lineDiscounts = 0m;
-        decimal lineTaxes = 0m;
-
-        foreach (var requestLine in request.Lines)
+        if (request.UsePricingCalculator)
         {
-            var gross =
-                requestLine.Quantity *
-                requestLine.UnitPrice;
+            if (request.OrderDiscountType != 1 && request.OrderDiscountType != 2)
+                throw new InvalidOperationException("Invalid order discount type.");
 
-            var lineTotal =
-                gross -
-                requestLine.DiscountAmount +
-                requestLine.TaxAmount;
+            foreach (var line in request.Lines)
+            {
+                if (line.DiscountType != 1 && line.DiscountType != 2)
+                    throw new InvalidOperationException("Invalid line discount type.");
+            }
 
-            subtotal +=
-                gross;
-
-            lineDiscounts +=
-                requestLine.DiscountAmount;
-
-            lineTaxes +=
-                requestLine.TaxAmount;
-
-            quote.Lines.Add(
-                new SalesQuoteLine
+            pricing = _pricingCalculator.Calculate(new PricingCalculationRequest
+            {
+                Lines = request.Lines.Select(line => new PricingLineRequest
                 {
-                    ProductVariantId =
-                        requestLine.ProductVariantId,
+                    ProductVariantId = line.ProductVariantId,
+                    Quantity = line.Quantity,
+                    UnitPrice = line.UnitPrice,
+                    DiscountType = (PricingAdjustmentType)line.DiscountType,
+                    DiscountValue = line.DiscountValue,
+                    TaxRate = line.TaxRate
+                }).ToList(),
+                OrderDiscountType = (PricingAdjustmentType)request.OrderDiscountType,
+                OrderDiscountValue = request.OrderDiscountValue,
+                TaxRate = request.SalesTaxRate,
+                TransportAmount = request.TransportAmount
+            });
 
-                    Quantity =
-                        requestLine.Quantity,
+            // Treat incoming money amounts as snapshots to validate,
+            // never as trusted authority over the shared calculator.
+            if (request.OrderDiscountAmount != pricing.OrderDiscountAmount ||
+                request.DiscountAmount != pricing.DiscountAmount ||
+                request.TaxAmount != pricing.TaxAmount)
+                throw new InvalidOperationException(
+                    "Quotation pricing snapshots differ from the calculated amounts.");
 
-                    UnitPrice =
-                        requestLine.UnitPrice,
+            for (var i = 0; i < request.Lines.Count; i++)
+            {
+                if (request.Lines[i].DiscountAmount != pricing.Lines[i].DiscountAmount ||
+                    request.Lines[i].TaxAmount != pricing.Lines[i].TaxAmount)
+                    throw new InvalidOperationException(
+                        "Quotation line pricing differs from the calculated amounts.");
+            }
 
-                    DiscountAmount =
-                        requestLine.DiscountAmount,
+            grossSubtotal = pricing.GrossAmount;
+            lineDiscountTotal = pricing.LineDiscountAmount;
+            orderDiscountTotal = pricing.OrderDiscountAmount;
+            totalTax = pricing.TaxAmount;
+            transportTotal = pricing.TransportAmount;
+            grandTotal = pricing.TotalAmount;
+        }
+        else
+        {
+            // Legacy DTO semantics: DiscountAmount and TaxAmount on the
+            // request are order-level adjustments, not aggregate totals.
+            // Keep old callers working without reinterpreting them.
+            if (request.OrderDiscountAmount != 0m ||
+                request.OrderDiscountValue != 0m ||
+                request.SalesTaxRate != 0m ||
+                request.TransportAmount != 0m ||
+                request.Lines.Any(x => x.DiscountValue != 0m || x.TaxRate != 0m))
+                throw new InvalidOperationException(
+                    "New quotation pricing fields require UsePricingCalculator = true.");
 
-                    TaxAmount =
-                        requestLine.TaxAmount,
+            grossSubtotal = request.Lines.Sum(x => x.Quantity * x.UnitPrice);
+            lineDiscountTotal = request.Lines.Sum(x => x.DiscountAmount);
+            orderDiscountTotal = request.DiscountAmount;
+            totalTax = request.TaxAmount + request.Lines.Sum(x => x.TaxAmount);
+            transportTotal = 0m;
+            grandTotal = grossSubtotal - lineDiscountTotal - orderDiscountTotal + totalTax;
 
-                    LineTotal =
-                        lineTotal,
-
-                    WarrantyMonths =
-                        requestLine.WarrantyMonths,
-
-                    Description =
-                        Normalize(
-                            requestLine.Description)
-                });
+            if (orderDiscountTotal > grossSubtotal - lineDiscountTotal)
+                throw new InvalidOperationException(
+                    "Order discount cannot exceed the subtotal after line discounts.");
         }
 
-        // -----------------------------------------------------
-        // Header totals
-        // -----------------------------------------------------
+        if (grandTotal < 0m)
+            throw new InvalidOperationException("Quotation total cannot be negative.");
 
-        quote.Subtotal =
-            subtotal;
-
-        var totalDiscount =
-            lineDiscounts +
-            quote.DiscountAmount;
-
-        var totalTax =
-            lineTaxes +
-            quote.TaxAmount;
-
-        quote.TotalAmount =
-            subtotal -
-            totalDiscount +
-            totalTax;
-
-        if (quote.TotalAmount < 0)
+        var quote = new SalesQuote
         {
-            throw new InvalidOperationException(
-                "Quotation total cannot be negative.");
+            QuoteNumber = await GenerateQuoteNumberAsync(quoteDate, cancellationToken),
+            LocationId = request.LocationId,
+            CustomerId = request.CustomerId,
+            QuoteDate = quoteDate,
+            ValidUntilDate = validUntilDate,
+            Status = SalesQuoteStatus.Draft,
+            Subtotal = grossSubtotal,
+            LineDiscountAmount = lineDiscountTotal,
+            OrderDiscountAmount = orderDiscountTotal,
+            DiscountAmount = lineDiscountTotal + orderDiscountTotal,
+            OrderDiscountType = request.UsePricingCalculator ? request.OrderDiscountType : 1,
+            OrderDiscountValue = request.UsePricingCalculator
+                ? request.OrderDiscountValue : orderDiscountTotal,
+            SalesTaxRate = request.UsePricingCalculator ? request.SalesTaxRate : 0m,
+            TaxAmount = totalTax,
+            TransportAmount = transportTotal,
+            TotalAmount = grandTotal,
+            Notes = Normalize(request.Notes),
+            Terms = Normalize(request.Terms),
+            PricingVersion = request.UsePricingCalculator ? 2 : 1,
+        };
+
+        for (var i = 0; i < request.Lines.Count; i++)
+        {
+            var requestLine = request.Lines[i];
+            var calculatedLine = pricing is null ? null : pricing.Lines[i];
+            var discount = calculatedLine?.DiscountAmount ?? requestLine.DiscountAmount;
+            var tax = calculatedLine?.TaxAmount ?? requestLine.TaxAmount;
+
+            quote.Lines.Add(new SalesQuoteLine
+            {
+                ProductVariantId = requestLine.ProductVariantId,
+                Quantity = requestLine.Quantity,
+                UnitPrice = requestLine.UnitPrice,
+                DiscountType = request.UsePricingCalculator ? requestLine.DiscountType : 1,
+                DiscountValue = request.UsePricingCalculator
+                    ? requestLine.DiscountValue : discount,
+                DiscountAmount = discount,
+                TaxRate = request.UsePricingCalculator ? requestLine.TaxRate : 0m,
+                TaxAmount = tax,
+                LineTotal = calculatedLine?.LineTotal ??
+                    (requestLine.Quantity * requestLine.UnitPrice - discount + tax),
+                WarrantyMonths = requestLine.WarrantyMonths,
+                Description = Normalize(requestLine.Description)
+            });
         }
 
         // -----------------------------------------------------
@@ -449,11 +467,25 @@ public class SalesQuoteService : ISalesQuoteService
                                 line =>
                                     line.Quantity),
 
-                        TotalAmount =
-                            x.TotalAmount,
+                        PricingVersion = x.PricingVersion,
 
-                        SaleId =
-                            x.SaleId
+                        Subtotal = x.Subtotal,
+
+                        LineDiscountAmount = x.LineDiscountAmount,
+
+                        OrderDiscountAmount = x.OrderDiscountAmount,
+
+                        DiscountAmount = x.DiscountAmount,
+
+                        TaxAmount = x.TaxAmount,
+
+                        SalesTaxRate = x.SalesTaxRate,
+
+                        TransportAmount = x.TransportAmount,
+
+                        TotalAmount = x.TotalAmount,
+
+                        SaleId = x.SaleId
                     })
             .ToListAsync(
                 cancellationToken);
@@ -526,6 +558,13 @@ public class SalesQuoteService : ISalesQuoteService
                         Subtotal =
                             x.Subtotal,
 
+                        LineDiscountAmount = x.LineDiscountAmount,
+                        OrderDiscountAmount = x.OrderDiscountAmount,
+                        OrderDiscountType = x.OrderDiscountType,
+                        OrderDiscountValue = x.OrderDiscountValue,
+                        SalesTaxRate = x.SalesTaxRate,
+                        TransportAmount = x.TransportAmount,
+
                         DiscountAmount =
                             x.DiscountAmount,
 
@@ -543,6 +582,8 @@ public class SalesQuoteService : ISalesQuoteService
 
                         SaleId =
                             x.SaleId,
+
+                        PricingVersion = x.PricingVersion,
 
                         InvoiceNumber =
                             x.Sale != null
@@ -587,6 +628,10 @@ public class SalesQuoteService : ISalesQuoteService
 
                                             UnitPrice =
                                                 line.UnitPrice,
+
+                                            DiscountType = line.DiscountType,
+                                            DiscountValue = line.DiscountValue,
+                                            TaxRate = line.TaxRate,
 
                                             DiscountAmount =
                                                 line.DiscountAmount,

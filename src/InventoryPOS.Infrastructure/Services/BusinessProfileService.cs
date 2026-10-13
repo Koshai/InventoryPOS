@@ -91,6 +91,28 @@ public sealed class BusinessProfileService : IBusinessProfileService
                 ? "৳"
                 : profile.CurrencySymbol.Trim();
 
+        if (profile.DefaultSalesTaxRate < 0m ||
+    profile.DefaultSalesTaxRate > 100m)
+        {
+            throw new InvalidOperationException(
+                "Default sales tax rate must be between 0 and 100.");
+        }
+
+        entity.EnableSalesLineDiscount =
+            profile.EnableSalesLineDiscount;
+
+        entity.EnableSalesOrderDiscount =
+            profile.EnableSalesOrderDiscount;
+
+        entity.EnableSalesTax =
+            profile.EnableSalesTax;
+
+        entity.DefaultSalesTaxRate =
+            profile.DefaultSalesTaxRate;
+
+        entity.EnableSalesTransportCharge =
+            profile.EnableSalesTransportCharge;
+
         entity.LogoPath =
             Clean(profile.LogoPath);
         entity.InvoiceAccentColor =
@@ -133,6 +155,21 @@ public sealed class BusinessProfileService : IBusinessProfileService
 
             CurrencyCode = entity.CurrencyCode,
             CurrencySymbol = entity.CurrencySymbol,
+
+            EnableSalesLineDiscount =
+    entity.EnableSalesLineDiscount,
+
+            EnableSalesOrderDiscount =
+    entity.EnableSalesOrderDiscount,
+
+            EnableSalesTax =
+    entity.EnableSalesTax,
+
+            DefaultSalesTaxRate =
+    entity.DefaultSalesTaxRate,
+
+            EnableSalesTransportCharge =
+    entity.EnableSalesTransportCharge,
 
             LogoPath = entity.LogoPath,
             InvoiceAccentColor = entity.InvoiceAccentColor,

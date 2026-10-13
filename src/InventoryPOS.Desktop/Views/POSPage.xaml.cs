@@ -1,10 +1,14 @@
 using InventoryPOS.Application.DTOs.Sales;
+using InventoryPOS.Application.Pricing;
 using InventoryPOS.Desktop.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Navigation;
 using System;
+using System.Threading.Tasks;
+using Windows.System;
 
 namespace InventoryPOS.Desktop.Views;
 
@@ -12,12 +16,19 @@ public sealed partial class POSPage : Page
 {
     public PosViewModel ViewModel { get; }
 
+    private readonly IPricingCalculator _pricingCalculator;
+    private bool _isProcessingBarcode;
+
     public POSPage()
     {
         InitializeComponent();
 
         ViewModel =
             App.Services.GetRequiredService<PosViewModel>();
+
+        _pricingCalculator =
+            App.Services.GetRequiredService<
+                IPricingCalculator>();
 
         DataContext =
             ViewModel;
@@ -38,6 +49,96 @@ public sealed partial class POSPage : Page
         }
 
         ShowError();
+    }
+
+    // ---------------------------------------------------------
+    // Barcode Scanner
+    // ---------------------------------------------------------
+
+    private async void BarcodeScanBox_KeyDown(
+        object sender,
+        KeyRoutedEventArgs e)
+    {
+        if (e.Key != VirtualKey.Enter)
+        {
+            return;
+        }
+
+        e.Handled = true;
+
+        await ProcessBarcodeAsync();
+    }
+
+    private async void BarcodeAddButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        await ProcessBarcodeAsync();
+    }
+
+    private async Task ProcessBarcodeAsync()
+    {
+        // Prevent Enter + button click, or very rapid scanner
+        // input, from starting overlapping barcode operations.
+        if (_isProcessingBarcode)
+        {
+            return;
+        }
+
+        var barcode =
+            BarcodeScanBox.Text?.Trim();
+
+        if (string.IsNullOrWhiteSpace(barcode))
+        {
+            BarcodeScanBox.Focus(
+                FocusState.Programmatic);
+
+            return;
+        }
+
+        _isProcessingBarcode = true;
+
+        BarcodeScanBox.IsEnabled =
+            false;
+
+        BarcodeAddButton.IsEnabled =
+            false;
+
+        var success = false;
+
+        try
+        {
+            success =
+                await ViewModel.ScanBarcodeAsync(
+                    barcode);
+
+            ShowError();
+
+            if (success)
+            {
+                BarcodeScanBox.Text =
+                    string.Empty;
+            }
+        }
+        finally
+        {
+            BarcodeScanBox.IsEnabled =
+                true;
+
+            BarcodeAddButton.IsEnabled =
+                true;
+
+            _isProcessingBarcode =
+                false;
+
+            BarcodeScanBox.Focus(
+                FocusState.Programmatic);
+
+            if (!success)
+            {
+                BarcodeScanBox.SelectAll();
+            }
+        }
     }
 
 

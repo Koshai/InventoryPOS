@@ -1,10 +1,11 @@
-﻿using InventoryPOS.Infrastructure.Persistence;
+﻿using InventoryPOS.Application.Interfaces;
+using InventoryPOS.Application.Pricing;
+using InventoryPOS.Infrastructure.Persistence;
+using InventoryPOS.Infrastructure.Persistence.Seed;
+using InventoryPOS.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using InventoryPOS.Infrastructure.Persistence.Seed;
-using InventoryPOS.Application.Interfaces;
-using InventoryPOS.Infrastructure.Services;
 
 namespace InventoryPOS.Infrastructure;
 
@@ -50,10 +51,18 @@ public static class DependencyInjection
         services.AddScoped<IWarrantyClaimQueryService, WarrantyClaimQueryService>();
         services.AddScoped<IWarrantyClaimManagementService, WarrantyClaimManagementService>();
         services.AddScoped<IWarrantyReplacementService, WarrantyReplacementService>();
+        services.AddScoped<IDocumentIdentifierService, DocumentIdentifierService>();
+        services.AddScoped<IDocumentLookupService, DocumentLookupService>();
+        services.AddScoped<IDocumentQrService, DocumentQrService>();
+        services.AddScoped<IProductBarcodeService, ProductBarcodeService>();
+        services.AddScoped<IProductBarcodeRenderService, ProductBarcodeRenderService>();
+        services.AddScoped<IProductBarcodeLabelService, ProductBarcodeLabelService>();
         services.AddSingleton<IInvoicePdfService, InvoicePdfService>();
         services.AddSingleton<IPurchaseRequisitionPdfService, PurchaseRequisitionPdfService>();
         services.AddSingleton<ISalesQuotePdfService, SalesQuotePdfService>();
         services.AddSingleton<IWarrantyClaimPdfService, WarrantyClaimPdfService>();
+        services.AddSingleton<IQrCodeService, QrCodeService>();
+        services.AddSingleton<IPricingCalculator, PricingCalculator>();
 
         return services;
     }

@@ -25,4 +25,14 @@ public class BusinessProfileDto
     public string InvoiceAccentColor { get; set; } = "#4F56D9";
 
     public string? InvoiceFooter { get; set; }
+
+    public bool EnableSalesLineDiscount { get; set; } = true;
+
+    public bool EnableSalesOrderDiscount { get; set; } = true;
+
+    public bool EnableSalesTax { get; set; }
+
+    public decimal DefaultSalesTaxRate { get; set; }
+
+    public bool EnableSalesTransportCharge { get; set; }
 }

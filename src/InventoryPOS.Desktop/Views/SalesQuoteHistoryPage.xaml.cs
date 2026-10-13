@@ -111,4 +111,17 @@ public sealed partial class SalesQuoteHistoryPage :
             !string.IsNullOrWhiteSpace(
                 ViewModel.ErrorMessage);
     }
+
+    private void PricingButton_Click(
+    object sender,
+    RoutedEventArgs e)
+    {
+        if (sender is not Button button ||
+            button.Tag is not SalesQuoteHistoryItemViewModel quote)
+        {
+            return;
+        }
+
+        quote.TogglePricing();
+    }
 }

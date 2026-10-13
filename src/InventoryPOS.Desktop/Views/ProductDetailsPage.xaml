@@ -211,6 +211,7 @@
                                 <ColumnDefinition Width="1*" />
                                 <ColumnDefinition Width="1*" />
                                 <ColumnDefinition Width="0.8*" />
+                                <ColumnDefinition Width="110" />
                             </Grid.ColumnDefinitions>
 
                             <TextBlock
@@ -239,6 +240,12 @@
                             <TextBlock
                                 Grid.Column="4"
                                 Text="Status"
+                                FontWeight="SemiBold"
+                                HorizontalAlignment="Center" />
+
+                            <TextBlock
+                                Grid.Column="5"
+                                Text="Barcodes"
                                 FontWeight="SemiBold"
                                 HorizontalAlignment="Center" />
 
@@ -291,6 +298,7 @@
                                             <ColumnDefinition Width="1*" />
                                             <ColumnDefinition Width="1*" />
                                             <ColumnDefinition Width="0.8*" />
+                                            <ColumnDefinition Width="110" />
                                         </Grid.ColumnDefinitions>
 
                                         <TextBlock
@@ -322,6 +330,14 @@
                                             HorizontalAlignment="Center"
                                             VerticalAlignment="Center" />
 
+                                        <Button
+                                            Grid.Column="5"
+                                            Content="Manage"
+                                            Tag="{Binding}"
+                                            Padding="12,5"
+                                            HorizontalAlignment="Center"
+                                            Click="ManageBarcodesButton_Click" />
+
                                     </Grid>
 
                                 </Border>
@@ -344,6 +360,229 @@
             </StackPanel>
 
         </ScrollViewer>
+
+        <ContentDialog
+    x:Name="BarcodeDialog"
+    Title="Product Barcodes"
+    PrimaryButtonText="Add Barcode"
+    CloseButtonText="Close"
+    DefaultButton="Primary"
+    PrimaryButtonClick="BarcodeDialog_PrimaryButtonClick">
+
+            <StackPanel
+        Width="520"
+        Spacing="16">
+
+                <StackPanel Spacing="3">
+
+                    <TextBlock
+                Text="Variant"
+                FontSize="12"
+                Opacity="0.65" />
+
+                    <TextBlock
+                Text="{Binding SelectedVariantSku}"
+                FontSize="16"
+                FontWeight="SemiBold" />
+
+                </StackPanel>
+
+                <Grid ColumnSpacing="10">
+
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="150" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBox
+                x:Name="BarcodeValueTextBox"
+                Grid.Column="0"
+                Header="Barcode"
+                PlaceholderText="Scan or enter barcode" />
+
+                    <ComboBox
+                x:Name="BarcodeTypeComboBox"
+                Grid.Column="1"
+                Header="Type"
+                SelectedIndex="0">
+
+                        <ComboBoxItem Content="EAN-13" Tag="Ean13" />
+                        <ComboBoxItem Content="UPC-A" Tag="UpcA" />
+                        <ComboBoxItem Content="Code 128" Tag="Code128" />
+                        <ComboBoxItem Content="Other" Tag="Other" />
+
+                    </ComboBox>
+
+                </Grid>
+
+                <CheckBox
+            x:Name="PrimaryBarcodeCheckBox"
+            Content="Primary barcode" />
+
+                <InfoBar
+            x:Name="BarcodeErrorInfoBar"
+            Severity="Error"
+            IsOpen="False"
+            IsClosable="True" />
+
+                <!-- ========================================= -->
+                <!-- LABEL PRINT OPTIONS -->
+                <!-- ========================================= -->
+
+                <Border
+    Padding="12"
+    CornerRadius="8"
+    BorderThickness="1"
+    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+    Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+
+                    <StackPanel Spacing="10">
+
+                        <TextBlock
+            Text="Label Print Options"
+            FontWeight="SemiBold" />
+
+                        <Grid ColumnSpacing="16">
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="130" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <NumberBox
+                x:Name="LabelCopiesNumberBox"
+                Grid.Column="0"
+                Header="Copies"
+                Minimum="1"
+                Maximum="500"
+                Value="1"
+                SmallChange="1"
+                SpinButtonPlacementMode="Compact" />
+
+                            <StackPanel
+                Grid.Column="1"
+                VerticalAlignment="Bottom"
+                Spacing="4">
+
+                                <CheckBox
+                    x:Name="LabelShowPriceCheckBox"
+                    Content="Show selling price"
+                    IsChecked="True" />
+
+                                <CheckBox
+                    x:Name="LabelShowSkuCheckBox"
+                    Content="Show SKU"
+                    IsChecked="True" />
+
+                            </StackPanel>
+
+                        </Grid>
+
+                        <TextBlock
+            Text="These options apply when you click Print Label below."
+            FontSize="11"
+            Opacity="0.65"
+            TextWrapping="Wrap" />
+
+                    </StackPanel>
+
+                </Border>
+
+                <TextBlock
+            Text="Assigned barcodes"
+            Margin="0,6,0,0"
+            FontWeight="SemiBold" />
+
+                <ListView
+    ItemsSource="{Binding Barcodes}"
+    MaxHeight="240"
+    SelectionMode="None"
+    HorizontalContentAlignment="Stretch">
+
+                    <ListView.ItemContainerStyle>
+
+                        <Style TargetType="ListViewItem">
+
+                            <Setter
+                Property="HorizontalContentAlignment"
+                Value="Stretch" />
+
+                        </Style>
+
+                    </ListView.ItemContainerStyle>
+
+                    <ListView.ItemTemplate>
+
+                        <DataTemplate>
+
+                            <Grid
+                Padding="4,8"
+                ColumnSpacing="12">
+
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="90" />
+                                    <ColumnDefinition Width="70" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <!-- BARCODE -->
+
+                                <TextBlock
+                    Grid.Column="0"
+                    Text="{Binding Value}"
+                    VerticalAlignment="Center"
+                    FontFamily="Consolas"
+                    TextTrimming="CharacterEllipsis" />
+
+                                <!-- TYPE -->
+
+                                <TextBlock
+                    Grid.Column="1"
+                    Text="{Binding Type}"
+                    VerticalAlignment="Center" />
+
+                                <!-- PRIMARY -->
+
+                                <TextBlock
+                    Grid.Column="2"
+                    Text="{Binding IsPrimary}"
+                    VerticalAlignment="Center"
+                    HorizontalAlignment="Center" />
+
+                                <!-- PRINT LABEL -->
+
+                                <Button
+                    Grid.Column="3"
+                    Content="Print Label"
+                    Tag="{Binding}"
+                    Padding="10,5"
+                    VerticalAlignment="Center"
+                    ToolTipService.ToolTip="Generate printable barcode label"
+                    Click="PrintBarcodeLabelButton_Click" />
+
+                                <!-- REMOVE -->
+
+                                <Button
+                    Grid.Column="4"
+                    Content="Remove"
+                    Tag="{Binding}"
+                    Padding="10,5"
+                    VerticalAlignment="Center"
+                    Click="RemoveBarcodeButton_Click" />
+
+                            </Grid>
+
+                        </DataTemplate>
+
+                    </ListView.ItemTemplate>
+
+                </ListView>
+
+            </StackPanel>
+
+        </ContentDialog>
 
         <ProgressRing
             Width="40"

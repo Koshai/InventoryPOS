@@ -50,6 +50,22 @@ public sealed class BusinessProfileConfiguration
             .IsRequired()
             .HasMaxLength(10);
 
+        builder.Property(x => x.EnableSalesLineDiscount)
+    .IsRequired();
+
+        builder.Property(x => x.EnableSalesOrderDiscount)
+            .IsRequired();
+
+        builder.Property(x => x.EnableSalesTax)
+            .IsRequired();
+
+        builder.Property(x => x.DefaultSalesTaxRate)
+            .HasPrecision(5, 2)
+            .IsRequired();
+
+        builder.Property(x => x.EnableSalesTransportCharge)
+            .IsRequired();
+
         builder.Property(x => x.LogoPath)
             .HasMaxLength(500);
 

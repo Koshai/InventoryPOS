@@ -80,6 +80,9 @@ public class InventoryPosDbContext : DbContext
     public DbSet<WarrantyClaimItem> WarrantyClaimItems => Set<WarrantyClaimItem>();
     public DbSet<WarrantyReplacement> WarrantyReplacements => Set<WarrantyReplacement>();
     public DbSet<WarrantyClaimEvent> WarrantyClaimEvents => Set<WarrantyClaimEvent>();
+    public DbSet<DocumentIdentifier> DocumentIdentifiers => Set<DocumentIdentifier>();
+    public DbSet<ProductBarcode> ProductBarcodes => Set<ProductBarcode>();
+    public DbSet<DocumentNumberCounter> DocumentNumberCounters => Set<DocumentNumberCounter>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -87,5 +90,72 @@ public class InventoryPosDbContext : DbContext
 
         modelBuilder.ApplyConfigurationsFromAssembly(
             typeof(InventoryPosDbContext).Assembly);
+
+        modelBuilder.Entity<Sale>()
+            .HasIndex(x => x.CheckoutRequestId)
+            .IsUnique()
+            .HasFilter("\"CheckoutRequestId\" IS NOT NULL");
+
+        modelBuilder.Entity<Sale>()
+            .Property(x => x.CheckoutRequestFingerprint)
+            .HasMaxLength(64)
+            .IsUnicode(false);
+
+        modelBuilder.Entity<DocumentNumberCounter>(entity =>
+        {
+            entity.Property(x => x.DocumentPrefix)
+                .HasMaxLength(20)
+                .IsRequired();
+
+            entity.HasIndex(x => new
+            {
+                x.DocumentPrefix,
+                x.DocumentDate
+            }).IsUnique();
+        });
+
+        modelBuilder.Entity<Sale>(entity =>
+        {
+            entity.HasIndex(x => x.InvoiceNumber)
+                .IsUnique();
+
+            entity.ToTable(t =>
+            {
+                t.HasCheckConstraint(
+                    "CK_Sales_NonNegativeAmounts",
+                    """
+            "Subtotal" >= 0
+            AND "DiscountAmount" >= 0
+            AND "LineDiscountAmount" >= 0
+            AND "OrderDiscountAmount" >= 0
+            AND "TransportAmount" >= 0
+            AND "TaxAmount" >= 0
+            AND "TotalAmount" >= 0
+            AND "PaidAmount" >= 0
+            AND "DueAmount" >= 0
+            """);
+
+                t.HasCheckConstraint(
+                    "CK_Sales_TaxRate",
+                    """
+            "SalesTaxRate" >= 0
+            AND "SalesTaxRate" <= 100
+            """);
+            });
+        });
+
+        modelBuilder.Entity<StockBalance>(entity =>
+        {
+            entity.ToTable(t =>
+            {
+                t.HasCheckConstraint(
+                    "CK_StockBalances_ValidQuantities",
+                    """
+            "QuantityOnHand" >= 0
+            AND "QuantityReserved" >= 0
+            AND "QuantityReserved" <= "QuantityOnHand"
+            """);
+            });
+        });
     }
 }

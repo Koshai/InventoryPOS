@@ -23,6 +23,15 @@ public class SaleLineConfiguration :
         builder.Property(x => x.DiscountAmount)
             .HasPrecision(18, 2);
 
+        builder.Property(x => x.DiscountType)
+    .HasDefaultValue(1);
+
+        builder.Property(x => x.DiscountValue)
+            .HasPrecision(18, 2);
+
+        builder.Property(x => x.TaxRate)
+            .HasPrecision(5, 2);
+
         builder.Property(x => x.TaxAmount)
             .HasPrecision(18, 2);
 

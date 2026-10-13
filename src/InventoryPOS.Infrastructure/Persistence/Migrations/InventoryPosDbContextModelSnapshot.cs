@@ -94,9 +94,25 @@ namespace InventoryPOS.Infrastructure.Persistence.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)");
 
+                    b.Property<decimal>("DefaultSalesTaxRate")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
                     b.Property<string>("Email")
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
+
+                    b.Property<bool>("EnableSalesLineDiscount")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("EnableSalesOrderDiscount")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("EnableSalesTax")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("EnableSalesTransportCharge")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("InvoiceAccentColor")
                         .IsRequired()
@@ -217,6 +233,76 @@ namespace InventoryPOS.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("Customers", (string)null);
+                });
+
+            modelBuilder.Entity("InventoryPOS.Domain.Entities.DocumentIdentifier", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("DocumentType")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("LookupToken")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime?>("RevokedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LookupToken")
+                        .IsUnique();
+
+                    b.HasIndex("RevokedAtUtc");
+
+                    b.HasIndex("DocumentType", "DocumentId")
+                        .IsUnique();
+
+                    b.ToTable("DocumentIdentifiers", (string)null);
+                });
+
+            modelBuilder.Entity("InventoryPOS.Domain.Entities.DocumentNumberCounter", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly>("DocumentDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("DocumentPrefix")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int>("LastNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentPrefix", "DocumentDate")
+                        .IsUnique();
+
+                    b.ToTable("DocumentNumberCounters");
                 });
 
             modelBuilder.Entity("InventoryPOS.Domain.Entities.GoodsReceipt", b =>
@@ -484,6 +570,44 @@ namespace InventoryPOS.Infrastructure.Persistence.Migrations
                     b.HasIndex("UnitId");
 
                     b.ToTable("Products", (string)null);
+                });
+
+            modelBuilder.Entity("InventoryPOS.Domain.Entities.ProductBarcode", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsPrimary")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ProductVariantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductVariantId")
+                        .IsUnique()
+                        .HasFilter("\"IsPrimary\" = TRUE");
+
+                    b.HasIndex("Value")
+                        .IsUnique();
+
+                    b.ToTable("ProductBarcodes", (string)null);
                 });
 
             modelBuilder.Entity("InventoryPOS.Domain.Entities.ProductImage", b =>
@@ -917,6 +1041,14 @@ namespace InventoryPOS.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("CheckoutRequestFingerprint")
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid?>("CheckoutRequestId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -936,6 +1068,10 @@ namespace InventoryPOS.Infrastructure.Persistence.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<decimal>("LineDiscountAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
                     b.Property<Guid>("LocationId")
                         .HasColumnType("uuid");
 
@@ -943,12 +1079,20 @@ namespace InventoryPOS.Infrastructure.Persistence.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<decimal>("OrderDiscountAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
                     b.Property<decimal>("PaidAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
                     b.Property<DateTime>("SaleDate")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("SalesTaxRate")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
@@ -965,10 +1109,18 @@ namespace InventoryPOS.Infrastructure.Persistence.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<decimal>("TransportAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
                     b.Property<DateTime?>("UpdatedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CheckoutRequestId")
+                        .IsUnique()
+                        .HasFilter("\"CheckoutRequestId\" IS NOT NULL");
 
                     b.HasIndex("CustomerId");
 
@@ -979,7 +1131,12 @@ namespace InventoryPOS.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("SaleDate");
 
-                    b.ToTable("Sales", (string)null);
+                    b.ToTable("Sales", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Sales_NonNegativeAmounts", "\"Subtotal\" >= 0\r\nAND \"DiscountAmount\" >= 0\r\nAND \"LineDiscountAmount\" >= 0\r\nAND \"OrderDiscountAmount\" >= 0\r\nAND \"TransportAmount\" >= 0\r\nAND \"TaxAmount\" >= 0\r\nAND \"TotalAmount\" >= 0\r\nAND \"PaidAmount\" >= 0\r\nAND \"DueAmount\" >= 0");
+
+                            t.HasCheckConstraint("CK_Sales_TaxRate", "\"SalesTaxRate\" >= 0\r\nAND \"SalesTaxRate\" <= 100");
+                        });
                 });
 
             modelBuilder.Entity("InventoryPOS.Domain.Entities.SaleLine", b =>
@@ -992,6 +1149,15 @@ namespace InventoryPOS.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<decimal>("DiscountAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("DiscountType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<decimal>("DiscountValue")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
@@ -1012,6 +1178,10 @@ namespace InventoryPOS.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("TaxAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TaxRate")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
 
                     b.Property<decimal>("UnitPrice")
                         .HasPrecision(18, 2)
@@ -1096,12 +1266,34 @@ namespace InventoryPOS.Infrastructure.Persistence.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<decimal>("LineDiscountAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
                     b.Property<Guid>("LocationId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
+
+                    b.Property<decimal>("OrderDiscountAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("OrderDiscountType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<decimal>("OrderDiscountValue")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("PricingVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
 
                     b.Property<DateTime>("QuoteDate")
                         .HasColumnType("timestamp with time zone");
@@ -1113,6 +1305,10 @@ namespace InventoryPOS.Infrastructure.Persistence.Migrations
 
                     b.Property<Guid?>("SaleId")
                         .HasColumnType("uuid");
+
+                    b.Property<decimal>("SalesTaxRate")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
@@ -1130,6 +1326,10 @@ namespace InventoryPOS.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(2000)");
 
                     b.Property<decimal>("TotalAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TransportAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
@@ -1170,6 +1370,15 @@ namespace InventoryPOS.Infrastructure.Persistence.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<int>("DiscountType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<decimal>("DiscountValue")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
                     b.Property<decimal>("LineTotal")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
@@ -1187,6 +1396,10 @@ namespace InventoryPOS.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("TaxAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TaxRate")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
 
                     b.Property<decimal>("UnitPrice")
                         .HasPrecision(18, 2)
@@ -1502,7 +1715,10 @@ namespace InventoryPOS.Infrastructure.Persistence.Migrations
                     b.HasIndex("ProductVariantId", "LocationId")
                         .IsUnique();
 
-                    b.ToTable("StockBalances", (string)null);
+                    b.ToTable("StockBalances", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_StockBalances_ValidQuantities", "\"QuantityOnHand\" >= 0\r\nAND \"QuantityReserved\" >= 0\r\nAND \"QuantityReserved\" <= \"QuantityOnHand\"");
+                        });
                 });
 
             modelBuilder.Entity("InventoryPOS.Domain.Entities.StockMovement", b =>
@@ -2000,6 +2216,17 @@ namespace InventoryPOS.Infrastructure.Persistence.Migrations
                     b.Navigation("Category");
 
                     b.Navigation("Unit");
+                });
+
+            modelBuilder.Entity("InventoryPOS.Domain.Entities.ProductBarcode", b =>
+                {
+                    b.HasOne("InventoryPOS.Domain.Entities.ProductVariant", "ProductVariant")
+                        .WithMany()
+                        .HasForeignKey("ProductVariantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ProductVariant");
                 });
 
             modelBuilder.Entity("InventoryPOS.Domain.Entities.ProductImage", b =>

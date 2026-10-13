@@ -1,9 +1,10 @@
 ﻿using InventoryPOS.Application.DTOs.Purchasing;
+using InventoryPOS.Application.DTOs.Settings;
 using InventoryPOS.Application.Interfaces;
+using InventoryPOS.Domain.Enums;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
-using InventoryPOS.Application.DTOs.Settings;
 
 namespace InventoryPOS.Infrastructure.Services;
 
@@ -15,19 +16,25 @@ public class PurchaseRequisitionPdfService
 
     private readonly IBusinessLogoProvider
         _businessLogoProvider;
+    private readonly IDocumentQrService
+    _documentQrService;
 
     private const string DefaultAccentColor =
     "#4F56D9";
 
     public PurchaseRequisitionPdfService(
-        IBusinessProfileService businessProfileService,
-        IBusinessLogoProvider businessLogoProvider)
+    IBusinessProfileService businessProfileService,
+    IBusinessLogoProvider businessLogoProvider,
+    IDocumentQrService documentQrService)
     {
         _businessProfileService =
             businessProfileService;
 
         _businessLogoProvider =
             businessLogoProvider;
+
+        _documentQrService =
+            documentQrService;
     }
 
     public async Task<byte[]> GeneratePdfAsync(
@@ -52,6 +59,15 @@ public class PurchaseRequisitionPdfService
                         cancellationToken);
         }
 
+        var documentQr =
+            await _documentQrService.GenerateAsync(
+                DocumentType.PurchaseRequisition,
+                requisition.Id,
+                cancellationToken);
+
+        var qrBytes =
+            documentQr.PngBytes;
+
         var document =
             Document.Create(container =>
             {
@@ -74,7 +90,8 @@ public class PurchaseRequisitionPdfService
                                 header,
                                 requisition,
                                 businessProfile,
-                                logoBytes));
+                                logoBytes,
+                                qrBytes));
 
                     page.Content()
                         .PaddingVertical(18)
@@ -95,7 +112,8 @@ public class PurchaseRequisitionPdfService
     IContainer container,
     PurchaseRequisitionDetailsDto requisition,
     BusinessProfileDto? businessProfile,
-    byte[]? logoBytes)
+    byte[]? logoBytes,
+    byte[] qrBytes)
     {
         string businessName =
             businessProfile?.BusinessName?.ToString()
@@ -171,50 +189,74 @@ public class PurchaseRequisitionPdfService
                         }
                     });
 
-                row.ConstantItem(185)
+                row.ConstantItem(225)
+    .Row(right =>
+    {
+        right.RelativeItem()
+            .PaddingRight(8)
+            .Column(meta =>
+            {
+                meta.Item()
                     .AlignRight()
-                    .Column(meta =>
-                    {
-                        meta.Item()
-                            .AlignRight()
-                            .Text("PURCHASE REQUISITION")
-                            .FontSize(15)
-                            .Bold();
+                    .Text("PURCHASE REQUISITION")
+                    .FontSize(15)
+                    .Bold();
 
-                        meta.Item()
-                            .AlignRight()
-                            .Text("REQUEST FOR QUOTATION")
-                            .FontSize(10)
-                            .SemiBold();
+                meta.Item()
+                    .AlignRight()
+                    .Text("REQUEST FOR QUOTATION")
+                    .FontSize(10)
+                    .SemiBold();
 
-                        meta.Item()
-                            .AlignRight()
-                            .Text("ক্রয় চাহিদাপত্র / দরপত্র অনুরোধ")
-                            .FontSize(8);
+                meta.Item()
+                    .AlignRight()
+                    .Text(
+                        "ক্রয় চাহিদাপত্র / দরপত্র অনুরোধ")
+                    .FontSize(8);
 
-                        meta.Item()
-                            .PaddingTop(7)
-                            .AlignRight()
-                            .Text(requisition.RequisitionNumber)
-                            .FontSize(10)
-                            .SemiBold();
+                meta.Item()
+                    .PaddingTop(7)
+                    .AlignRight()
+                    .Text(
+                        requisition.RequisitionNumber)
+                    .FontSize(10)
+                    .SemiBold();
 
-                        meta.Item()
-                            .PaddingTop(2)
-                            .AlignRight()
-                            .Text(
-                                requisition.RequisitionDate
-                                    .ToLocalTime()
-                                    .ToString("dd MMM yyyy"))
-                            .FontSize(8);
+                meta.Item()
+                    .PaddingTop(2)
+                    .AlignRight()
+                    .Text(
+                        requisition.RequisitionDate
+                            .ToLocalTime()
+                            .ToString("dd MMM yyyy"))
+                    .FontSize(8);
 
-                        meta.Item()
-                            .PaddingTop(2)
-                            .AlignRight()
-                            .Text(
-                                $"Status: {requisition.Status}")
-                            .FontSize(8);
-                    });
+                meta.Item()
+                    .PaddingTop(2)
+                    .AlignRight()
+                    .Text(
+                        $"Status: {requisition.Status}")
+                    .FontSize(8);
+            });
+
+        right.ConstantItem(58)
+            .Column(qr =>
+            {
+                qr.Item()
+                    .Width(54)
+                    .Height(54)
+                    .Image(qrBytes)
+                    .FitArea();
+
+                qr.Item()
+                    .PaddingTop(2)
+                    .AlignCenter()
+                    .Text("Document QR")
+                    .FontSize(5.5f)
+                    .FontColor(
+                        Colors.Grey.Darken1);
+            });
+    });
             });
 
             column.Item()

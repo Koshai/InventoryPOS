@@ -4,7 +4,12 @@
     x:Class="InventoryPOS.Desktop.Views.SalesQuoteHistoryPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:vm="using:InventoryPOS.Desktop.ViewModels">
+    xmlns:vm="using:InventoryPOS.Desktop.ViewModels"
+    xmlns:converters="using:InventoryPOS.Desktop.Converters">
+
+    <Page.Resources>
+        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </Page.Resources>
 
     <Grid
         Padding="24"
@@ -135,7 +140,7 @@
                         <ColumnDefinition Width="100" />
                         <ColumnDefinition Width="115" />
                         <ColumnDefinition Width="120" />
-                        <ColumnDefinition Width="95" />
+                        <ColumnDefinition Width="160" />
                     </Grid.ColumnDefinitions>
 
                     <TextBlock
@@ -189,7 +194,7 @@
 
                     <TextBlock
                         Grid.Column="7"
-                        Text="Total"
+                        Text="Total / Pricing"
                         FontSize="11"
                         FontWeight="SemiBold"
                         Opacity="0.65"
@@ -224,84 +229,85 @@
                         <DataTemplate
                             x:DataType="vm:SalesQuoteHistoryItemViewModel">
 
-                            <Grid
+                            <StackPanel>
+                                <Grid
                                 Padding="14,12"
                                 ColumnSpacing="12">
 
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="150" />
-                                    <ColumnDefinition Width="105" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="130" />
-                                    <ColumnDefinition Width="100" />
-                                    <ColumnDefinition Width="115" />
-                                    <ColumnDefinition Width="120" />
-                                    <ColumnDefinition Width="95" />
-                                </Grid.ColumnDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="150" />
+                                        <ColumnDefinition Width="105" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="130" />
+                                        <ColumnDefinition Width="100" />
+                                        <ColumnDefinition Width="115" />
+                                        <ColumnDefinition Width="120" />
+                                        <ColumnDefinition Width="160" />
+                                    </Grid.ColumnDefinitions>
 
-                                <!-- QUOTE -->
+                                    <!-- QUOTE -->
 
-                                <StackPanel
+                                    <StackPanel
                                     Grid.Column="0"
                                     Spacing="2">
 
-                                    <TextBlock
+                                        <TextBlock
                                         Text="{x:Bind QuoteNumber}"
                                         FontSize="13"
                                         FontWeight="SemiBold" />
 
-                                    <TextBlock
+                                        <TextBlock
                                         Text="{x:Bind ConversionDisplay}"
                                         FontSize="9"
                                         Opacity="0.55" />
 
-                                </StackPanel>
+                                    </StackPanel>
 
-                                <!-- DATE -->
+                                    <!-- DATE -->
 
-                                <TextBlock
+                                    <TextBlock
                                     Grid.Column="1"
                                     Text="{x:Bind FormattedQuoteDate}"
                                     FontSize="12"
                                     VerticalAlignment="Center" />
 
-                                <!-- CUSTOMER -->
+                                    <!-- CUSTOMER -->
 
-                                <TextBlock
+                                    <TextBlock
                                     Grid.Column="2"
                                     Text="{x:Bind CustomerName}"
                                     FontSize="12"
                                     TextTrimming="CharacterEllipsis"
                                     VerticalAlignment="Center" />
 
-                                <!-- LOCATION -->
+                                    <!-- LOCATION -->
 
-                                <TextBlock
+                                    <TextBlock
                                     Grid.Column="3"
                                     Text="{x:Bind LocationName}"
                                     FontSize="12"
                                     TextTrimming="CharacterEllipsis"
                                     VerticalAlignment="Center" />
 
-                                <!-- ITEMS -->
+                                    <!-- ITEMS -->
 
-                                <TextBlock
+                                    <TextBlock
                                     Grid.Column="4"
                                     Text="{x:Bind ItemSummary}"
                                     FontSize="12"
                                     VerticalAlignment="Center" />
 
-                                <!-- VALID UNTIL -->
+                                    <!-- VALID UNTIL -->
 
-                                <TextBlock
+                                    <TextBlock
                                     Grid.Column="5"
                                     Text="{x:Bind FormattedValidUntilDate}"
                                     FontSize="12"
                                     VerticalAlignment="Center" />
 
-                                <!-- STATUS -->
+                                    <!-- STATUS -->
 
-                                <Border
+                                    <Border
                                     Grid.Column="6"
                                     Padding="9,4"
                                     CornerRadius="12"
@@ -309,24 +315,110 @@
                                     VerticalAlignment="Center"
                                     Background="{ThemeResource SubtleFillColorSecondaryBrush}">
 
-                                    <TextBlock
+                                        <TextBlock
                                         Text="{x:Bind StatusDisplay}"
                                         FontSize="11"
                                         FontWeight="SemiBold" />
 
-                                </Border>
+                                    </Border>
 
-                                <!-- TOTAL -->
+                                    <!-- TOTAL -->
 
-                                <TextBlock
+                                    <StackPanel
                                     Grid.Column="7"
-                                    Text="{x:Bind FormattedTotal}"
-                                    FontSize="13"
-                                    FontWeight="SemiBold"
                                     HorizontalAlignment="Right"
-                                    VerticalAlignment="Center" />
+                                    Spacing="6">
 
-                            </Grid>
+                                        <TextBlock
+                                        Text="{x:Bind FormattedTotal}"
+                                        FontSize="13"
+                                        FontWeight="SemiBold"
+                                        HorizontalAlignment="Right" />
+
+                                        <Button
+                                        Content="{x:Bind PricingButtonText, Mode=OneWay}"
+                                        Tag="{x:Bind}"
+                                        Click="PricingButton_Click"
+                                        Padding="10,4"
+                                        HorizontalAlignment="Right" />
+                                    </StackPanel>
+
+                                </Grid>
+
+                                <Border
+                                    Margin="14,0,14,12"
+                                    Padding="14"
+                                    CornerRadius="8"
+                                    Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                    Visibility="{x:Bind IsPricingExpanded, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <StackPanel Spacing="9">
+                                        <TextBlock Text="Saved pricing breakdown" FontWeight="SemiBold" FontSize="13" />
+                                        <TextBlock Text="{x:Bind PricingVersionDisplay}" Opacity="0.65" FontSize="11" />
+                                        <Grid ColumnSpacing="16">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="Gross subtotal" />
+                                            <TextBlock Grid.Column="1" Text="{x:Bind FormattedSubtotal}" HorizontalAlignment="Right" />
+                                        </Grid>
+
+                                        <Grid ColumnSpacing="16" Visibility="{x:Bind HasLineDiscount, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="Line discount" />
+                                            <TextBlock Grid.Column="1" Text="{x:Bind FormattedLineDiscount}" HorizontalAlignment="Right" />
+                                        </Grid>
+
+                                        <Grid ColumnSpacing="16" Visibility="{x:Bind HasOrderDiscount, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="Order discount" />
+                                            <TextBlock Grid.Column="1" Text="{x:Bind FormattedOrderDiscount}" HorizontalAlignment="Right" />
+                                        </Grid>
+
+                                        <Grid ColumnSpacing="16" Visibility="{x:Bind HasOtherDiscount, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="Other discount" />
+                                            <TextBlock Grid.Column="1" Text="{x:Bind FormattedOtherDiscount}" HorizontalAlignment="Right" />
+                                        </Grid>
+
+                                        <Grid ColumnSpacing="16" Visibility="{x:Bind HasTax, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="VAT / Tax" />
+                                            <TextBlock Grid.Column="1" Text="{x:Bind FormattedTax}" HorizontalAlignment="Right" />
+                                        </Grid>
+
+                                        <Grid ColumnSpacing="16" Visibility="{x:Bind HasTransport, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="Transport" />
+                                            <TextBlock Grid.Column="1" Text="{x:Bind FormattedTransport}" HorizontalAlignment="Right" />
+                                        </Grid>
+
+                                        <Grid ColumnSpacing="16">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="Grand total" FontWeight="SemiBold" />
+                                            <TextBlock Grid.Column="1" Text="{x:Bind FormattedTotal}" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
 
                         </DataTemplate>
 

@@ -1,7 +1,9 @@
 ﻿using InventoryPOS.Application.DTOs.Inventory;
 using InventoryPOS.Application.DTOs.Sales;
 using InventoryPOS.Application.Interfaces;
+using InventoryPOS.Application.Pricing;
 using InventoryPOS.Domain.Enums;
+using InventoryPOS.Desktop.Services;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -16,6 +18,11 @@ public class PosViewModel : INotifyPropertyChanged
 {
     private readonly ISaleService _saleService;
     private readonly ISalesQuoteService _salesQuoteService;
+    private readonly IProductBarcodeService _productBarcodeService;
+    private readonly IBusinessProfileService _businessProfileService;
+    private readonly IPricingCalculator _pricingCalculator;
+    private readonly IPendingCheckoutJournalService _checkoutJournal;
+    private bool _checkoutJournalLoadFailed;
 
     private LocationLookupDto? _selectedLocation;
     private PosCustomerDto? _selectedCustomer;
@@ -25,6 +32,11 @@ public class PosViewModel : INotifyPropertyChanged
 
     private bool _isLoading;
     private bool _isSaving;
+    private CreateSaleRequest? _pendingCheckoutRequest;
+    private bool _checkoutOutcomeUncertain;
+
+    public bool HasPendingCheckout => _pendingCheckoutRequest is not null;
+    public bool CheckoutOutcomeUncertain => _checkoutOutcomeUncertain;
 
     private string? _errorMessage;
     private string? _lastInvoiceNumber;
@@ -34,7 +46,28 @@ public class PosViewModel : INotifyPropertyChanged
 
     public Guid? LoadedQuoteId => _loadedQuoteId;
     public string? LoadedQuoteNumber => _loadedQuoteNumber;
+    private SalesQuoteDetailsDto? _loadedQuotePricing;
     public bool HasLoadedQuote => _loadedQuoteId.HasValue;
+
+    private bool _enableLineDiscount;
+    private bool _enableOrderDiscount;
+    private bool _enableTax;
+    private bool _enableTransportCharge;
+
+    private decimal _defaultTaxRate;
+
+    private PricingCalculationResult? _pricingResult;
+
+    private PricingAdjustmentType _orderDiscountType =
+    PricingAdjustmentType.FixedAmount;
+
+    private double _orderDiscountValue;
+
+    private double _transportAmount;
+
+    public bool CanEditCart => !HasLoadedQuote && !HasPendingCheckout && !_checkoutJournalLoadFailed;
+
+    public bool CanCreateQuote => HasItems && !HasLoadedQuote && !HasPendingCheckout && !_checkoutJournalLoadFailed;
 
     // ---------------------------------------------------------
     // Collections
@@ -64,6 +97,101 @@ public class PosViewModel : INotifyPropertyChanged
         PaymentLines
     { get; } = new();
 
+    public PricingAdjustmentType OrderDiscountType
+    {
+        get => _orderDiscountType;
+
+        set
+        {
+            if (_orderDiscountType == value)
+                return;
+
+            // Prevent editing imported quotation pricing
+            if (HasPendingCheckout)
+            {
+                ErrorMessage = "Resolve the pending checkout before editing pricing.";
+                return;
+            }
+            if (HasLoadedQuote)
+            {
+                ErrorMessage =
+                    "Pricing is locked for an accepted quotation.";
+                return;
+            }
+
+            _orderDiscountType = value;
+            OnPropertyChanged();
+
+            RecalculateAfterPricingChange();
+        }
+    }
+
+    public double OrderDiscountValue
+    {
+        get => _orderDiscountValue;
+
+        set
+        {
+            if (_orderDiscountValue == value)
+                return;
+
+            // Prevent editing imported quotation pricing
+            if (HasPendingCheckout)
+            {
+                ErrorMessage = "Resolve the pending checkout before editing pricing.";
+                return;
+            }
+            if (HasLoadedQuote)
+            {
+                ErrorMessage =
+                    "Pricing is locked for an accepted quotation.";
+                return;
+            }
+
+            _orderDiscountValue = value;
+            OnPropertyChanged();
+
+            RecalculateAfterPricingChange();
+        }
+    }
+
+    public double TransportCharge
+    {
+        get => _transportAmount;
+
+        set
+        {
+            if (_transportAmount == value)
+                return;
+
+            // Prevent editing imported quotation pricing
+            if (HasPendingCheckout)
+            {
+                ErrorMessage = "Resolve the pending checkout before editing pricing.";
+                return;
+            }
+            if (HasLoadedQuote)
+            {
+                ErrorMessage =
+                    "Pricing is locked for an accepted quotation.";
+                return;
+            }
+
+            _transportAmount = value;
+            OnPropertyChanged();
+
+            RecalculateAfterPricingChange();
+        }
+    }
+
+    public IReadOnlyList<PricingAdjustmentType>
+    DiscountTypes
+    { get; } =
+[
+    PricingAdjustmentType.FixedAmount,
+    PricingAdjustmentType.Percentage
+];
+
     // ---------------------------------------------------------
     // Location
     // ---------------------------------------------------------
@@ -75,6 +203,9 @@ public class PosViewModel : INotifyPropertyChanged
         set
         {
             if (_selectedLocation == value)
+                return;
+
+            if (RejectImportedQuoteEdit())
                 return;
 
             _selectedLocation = value;
@@ -96,6 +227,9 @@ public class PosViewModel : INotifyPropertyChanged
         set
         {
             if (_selectedCustomer == value)
+                return;
+
+            if (RejectImportedQuoteEdit())
                 return;
 
             _selectedCustomer = value;
@@ -282,15 +416,70 @@ public class PosViewModel : INotifyPropertyChanged
     }
 
     // ---------------------------------------------------------
+    // Sales Pricing Configuration
+    // ---------------------------------------------------------
+
+    public bool EnableLineDiscount =>
+        _enableLineDiscount;
+
+    public bool EnableOrderDiscount =>
+        _enableOrderDiscount;
+
+    public bool EnableTax =>
+        _enableTax;
+
+    public bool EnableTransportCharge =>
+        _enableTransportCharge;
+
+    public decimal DefaultTaxRate =>
+        _defaultTaxRate;
+
+    public bool ShowLineDiscount =>
+        EnableLineDiscount || (HasLoadedQuote && LineDiscountAmount != 0m);
+
+    public bool ShowOrderDiscount =>
+        EnableOrderDiscount || (HasLoadedQuote && OrderDiscountAmount != 0m);
+
+    public bool ShowTax =>
+        EnableTax || (HasLoadedQuote && TaxAmount != 0m);
+
+    public bool ShowTransport =>
+        EnableTransportCharge || (HasLoadedQuote && TransportAmount != 0m);
+
+    public string TaxDisplay =>
+        HasLoadedQuote && _loadedQuotePricing?.PricingVersion == 2
+            ? $"Tax / VAT ({_loadedQuotePricing.SalesTaxRate:N2}%)"
+            : EnableTax
+                ? $"Tax / VAT ({DefaultTaxRate:N2}%)"
+                : "Tax / VAT";
+
+    // ---------------------------------------------------------
     // Totals
     // ---------------------------------------------------------
 
+    public decimal GrossAmount =>
+    _pricingResult?.GrossAmount ?? 0m;
+
+    public decimal LineDiscountAmount =>
+        _pricingResult?.LineDiscountAmount ?? 0m;
+
     public decimal Subtotal =>
-        CartLines.Sum(
-            x => x.LineTotal);
+        _pricingResult?.Subtotal ?? 0m;
+
+    public decimal OrderDiscountAmount =>
+        _pricingResult?.OrderDiscountAmount ?? 0m;
+
+    public decimal DiscountAmount =>
+        _pricingResult?.DiscountAmount ?? 0m;
+
+    public decimal TaxAmount =>
+        _pricingResult?.TaxAmount ?? 0m;
+
+    public decimal TransportAmount =>
+        _pricingResult?.TransportAmount ?? 0m;
 
     public decimal Total =>
-        Subtotal;
+        _pricingResult?.TotalAmount ?? 0m;
 
     public string FormattedSubtotal =>
         $"৳{Subtotal:N2}";
@@ -301,19 +490,51 @@ public class PosViewModel : INotifyPropertyChanged
     public bool HasItems =>
         CartLines.Count > 0;
 
+    public string FormattedGrossAmount =>
+    $"৳{GrossAmount:N2}";
+
+    public string FormattedLineDiscountAmount =>
+        $"৳{LineDiscountAmount:N2}";
+
+    public string FormattedOrderDiscountAmount =>
+        $"৳{OrderDiscountAmount:N2}";
+
+    public string FormattedDiscountAmount =>
+        $"৳{DiscountAmount:N2}";
+
+    public string FormattedTaxAmount =>
+        $"৳{TaxAmount:N2}";
+
+    public string FormattedTransportAmount =>
+        $"৳{TransportAmount:N2}";
+
     // ---------------------------------------------------------
     // Constructor
     // ---------------------------------------------------------
 
     public PosViewModel(
     ISaleService saleService,
-    ISalesQuoteService salesQuoteService)
+    ISalesQuoteService salesQuoteService,
+    IProductBarcodeService productBarcodeService,
+    IBusinessProfileService businessProfileService,
+    IPricingCalculator pricingCalculator,
+    IPendingCheckoutJournalService? checkoutJournal = null)
     {
+        _checkoutJournal = checkoutJournal ?? new PendingCheckoutJournalService();
         _saleService =
             saleService;
 
         _salesQuoteService =
             salesQuoteService;
+
+        _productBarcodeService =
+            productBarcodeService;
+
+        _businessProfileService =
+            businessProfileService;
+
+        _pricingCalculator =
+            pricingCalculator;
     }
 
     // ---------------------------------------------------------
@@ -326,6 +547,26 @@ public class PosViewModel : INotifyPropertyChanged
         {
             IsLoading = true;
             ErrorMessage = null;
+
+            // Fail closed: an unreadable journal must not permit a new sale.
+            try
+            {
+                var recovered = await _checkoutJournal.LoadAsync();
+                if (recovered is not null)
+                {
+                    SetPendingCheckout(recovered, true);
+                    ErrorMessage = "An unfinished checkout was recovered. Use Complete Sale to retry the original request.";
+                }
+            }
+            catch (Exception journalError)
+            {
+                _checkoutJournalLoadFailed = true;
+                ErrorMessage = "Checkout recovery journal could not be read. New checkout is blocked: " + journalError.Message;
+            }
+
+            await LoadPricingSettingsAsync();
+
+            RefreshTotals();
 
             var locations =
                 await _saleService
@@ -359,6 +600,34 @@ public class PosViewModel : INotifyPropertyChanged
                     Locations[0];
                 await _productLoadTask;
             }
+
+            // Reconcile a recovered journal without resubmitting the sale.
+            // Any lookup failure leaves the original request safely pending.
+            if (_pendingCheckoutRequest is not null && !_checkoutJournalLoadFailed)
+            {
+                try
+                {
+                    var committed = await _saleService.FindCommittedCheckoutAsync(
+                        _pendingCheckoutRequest);
+                    if (committed is not null)
+                    {
+                        await HandleCompletedSaleAsync(committed);
+                    }
+                    else
+                    {
+                        ErrorMessage =
+                            "Recovered checkout was not found in the database. " +
+                            "Review it and use Complete Sale to retry the original request.";
+                    }
+                }
+                catch (Exception reconciliationError)
+                {
+                    ErrorMessage =
+                        "Checkout reconciliation could not be completed. " +
+                        "The original request remains locked for recovery: " +
+                        reconciliationError.Message;
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -369,6 +638,46 @@ public class PosViewModel : INotifyPropertyChanged
         {
             IsLoading = false;
         }
+    }
+
+    private async Task LoadPricingSettingsAsync()
+    {
+        var profile =
+            await _businessProfileService.GetAsync();
+
+        if (profile is null)
+        {
+            _enableLineDiscount = true;
+            _enableOrderDiscount = true;
+            _enableTax = false;
+            _defaultTaxRate = 0m;
+            _enableTransportCharge = false;
+        }
+        else
+        {
+            _enableLineDiscount =
+                profile.EnableSalesLineDiscount;
+
+            _enableOrderDiscount =
+                profile.EnableSalesOrderDiscount;
+
+            _enableTax =
+                profile.EnableSalesTax;
+
+            _defaultTaxRate =
+                profile.DefaultSalesTaxRate;
+
+            _enableTransportCharge =
+                profile.EnableSalesTransportCharge;
+        }
+
+        OnPropertyChanged(nameof(EnableLineDiscount));
+        OnPropertyChanged(nameof(EnableOrderDiscount));
+        OnPropertyChanged(nameof(EnableTax));
+        OnPropertyChanged(nameof(EnableTransportCharge));
+        OnPropertyChanged(nameof(DefaultTaxRate));
+        OnPropertyChanged(nameof(TaxDisplay));
+        NotifyPricingVisibilityChanged();
     }
 
     // ---------------------------------------------------------
@@ -444,12 +753,114 @@ public class PosViewModel : INotifyPropertyChanged
     }
 
     // ---------------------------------------------------------
+    // Barcode Scanning
+    // ---------------------------------------------------------
+
+    public async Task<bool> ScanBarcodeAsync(
+        string barcode)
+    {
+        if (RejectImportedQuoteEdit())
+            return false;
+
+        ErrorMessage = null;
+
+        var normalized =
+            barcode?.Trim();
+
+        if (string.IsNullOrWhiteSpace(
+                normalized))
+        {
+            ErrorMessage =
+                "Scan or enter a barcode.";
+
+            return false;
+        }
+
+        if (SelectedLocation is null)
+        {
+            ErrorMessage =
+                "Please select a location.";
+
+            return false;
+        }
+
+        try
+        {
+            // Make sure the product collection for the currently
+            // selected location has finished loading.
+            await _productLoadTask;
+
+            if (!string.IsNullOrWhiteSpace(
+                    ErrorMessage))
+            {
+                return false;
+            }
+
+            // Barcode only identifies the variant.
+            var resolved =
+                await _productBarcodeService
+                    .ResolveAsync(
+                        normalized);
+
+            if (resolved is null)
+            {
+                ErrorMessage =
+                    $"Barcode '{normalized}' was not found.";
+
+                return false;
+            }
+
+            // The existing POS product collection remains
+            // authoritative for price and stock at this location.
+            var product =
+                Products.FirstOrDefault(
+                    x =>
+                        x.ProductVariantId ==
+                        resolved.ProductVariantId);
+
+            if (product is null)
+            {
+                ErrorMessage =
+                    "This barcode belongs to a product that is " +
+                    "not available at the selected location.";
+
+                return false;
+            }
+
+            // Reuse the existing cart logic.
+            //
+            // AddProduct already:
+            // - checks stock
+            // - creates a new cart line
+            // - increments an existing line
+            // - checks maximum available quantity
+            // - updates totals
+            // - updates payment state
+            AddProduct(
+                product);
+
+            return string.IsNullOrWhiteSpace(
+                ErrorMessage);
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage =
+                ex.Message;
+
+            return false;
+        }
+    }
+
+    // ---------------------------------------------------------
     // Cart
     // ---------------------------------------------------------
 
     public void AddProduct(
         PosProductDto product)
     {
+        if (RejectImportedQuoteEdit())
+            return;
+
         ErrorMessage = null;
 
         if (product.QuantityAvailable <= 0)
@@ -511,6 +922,10 @@ public class PosViewModel : INotifyPropertyChanged
     public void RemoveLine(
         PosCartLineViewModel line)
     {
+
+        if (RejectImportedQuoteEdit())
+            return;
+
         var previousTotal =
             Total;
 
@@ -529,6 +944,9 @@ public class PosViewModel : INotifyPropertyChanged
     public void ValidateQuantity(
         PosCartLineViewModel line)
     {
+        if (RejectImportedQuoteEdit())
+            return;
+
         if (line.Quantity <= 0)
         {
             line.Quantity = 1;
@@ -551,33 +969,141 @@ public class PosViewModel : INotifyPropertyChanged
     }
 
     private void CartLine_PropertyChanged(
-        object? sender,
-        PropertyChangedEventArgs e)
+    object? sender,
+    PropertyChangedEventArgs e)
     {
         if (e.PropertyName ==
-            nameof(
-                PosCartLineViewModel.Quantity))
+                nameof(PosCartLineViewModel.Quantity) ||
+            e.PropertyName ==
+                nameof(PosCartLineViewModel.DiscountType) ||
+            e.PropertyName ==
+                nameof(PosCartLineViewModel.DiscountValue))
         {
+            var previousTotal =
+                Total;
+
             RefreshTotals();
+
+            UpdatePaymentsAfterCartChange(
+                previousTotal);
         }
     }
 
     private void RefreshTotals()
     {
-        OnPropertyChanged(
-            nameof(Subtotal));
+        try
+        {
+            var importedQuote = _loadedQuotePricing;
 
-        OnPropertyChanged(
-            nameof(Total));
+            var isCalculatorQuote =
+                importedQuote is not null &&
+                importedQuote.PricingVersion == 2;
 
-        OnPropertyChanged(
-            nameof(FormattedSubtotal));
+            var request = new PricingCalculationRequest
+            {
+                Lines = CartLines
+                    .Select(line =>
+                    {
+                        var quoteLine = isCalculatorQuote
+                            ? importedQuote!.Lines.FirstOrDefault(
+                                x => x.ProductVariantId == line.ProductVariantId)
+                            : null;
 
-        OnPropertyChanged(
-            nameof(FormattedTotal));
+                        return new PricingLineRequest
+                        {
+                            ProductVariantId = line.ProductVariantId,
 
-        OnPropertyChanged(
-            nameof(HasItems));
+                            Quantity = Convert.ToDecimal(line.Quantity),
+
+                            UnitPrice = line.UnitPrice,
+
+                            DiscountType = isCalculatorQuote
+                                ? (PricingAdjustmentType)quoteLine!.DiscountType
+                                : EnableLineDiscount
+                                    ? line.DiscountType
+                                    : PricingAdjustmentType.FixedAmount,
+
+                            DiscountValue = isCalculatorQuote
+                                ? quoteLine!.DiscountValue
+                                : EnableLineDiscount
+                                    ? line.DecimalDiscountValue
+                                    : 0m,
+
+                            TaxRate = isCalculatorQuote
+                                ? quoteLine!.TaxRate
+                                : 0m
+                        };
+                    })
+                    .ToList(),
+
+                OrderDiscountType = isCalculatorQuote
+                    ? (PricingAdjustmentType)importedQuote!.OrderDiscountType
+                    : EnableOrderDiscount
+                        ? OrderDiscountType
+                        : PricingAdjustmentType.FixedAmount,
+
+                OrderDiscountValue = isCalculatorQuote
+                    ? importedQuote!.OrderDiscountValue
+                    : EnableOrderDiscount
+                        ? Convert.ToDecimal(OrderDiscountValue)
+                        : 0m,
+
+                TaxRate = isCalculatorQuote
+                    ? importedQuote!.SalesTaxRate
+                    : EnableTax
+                        ? DefaultTaxRate
+                        : 0m,
+
+                TransportAmount = isCalculatorQuote
+                    ? importedQuote!.TransportAmount
+                    : EnableTransportCharge
+                        ? Convert.ToDecimal(TransportCharge)
+                        : 0m
+            };
+
+            _pricingResult = _pricingCalculator.Calculate(request);
+
+            if (isCalculatorQuote)
+            {
+                ValidateImportedQuotePricing(importedQuote!, _pricingResult);
+            }
+        }
+        catch (Exception ex)
+        {
+            _pricingResult = null;
+            ErrorMessage = ex.Message;
+        }
+
+        OnPropertyChanged(nameof(GrossAmount));
+        OnPropertyChanged(nameof(LineDiscountAmount));
+
+        OnPropertyChanged(nameof(Subtotal));
+
+        OnPropertyChanged(nameof(OrderDiscountAmount));
+        OnPropertyChanged(nameof(DiscountAmount));
+
+        OnPropertyChanged(nameof(TaxAmount));
+        OnPropertyChanged(nameof(TransportAmount));
+
+        OnPropertyChanged(nameof(Total));
+
+        OnPropertyChanged(nameof(FormattedGrossAmount));
+        OnPropertyChanged(nameof(FormattedLineDiscountAmount));
+
+        OnPropertyChanged(nameof(FormattedSubtotal));
+
+        OnPropertyChanged(nameof(FormattedOrderDiscountAmount));
+        OnPropertyChanged(nameof(FormattedDiscountAmount));
+
+        OnPropertyChanged(nameof(FormattedTaxAmount));
+        OnPropertyChanged(nameof(FormattedTransportAmount));
+
+        OnPropertyChanged(nameof(FormattedTotal));
+
+        OnPropertyChanged(nameof(HasItems));
+        OnPropertyChanged(nameof(CanCreateQuote));
+        NotifyPricingVisibilityChanged();
+        OnPropertyChanged(nameof(TaxDisplay));
 
         RefreshPaymentSummary();
     }
@@ -588,6 +1114,7 @@ public class PosViewModel : INotifyPropertyChanged
 
     public void AddPayment()
     {
+        if (RejectPendingCheckoutEdit()) return;
         ErrorMessage = null;
 
         var remaining =
@@ -626,6 +1153,7 @@ public class PosViewModel : INotifyPropertyChanged
     public void RemovePayment(
         PosPaymentLineViewModel payment)
     {
+        if (RejectPendingCheckoutEdit()) return;
         payment.PropertyChanged -=
             PaymentLine_PropertyChanged;
 
@@ -749,9 +1277,9 @@ public class PosViewModel : INotifyPropertyChanged
 
     public async Task<bool> LoadQuoteAsync(Guid quoteId)
     {
-        if (IsSaving || IsLoading)
+        if (IsSaving || IsLoading || HasPendingCheckout)
         {
-            ErrorMessage = "POS is busy. Please try again.";
+            ErrorMessage = "POS is busy or has an unresolved checkout. Please try again.";
             return false;
         }
 
@@ -777,11 +1305,24 @@ public class PosViewModel : INotifyPropertyChanged
                 quote.ValidUntilDate.Value.Date < DateTime.UtcNow.Date)
                 throw new InvalidOperationException("This quotation has expired.");
 
-            // The current POS UI supports price × quantity only.
-            if (quote.DiscountAmount != 0 || quote.TaxAmount != 0 ||
-                quote.Lines.Any(x => x.DiscountAmount != 0 || x.TaxAmount != 0))
+            if (quote.PricingVersion != 1 &&
+    quote.PricingVersion != 2)
+            {
                 throw new InvalidOperationException(
-                    "Quotations containing discounts or taxes require the extended POS checkout UI.");
+                    $"Unsupported quotation pricing version: {quote.PricingVersion}.");
+            }
+
+            if (quote.PricingVersion == 1 &&
+                (quote.DiscountAmount != 0m ||
+                 quote.TaxAmount != 0m ||
+                 quote.Lines.Any(x =>
+                     x.DiscountAmount != 0m ||
+                     x.TaxAmount != 0m)))
+            {
+                throw new InvalidOperationException(
+                    "This legacy quotation contains pricing adjustments " +
+                    "that require the legacy conversion path.");
+            }
 
             var location = Locations.FirstOrDefault(x => x.Id == quote.LocationId)
                 ?? throw new InvalidOperationException("The quotation's location is unavailable.");
@@ -821,10 +1362,22 @@ public class PosViewModel : INotifyPropertyChanged
                         $"Required: {quotedLine.Quantity:N3}; " +
                         $"Available: {product.QuantityAvailable:N3}.");
 
-                imported.Add(new PosCartLineViewModel(product, quotedLine.UnitPrice)
+                var importedLine =
+    new PosCartLineViewModel(product, quotedLine.UnitPrice)
+    {
+        Quantity = Convert.ToDouble(quotedLine.Quantity)
+    };
+
+                if (quote.PricingVersion == 2)
                 {
-                    Quantity = Convert.ToDouble(quotedLine.Quantity)
-                });
+                    importedLine.DiscountType =
+                        (PricingAdjustmentType)quotedLine.DiscountType;
+
+                    importedLine.DiscountValue =
+                        Convert.ToDouble(quotedLine.DiscountValue);
+                }
+
+                imported.Add(importedLine);
             }
 
             SelectedCustomer = customer;
@@ -834,10 +1387,42 @@ public class PosViewModel : INotifyPropertyChanged
                 CartLines.Add(line);
             }
 
+            _loadedQuotePricing = quote;
             _loadedQuoteId = quote.Id;
             _loadedQuoteNumber = quote.QuoteNumber;
+
+            if (quote.PricingVersion == 2)
+            {
+                _orderDiscountType =
+                    (PricingAdjustmentType)quote.OrderDiscountType;
+
+                _orderDiscountValue =
+                    Convert.ToDouble(quote.OrderDiscountValue);
+
+                _transportAmount =
+                    Convert.ToDouble(quote.TransportAmount);
+
+                OnPropertyChanged(nameof(OrderDiscountType));
+                OnPropertyChanged(nameof(OrderDiscountValue));
+                OnPropertyChanged(nameof(TransportCharge));
+            }
+
             NotifyQuoteStateChanged();
+
             RefreshTotals();
+
+            if (_pricingResult is null)
+            {
+                throw new InvalidOperationException(
+                    ErrorMessage ?? "Unable to validate quotation pricing.");
+            }
+
+            if (quote.PricingVersion == 2 &&
+                Total != quote.TotalAmount)
+            {
+                throw new InvalidOperationException(
+                    "Imported quotation total does not match the saved total.");
+            }
 
             if (PaymentLines.Count == 0 && Total > 0)
                 AddPayment();
@@ -846,6 +1431,23 @@ public class PosViewModel : INotifyPropertyChanged
         }
         catch (Exception ex)
         {
+            foreach (var line in CartLines)
+            {
+                line.PropertyChanged -= CartLine_PropertyChanged;
+            }
+
+            CartLines.Clear();
+
+            _loadedQuotePricing = null;
+            _loadedQuoteId = null;
+            _loadedQuoteNumber = null;
+
+            _orderDiscountType = PricingAdjustmentType.FixedAmount;
+            _orderDiscountValue = 0;
+            _transportAmount = 0;
+
+            NotifyQuoteStateChanged();
+            RefreshTotals();
             ErrorMessage = ex.Message;
             return false;
         }
@@ -860,6 +1462,18 @@ public class PosViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(LoadedQuoteId));
         OnPropertyChanged(nameof(LoadedQuoteNumber));
         OnPropertyChanged(nameof(HasLoadedQuote));
+        OnPropertyChanged(nameof(CanEditCart));
+        OnPropertyChanged(nameof(CanCreateQuote));
+        NotifyPricingVisibilityChanged();
+        OnPropertyChanged(nameof(TaxDisplay));
+    }
+
+    private void NotifyPricingVisibilityChanged()
+    {
+        OnPropertyChanged(nameof(ShowLineDiscount));
+        OnPropertyChanged(nameof(ShowOrderDiscount));
+        OnPropertyChanged(nameof(ShowTax));
+        OnPropertyChanged(nameof(ShowTransport));
     }
 
     // ---------------------------------------------------------
@@ -874,11 +1488,19 @@ public class PosViewModel : INotifyPropertyChanged
     {
         ErrorMessage = null;
 
-        if (IsSaving || HasLoadedQuote)
+        if (IsSaving || HasLoadedQuote || HasPendingCheckout)
         {
             ErrorMessage = HasLoadedQuote
                 ? "Finish the imported quotation instead of creating another quotation."
                 : "POS is busy.";
+            return null;
+        }
+
+        RefreshTotals();
+
+        if (_pricingResult is null)
+        {
+            ErrorMessage = "Invalid quotation pricing.";
             return null;
         }
 
@@ -925,64 +1547,101 @@ public class PosViewModel : INotifyPropertyChanged
             var quoteDate =
                 DateTime.UtcNow;
 
-            var request =
-                new CreateSalesQuoteRequest
+            var pricing = _pricingResult
+    ?? throw new InvalidOperationException(
+        "Quotation pricing is unavailable.");
+
+            var calculatedLines = pricing.Lines.ToList();
+
+            if (calculatedLines.Count != CartLines.Count)
+            {
+                throw new InvalidOperationException(
+                    "Quotation pricing lines do not match the cart.");
+            }
+
+            var quoteLines = CartLines
+                .Select((line, index) =>
                 {
-                    LocationId =
-                        SelectedLocation.Id,
+                    var calculated = calculatedLines[index];
 
-                    CustomerId =
-                        SelectedCustomer?.Id,
+                    if (calculated.ProductVariantId != line.ProductVariantId)
+                    {
+                        throw new InvalidOperationException(
+                            "Quotation pricing product mismatch.");
+                    }
 
-                    QuoteDate =
-                        quoteDate,
+                    return new CreateSalesQuoteLineRequest
+                    {
+                        ProductVariantId = line.ProductVariantId,
 
-                    ValidUntilDate =
-                        validUntilDate,
+                        Quantity = Convert.ToDecimal(line.Quantity),
 
-                    DiscountAmount =
-                        0,
+                        UnitPrice = line.UnitPrice,
 
-                    TaxAmount =
-                        0,
+                        DiscountType = (int)(
+                            EnableLineDiscount
+                                ? line.DiscountType
+                                : PricingAdjustmentType.FixedAmount),
 
-                    Notes =
-                        string.IsNullOrWhiteSpace(notes)
-                            ? null
-                            : notes.Trim(),
+                        DiscountValue = EnableLineDiscount
+                            ? line.DecimalDiscountValue
+                            : 0m,
 
-                    Terms =
-                        string.IsNullOrWhiteSpace(terms)
-                            ? null
-                            : terms.Trim(),
+                        DiscountAmount = calculated.DiscountAmount,
 
-                    Lines =
-                        CartLines
-                            .Select(
-                                line =>
-                                    new CreateSalesQuoteLineRequest
-                                    {
-                                        ProductVariantId =
-                                            line.ProductVariantId,
+                        TaxRate = 0m,
 
-                                        Quantity =
-                                            Convert.ToDecimal(
-                                                line.Quantity),
+                        TaxAmount = calculated.TaxAmount,
 
-                                        UnitPrice =
-                                            line.UnitPrice,
+                        WarrantyMonths = null
+                    };
+                })
+                .ToList();
 
-                                        DiscountAmount =
-                                            0,
+            var request = new CreateSalesQuoteRequest
+            {
+                LocationId = SelectedLocation.Id,
 
-                                        TaxAmount =
-                                            0,
+                CustomerId = SelectedCustomer?.Id,
 
-                                        WarrantyMonths =
-                                            null
-                                    })
-                            .ToList()
-                };
+                QuoteDate = quoteDate,
+
+                ValidUntilDate = validUntilDate,
+
+                UsePricingCalculator = true,
+
+                OrderDiscountType = (int)(
+                    EnableOrderDiscount
+                        ? OrderDiscountType
+                        : PricingAdjustmentType.FixedAmount),
+
+                OrderDiscountValue = EnableOrderDiscount
+                    ? Convert.ToDecimal(OrderDiscountValue)
+                    : 0m,
+
+                OrderDiscountAmount = pricing.OrderDiscountAmount,
+
+                // Combined line + order discount.
+                DiscountAmount = pricing.DiscountAmount,
+
+                SalesTaxRate = EnableTax
+                    ? DefaultTaxRate
+                    : 0m,
+
+                TaxAmount = pricing.TaxAmount,
+
+                TransportAmount = pricing.TransportAmount,
+
+                Notes = string.IsNullOrWhiteSpace(notes)
+                    ? null
+                    : notes.Trim(),
+
+                Terms = string.IsNullOrWhiteSpace(terms)
+                    ? null
+                    : terms.Trim(),
+
+                Lines = quoteLines
+            };
 
             return await _salesQuoteService
                 .CreateAsync(request);
@@ -1010,7 +1669,63 @@ public class PosViewModel : INotifyPropertyChanged
         if (IsSaving)
             return null;
 
+        if (_checkoutJournalLoadFailed)
+        {
+            ErrorMessage = "Checkout recovery is blocked because the journal could not be read.";
+            return null;
+        }
+
+        if (_pendingCheckoutRequest is not null)
+            return await RetryPendingCheckoutAsync();
+
         ErrorMessage = null;
+
+        // Recalculate immediately before checkout.
+        RefreshTotals();
+
+        if (_pricingResult is null)
+        {
+            ErrorMessage =
+                "Sale pricing could not be calculated. " +
+                "Please check the discount and tax values.";
+
+            return null;
+        }
+
+        // Quote conversion must retain its original pricing terms.
+        // Until DT4, prevent current POS pricing settings from
+        // silently changing the amount on an accepted quotation.
+        if (HasLoadedQuote)
+        {
+            if (_loadedQuotePricing is null)
+            {
+                ErrorMessage = "The imported quotation snapshot is missing.";
+                return null;
+            }
+
+            if (_loadedQuotePricing.PricingVersion == 2)
+            {
+                try
+                {
+                    ValidateImportedQuotePricing(
+                        _loadedQuotePricing,
+                        _pricingResult);
+                }
+                catch (Exception ex)
+                {
+                    ErrorMessage = ex.Message;
+                    return null;
+                }
+            }
+            else if (DiscountAmount != 0m ||
+                     TaxAmount != 0m ||
+                     TransportAmount != 0m)
+            {
+                ErrorMessage =
+                    "Adjusted legacy quotations require the legacy conversion path.";
+                return null;
+            }
+        }
 
         // -----------------------------------------------------
         // Location
@@ -1171,131 +1886,120 @@ public class PosViewModel : INotifyPropertyChanged
             // Build sale
             // -------------------------------------------------
 
-            var request =
-                new CreateSaleRequest
-                {
-                    SalesQuoteId =
-                        LoadedQuoteId,
+            var pricing = _pricingResult
+    ?? throw new InvalidOperationException(
+        "Sale pricing is unavailable.");
 
-                    LocationId =
-                        SelectedLocation.Id,
+            var calculatedLines = pricing.Lines.ToList();
 
-                    CustomerId =
-                        SelectedCustomer?.Id,
-
-                    OrderDiscountAmount =
-                        0,
-
-                    TaxAmount =
-                        0,
-
-                    Lines =
-                        CartLines
-                            .Select(
-                                line =>
-                                    new CreateSaleLineRequest
-                                    {
-                                        ProductVariantId =
-                                            line.ProductVariantId,
-
-                                        Quantity =
-                                            Convert.ToDecimal(
-                                                line.Quantity),
-
-                                        UnitPrice =
-                                            line.UnitPrice,
-
-                                        DiscountAmount =
-                                            0,
-
-                                        TaxAmount =
-                                            0
-                                    })
-                            .ToList(),
-
-                    Payments =
-                        payments
-                };
-
-            // -------------------------------------------------
-            // Create sale
-            // -------------------------------------------------
-
-            var result =
-                await _saleService
-                    .CreateSaleAsync(
-                        request);
-
-            // The service committed the sale and quotation together.
-            _loadedQuoteId = null;
-            _loadedQuoteNumber = null;
-            NotifyQuoteStateChanged();
-
-            LastInvoiceNumber =
-                result.InvoiceNumber;
-
-            // -------------------------------------------------
-            // Clear cart
-            // -------------------------------------------------
-
-            foreach (var line in CartLines)
+            if (calculatedLines.Count != CartLines.Count)
             {
-                line.PropertyChanged -=
-                    CartLine_PropertyChanged;
+                throw new InvalidOperationException(
+                    "Calculated sale lines do not match the cart.");
             }
 
-            CartLines.Clear();
+            var calculatorQuote =
+    HasLoadedQuote &&
+    _loadedQuotePricing?.PricingVersion == 2;
 
-            ClearPayments();
+            var usePricingCalculator =
+                !HasLoadedQuote || calculatorQuote;
 
-            RefreshTotals();
+            var saleLines = CartLines
+                .Select((line, index) =>
+                {
+                    var calculated = calculatedLines[index];
 
-            // -------------------------------------------------
-            // Refresh customer credit
-            // -------------------------------------------------
+                    if (calculated.ProductVariantId !=
+                        line.ProductVariantId)
+                    {
+                        throw new InvalidOperationException(
+                            "Calculated product order does not match the cart.");
+                    }
 
-            try
+                    return new CreateSaleLineRequest
+                    {
+                        ProductVariantId = line.ProductVariantId,
+
+                        Quantity = Convert.ToDecimal(line.Quantity),
+
+                        UnitPrice = line.UnitPrice,
+
+                        DiscountType = calculatorQuote
+    ? _loadedQuotePricing!.Lines.Single(x =>
+        x.ProductVariantId == line.ProductVariantId).DiscountType
+    : (int)(
+        EnableLineDiscount
+            ? line.DiscountType
+            : PricingAdjustmentType.FixedAmount),
+
+                        DiscountValue = calculatorQuote
+    ? _loadedQuotePricing!.Lines.Single(x =>
+        x.ProductVariantId == line.ProductVariantId).DiscountValue
+    : EnableLineDiscount
+        ? line.DecimalDiscountValue
+        : 0m,
+
+                        DiscountAmount = calculated.DiscountAmount,
+
+                        TaxRate = calculatorQuote
+    ? _loadedQuotePricing!.Lines.Single(x =>
+        x.ProductVariantId == line.ProductVariantId).TaxRate
+    : 0m,
+
+                        TaxAmount = calculated.TaxAmount
+                    };
+                })
+                .ToList();
+
+            var request = new CreateSaleRequest
             {
-                var selectedCustomerId =
-                    SelectedCustomer?.Id;
+                CheckoutRequestId = Guid.NewGuid(),
+                UsePricingCalculator = usePricingCalculator,
 
-                var customers =
-                    await _saleService
-                        .GetCustomersAsync();
+                SalesQuoteId = LoadedQuoteId,
 
-                Customers.Clear();
+                LocationId = SelectedLocation.Id,
 
-                foreach (var customer in customers)
-                {
-                    Customers.Add(
-                        customer);
-                }
+                CustomerId = SelectedCustomer?.Id,
 
-                if (selectedCustomerId.HasValue)
-                {
-                    SelectedCustomer =
-                        Customers.FirstOrDefault(
-                            x =>
-                                x.Id ==
-                                selectedCustomerId.Value);
-                }
-                else
-                {
-                    SelectedCustomer = null;
-                }
+                OrderDiscountType = calculatorQuote
+    ? _loadedQuotePricing!.OrderDiscountType
+    : (int)(
+        EnableOrderDiscount
+            ? OrderDiscountType
+            : PricingAdjustmentType.FixedAmount),
 
-                // -------------------------------------------------
-                // Refresh inventory
-                // -------------------------------------------------
+                OrderDiscountValue = calculatorQuote
+    ? _loadedQuotePricing!.OrderDiscountValue
+    : EnableOrderDiscount
+        ? Convert.ToDecimal(OrderDiscountValue)
+        : 0m,
 
-                await LoadProductsAsync();
-            }
-            catch (Exception refreshError)
-            {
-                // Sale already committed. Never report checkout failure here.
-                ErrorMessage = "Sale completed, but POS refresh failed: " + refreshError.Message;
-            }
+                OrderDiscountAmount = pricing.OrderDiscountAmount,
 
+                SalesTaxRate = calculatorQuote
+    ? _loadedQuotePricing!.SalesTaxRate
+    : EnableTax
+        ? DefaultTaxRate
+        : 0m,
+
+                TaxAmount = pricing.TaxAmount,
+
+                TransportAmount = pricing.TransportAmount,
+
+                Lines = saleLines,
+
+                Payments = payments
+            };
+
+            // Persist before contacting PostgreSQL. If persistence fails,
+            // no database submission occurs.
+            await _checkoutJournal.SaveAsync(request);
+            SetPendingCheckout(request, true);
+
+            var result = await _saleService.CreateSaleAsync(request);
+            await HandleCompletedSaleAsync(result);
             return result;
         }
         catch (Exception ex)
@@ -1312,11 +2016,87 @@ public class PosViewModel : INotifyPropertyChanged
     }
 
     // ---------------------------------------------------------
+    // Retry and confirmed checkout handling (DT6.1A)
+    // ---------------------------------------------------------
+
+    private async Task<SaleResultDto?> RetryPendingCheckoutAsync()
+    {
+        if (IsSaving || _pendingCheckoutRequest is null)
+            return null;
+
+        try
+        {
+            IsSaving = true;
+            ErrorMessage = null;
+
+            // Never rebuild a retry from the current UI state.
+            var result = await _saleService.CreateSaleAsync(_pendingCheckoutRequest);
+            await HandleCompletedSaleAsync(result);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _checkoutOutcomeUncertain = true;
+            OnPropertyChanged(nameof(CheckoutOutcomeUncertain));
+            ErrorMessage = "Checkout outcome could not be confirmed. Retry the same checkout. " + ex.Message;
+            return null;
+        }
+        finally
+        {
+            IsSaving = false;
+        }
+    }
+
+    private async Task HandleCompletedSaleAsync(SaleResultDto result)
+    {
+        // Confirmation is authoritative. Do not unlock POS until the
+        // durable journal has also been removed successfully.
+        var confirmedRequest = _pendingCheckoutRequest
+            ?? throw new InvalidOperationException("Confirmed checkout has no pending request.");
+        await _checkoutJournal.ClearAsync(confirmedRequest.CheckoutRequestId);
+        SetPendingCheckout(null, false);
+
+        _loadedQuoteId = null;
+        _loadedQuoteNumber = null;
+        _loadedQuotePricing = null;
+        NotifyQuoteStateChanged();
+        LastInvoiceNumber = result.InvoiceNumber;
+
+        foreach (var line in CartLines)
+            line.PropertyChanged -= CartLine_PropertyChanged;
+        CartLines.Clear();
+        ClearPayments();
+        RefreshTotals();
+
+        try
+        {
+            var selectedCustomerId = SelectedCustomer?.Id;
+            var customers = await _saleService.GetCustomersAsync();
+            Customers.Clear();
+            foreach (var customer in customers)
+                Customers.Add(customer);
+
+            SelectedCustomer = selectedCustomerId.HasValue
+                ? Customers.FirstOrDefault(x => x.Id == selectedCustomerId.Value)
+                : null;
+
+            await LoadProductsAsync();
+        }
+        catch (Exception refreshError)
+        {
+            ErrorMessage = "Sale completed, but POS refresh failed: " + refreshError.Message;
+        }
+    }
+
+    // ---------------------------------------------------------
     // Walk-in
     // ---------------------------------------------------------
 
     public void SelectWalkInCustomer()
     {
+        if (RejectImportedQuoteEdit())
+            return;
+
         SelectedCustomer = null;
     }
 
@@ -1335,5 +2115,100 @@ public class PosViewModel : INotifyPropertyChanged
             this,
             new PropertyChangedEventArgs(
                 propertyName));
+    }
+
+    private void RecalculateAfterPricingChange()
+    {
+        var previousTotal = Total;
+
+        RefreshTotals();
+
+        UpdatePaymentsAfterCartChange(
+            previousTotal);
+    }
+
+    private static void ValidateImportedQuotePricing(
+    SalesQuoteDetailsDto quote,
+    PricingCalculationResult pricing)
+    {
+        if (quote.PricingVersion != 2)
+            return;
+
+        if (pricing.Lines.Count != quote.Lines.Count)
+        {
+            throw new InvalidOperationException(
+                "The imported quotation's line count has changed.");
+        }
+
+        foreach (var quotedLine in quote.Lines)
+        {
+            var matches = pricing.Lines
+                .Where(x =>
+                    x.ProductVariantId == quotedLine.ProductVariantId)
+                .ToList();
+
+            if (matches.Count != 1)
+            {
+                throw new InvalidOperationException(
+                    $"Quotation line {quotedLine.SKU} is missing or duplicated.");
+            }
+
+            var calculatedLine = matches[0];
+
+            if (calculatedLine.DiscountAmount != quotedLine.DiscountAmount ||
+                calculatedLine.TaxAmount != quotedLine.TaxAmount ||
+                calculatedLine.LineTotal != quotedLine.LineTotal)
+            {
+                throw new InvalidOperationException(
+                    $"Pricing mismatch for {quotedLine.SKU}. " +
+                    "The accepted quotation cannot be repriced.");
+            }
+        }
+
+        if (pricing.GrossAmount != quote.Subtotal ||
+            pricing.LineDiscountAmount != quote.LineDiscountAmount ||
+            pricing.OrderDiscountAmount != quote.OrderDiscountAmount ||
+            pricing.DiscountAmount != quote.DiscountAmount ||
+            pricing.TaxAmount != quote.TaxAmount ||
+            pricing.TransportAmount != quote.TransportAmount ||
+            pricing.TotalAmount != quote.TotalAmount)
+        {
+            throw new InvalidOperationException(
+                $"Quotation total mismatch. " +
+                $"Saved: ৳{quote.TotalAmount:N2}; " +
+                $"Calculated: ৳{pricing.TotalAmount:N2}. " +
+                "The quotation cannot be repriced.");
+        }
+    }
+
+    private void SetPendingCheckout(CreateSaleRequest? request, bool uncertain)
+    {
+        _pendingCheckoutRequest = request;
+        _checkoutOutcomeUncertain = uncertain;
+        OnPropertyChanged(nameof(HasPendingCheckout));
+        OnPropertyChanged(nameof(CheckoutOutcomeUncertain));
+        OnPropertyChanged(nameof(CanEditCart));
+        OnPropertyChanged(nameof(CanCreateQuote));
+    }
+
+    private bool RejectPendingCheckoutEdit()
+    {
+        if (!HasPendingCheckout && !_checkoutJournalLoadFailed) return false;
+        ErrorMessage = "Checkout recovery is pending. Resolve it before editing the sale.";
+        return true;
+    }
+
+    private bool RejectImportedQuoteEdit()
+    {
+        if (RejectPendingCheckoutEdit()) return true;
+        if (!HasLoadedQuote)
+            return false;
+
+        ErrorMessage =
+            "This cart contains an accepted quotation. " +
+            "Its products and pricing cannot be edited. " +
+            "You may still enter payments.";
+
+        return true;
     }
 }

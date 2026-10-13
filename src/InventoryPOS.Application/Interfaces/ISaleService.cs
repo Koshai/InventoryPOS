@@ -5,24 +5,11 @@ namespace InventoryPOS.Application.Interfaces;
 
 public interface ISaleService
 {
-    Task<IReadOnlyList<PosProductDto>> GetProductsAsync(
-        Guid locationId,
-        CancellationToken cancellationToken = default);
-
-    Task<IReadOnlyList<PosCustomerDto>> GetCustomersAsync(
-        CancellationToken cancellationToken = default);
-
-    Task<IReadOnlyList<LocationLookupDto>> GetLocationsAsync(
-        CancellationToken cancellationToken = default);
-
-    Task<SaleResultDto> CreateSaleAsync(
-        CreateSaleRequest request,
-        CancellationToken cancellationToken = default);
-
-    Task<SalesHistoryResultDto> GetSalesHistoryAsync(
-        SalesHistoryQuery query,
-        CancellationToken cancellationToken = default);
-    Task<SaleDetailsDto?> GetSaleDetailsAsync(
-    Guid saleId,
-    CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<PosProductDto>> GetProductsAsync(Guid locationId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<PosCustomerDto>> GetCustomersAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<LocationLookupDto>> GetLocationsAsync(CancellationToken cancellationToken = default);
+    Task<SaleResultDto> CreateSaleAsync(CreateSaleRequest request, CancellationToken cancellationToken = default);
+    Task<SaleResultDto?> FindCommittedCheckoutAsync(CreateSaleRequest request, CancellationToken cancellationToken = default);
+    Task<SalesHistoryResultDto> GetSalesHistoryAsync(SalesHistoryQuery query, CancellationToken cancellationToken = default);
+    Task<SaleDetailsDto?> GetSaleDetailsAsync(Guid saleId, CancellationToken cancellationToken = default);
 }

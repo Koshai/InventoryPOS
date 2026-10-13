@@ -1,10 +1,14 @@
 ﻿using InventoryPOS.Application.DTOs.Inventory;
 using InventoryPOS.Application.DTOs.Sales;
 using InventoryPOS.Application.Interfaces;
+using InventoryPOS.Application.Pricing;
 using InventoryPOS.Domain.Entities;
 using InventoryPOS.Domain.Enums;
 using InventoryPOS.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 
 namespace InventoryPOS.Infrastructure.Services;
 
@@ -12,10 +16,14 @@ public class SaleService : ISaleService
 {
     private readonly InventoryPosDbContext _dbContext;
 
+    private readonly IPricingCalculator _pricingCalculator;
+
     public SaleService(
-        InventoryPosDbContext dbContext)
+    InventoryPosDbContext dbContext,
+    IPricingCalculator pricingCalculator)
     {
         _dbContext = dbContext;
+        _pricingCalculator = pricingCalculator;
     }
 
     public async Task<IReadOnlyList<PosProductDto>>
@@ -100,11 +108,46 @@ public class SaleService : ISaleService
             .ToListAsync(cancellationToken);
     }
 
+    // Read-only reconciliation: never allocates an invoice or deducts stock.
+    // Fingerprint uses the exact same canonicalization as CreateSaleAsync.
+    public async Task<SaleResultDto?> FindCommittedCheckoutAsync(
+        CreateSaleRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (request.CheckoutRequestId == Guid.Empty)
+            throw new InvalidOperationException("A checkout request identifier is required.");
+
+        var fingerprint = ComputeCheckoutFingerprint(request);
+        var existingSale = await _dbContext.Sales
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                x => x.CheckoutRequestId == request.CheckoutRequestId,
+                cancellationToken);
+
+        if (existingSale is null)
+            return null;
+
+        if (!string.Equals(existingSale.CheckoutRequestFingerprint,
+                fingerprint, StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "Checkout recovery conflict: the stored transaction does not match the local request. " +
+                "Do not retry or discard the recovery journal until this is investigated.");
+
+        return ToSaleResult(existingSale);
+    }
+
     public async Task<SaleResultDto> CreateSaleAsync(
         CreateSaleRequest request,
         CancellationToken cancellationToken = default)
     {
         ValidateRequest(request);
+
+        if (request.CheckoutRequestId == Guid.Empty)
+            throw new InvalidOperationException(
+                "A checkout request identifier is required.");
+
+        var fingerprint = ComputeCheckoutFingerprint(request);
 
         await using var transaction =
             await _dbContext.Database.BeginTransactionAsync(
@@ -112,6 +155,41 @@ public class SaleService : ISaleService
 
         try
         {
+            // Transaction-scoped PostgreSQL advisory lock serializes requests
+            // carrying the same checkout ID, including across workstations.
+            var checkoutKey = request.CheckoutRequestId.ToString("D");
+            await _dbContext.Database.SqlQuery<int>(
+                $"""
+                SELECT 1 AS "Value"
+                FROM (
+                    SELECT pg_advisory_xact_lock(
+                        hashtextextended({checkoutKey}, 0)
+                    )
+                ) AS checkout_lock
+                """)
+                .SingleAsync(cancellationToken);
+
+            // Read only after acquiring the lock: a competing transaction
+            // may have committed while we waited.
+            var existingSale = await _dbContext.Sales
+                .AsNoTracking()
+                .SingleOrDefaultAsync(
+                    x => x.CheckoutRequestId == request.CheckoutRequestId,
+                    cancellationToken);
+
+            if (existingSale is not null)
+            {
+                if (!string.Equals(
+                    existingSale.CheckoutRequestFingerprint,
+                    fingerprint,
+                    StringComparison.Ordinal))
+                    throw new InvalidOperationException(
+                        "This checkout identifier was already used for a different transaction.");
+
+                await transaction.CommitAsync(cancellationToken);
+                return ToSaleResult(existingSale);
+            }
+
             // Lock the accepted quotation before creating a sale.
             // This lock is held until the sale and quote are committed together.
             SalesQuote? sourceQuote = null;
@@ -167,10 +245,55 @@ public class SaleService : ISaleService
                             "The sale's products, quantities or prices differ from the accepted quotation.");
                 }
 
-                if (request.OrderDiscountAmount != sourceQuote.DiscountAmount ||
-                    request.TaxAmount != sourceQuote.TaxAmount)
+                if (sourceQuote.PricingVersion == 2)
+                {
+                    if (!request.UsePricingCalculator)
+                        throw new InvalidOperationException(
+                            "This quotation requires calculator-based pricing.");
+
+                    if (request.OrderDiscountType != sourceQuote.OrderDiscountType ||
+                        request.OrderDiscountValue != sourceQuote.OrderDiscountValue ||
+                        request.OrderDiscountAmount != sourceQuote.OrderDiscountAmount ||
+                        request.SalesTaxRate != sourceQuote.SalesTaxRate ||
+                        request.TransportAmount != sourceQuote.TransportAmount ||
+                        request.TaxAmount != sourceQuote.TaxAmount)
+                    {
+                        throw new InvalidOperationException(
+                            "The sale's pricing terms differ from the accepted quotation.");
+                    }
+
+                    foreach (var quotedLine in sourceQuote.Lines)
+                    {
+                        var saleLine = request.Lines.Single(x =>
+                            x.ProductVariantId == quotedLine.ProductVariantId);
+
+                        if (saleLine.DiscountType != quotedLine.DiscountType ||
+                            saleLine.DiscountValue != quotedLine.DiscountValue ||
+                            saleLine.TaxRate != quotedLine.TaxRate)
+                        {
+                            throw new InvalidOperationException(
+                                "The sale's line pricing terms differ from the accepted quotation.");
+                        }
+                    }
+                }
+                else if (sourceQuote.PricingVersion == 1)
+                {
+                    if (request.UsePricingCalculator)
+                        throw new InvalidOperationException(
+                            "Legacy quotations require legacy pricing.");
+
+                    if (request.OrderDiscountAmount != sourceQuote.DiscountAmount ||
+                        request.TaxAmount != sourceQuote.TaxAmount)
+                    {
+                        throw new InvalidOperationException(
+                            "The sale's discounts or taxes differ from the legacy quotation.");
+                    }
+                }
+                else
+                {
                     throw new InvalidOperationException(
-                        "The sale's discounts or taxes differ from the accepted quotation.");
+                        $"Unsupported quotation pricing version: {sourceQuote.PricingVersion}.");
+                }
             }
 
             var locationExists =
@@ -216,48 +339,113 @@ public class SaleService : ISaleService
                     "The same product cannot appear more than once in a sale.");
             }
 
-            decimal subtotal = 0;
-            decimal lineDiscountTotal = 0;
-            decimal lineTaxTotal = 0;
+            // Explicit request mode: legacy monetary snapshots or new calculator inputs.
+            var calculatorMode = request.UsePricingCalculator;
+            PricingCalculationResult? pricing = null;
+            decimal subtotal;
+            decimal lineDiscountTotal;
+            decimal totalDiscount;
+            decimal totalTax;
+            decimal totalAmount;
 
-            foreach (var line in request.Lines)
+            if (calculatorMode)
             {
-                var gross =
-                    line.Quantity * line.UnitPrice;
-
-                if (line.DiscountAmount > gross)
+                pricing = _pricingCalculator.Calculate(new PricingCalculationRequest
                 {
+                    Lines = request.Lines.Select(line => new PricingLineRequest
+                    {
+                        ProductVariantId = line.ProductVariantId,
+                        Quantity = line.Quantity,
+                        UnitPrice = line.UnitPrice,
+                        DiscountType = (PricingAdjustmentType)line.DiscountType,
+                        DiscountValue = line.DiscountValue,
+                        TaxRate = line.TaxRate
+                    }).ToList(),
+                    OrderDiscountType = (PricingAdjustmentType)request.OrderDiscountType,
+                    OrderDiscountValue = request.OrderDiscountValue,
+                    TaxRate = request.SalesTaxRate,
+                    TransportAmount = request.TransportAmount
+                });
+
+                if (request.OrderDiscountAmount != pricing.OrderDiscountAmount ||
+                    request.TaxAmount != pricing.TaxAmount)
                     throw new InvalidOperationException(
-                        "A line discount cannot exceed the line value.");
+                        "Submitted order discount or tax differs from the calculated amount.");
+
+                foreach (var line in request.Lines)
+                {
+                    var calculated = pricing.Lines.Single(x =>
+                        x.ProductVariantId == line.ProductVariantId);
+                    if (line.DiscountAmount != calculated.DiscountAmount ||
+                        line.TaxAmount != calculated.TaxAmount)
+                        throw new InvalidOperationException(
+                            "Submitted line discount or tax differs from the calculated amount.");
                 }
 
-                subtotal += gross;
+                subtotal = pricing.GrossAmount;
+                lineDiscountTotal = pricing.LineDiscountAmount;
+                totalDiscount = pricing.DiscountAmount;
+                totalTax = pricing.TaxAmount;
+                totalAmount = pricing.TotalAmount;
+                if (sourceQuote is not null &&
+    sourceQuote.PricingVersion == 2)
+                {
+                    if (pricing.GrossAmount != sourceQuote.Subtotal ||
+                        pricing.LineDiscountAmount != sourceQuote.LineDiscountAmount ||
+                        pricing.OrderDiscountAmount != sourceQuote.OrderDiscountAmount ||
+                        pricing.DiscountAmount != sourceQuote.DiscountAmount ||
+                        pricing.TaxAmount != sourceQuote.TaxAmount ||
+                        pricing.TransportAmount != sourceQuote.TransportAmount ||
+                        pricing.TotalAmount != sourceQuote.TotalAmount)
+                    {
+                        throw new InvalidOperationException(
+                            "The calculated sale does not match the accepted quotation's financial snapshot.");
+                    }
 
-                lineDiscountTotal +=
-                    line.DiscountAmount;
+                    foreach (var quotedLine in sourceQuote.Lines)
+                    {
+                        var calculatedLine = pricing.Lines.Single(x =>
+                            x.ProductVariantId == quotedLine.ProductVariantId);
 
-                lineTaxTotal +=
-                    line.TaxAmount;
+                        if (calculatedLine.DiscountAmount != quotedLine.DiscountAmount ||
+                            calculatedLine.TaxAmount != quotedLine.TaxAmount ||
+                            calculatedLine.LineTotal != quotedLine.LineTotal)
+                        {
+                            throw new InvalidOperationException(
+                                "The calculated sale line does not match the accepted quotation.");
+                        }
+                    }
+                }
             }
-
-            var totalDiscount =
-                lineDiscountTotal +
-                request.OrderDiscountAmount;
-
-            if (totalDiscount > subtotal)
+            else
             {
-                throw new InvalidOperationException(
-                    "The total discount cannot exceed the subtotal.");
+                // Preserve existing callers, including accepted quotation conversion.
+                if (request.TransportAmount != 0m || request.SalesTaxRate != 0m ||
+                    request.OrderDiscountValue != 0m ||
+                    request.Lines.Any(x => x.DiscountValue != 0m || x.TaxRate != 0m))
+                    throw new InvalidOperationException(
+                        "Calculator pricing inputs require UsePricingCalculator=true.");
+
+                subtotal = 0m;
+                lineDiscountTotal = 0m;
+                decimal lineTaxTotal = 0m;
+                foreach (var line in request.Lines)
+                {
+                    var gross = line.Quantity * line.UnitPrice;
+                    if (line.DiscountAmount > gross)
+                        throw new InvalidOperationException(
+                            "A line discount cannot exceed the line value.");
+                    subtotal += gross;
+                    lineDiscountTotal += line.DiscountAmount;
+                    lineTaxTotal += line.TaxAmount;
+                }
+                totalDiscount = lineDiscountTotal + request.OrderDiscountAmount;
+                if (totalDiscount > subtotal)
+                    throw new InvalidOperationException(
+                        "The total discount cannot exceed the subtotal.");
+                totalTax = lineTaxTotal + request.TaxAmount;
+                totalAmount = subtotal - totalDiscount + totalTax;
             }
-
-            var totalTax =
-                lineTaxTotal +
-                request.TaxAmount;
-
-            var totalAmount =
-                subtotal -
-                totalDiscount +
-                totalTax;
 
             var paidAmount =
                 request.Payments.Sum(x => x.Amount);
@@ -328,6 +516,8 @@ public class SaleService : ISaleService
 
             var sale = new Sale
             {
+                CheckoutRequestId = request.CheckoutRequestId,
+                CheckoutRequestFingerprint = fingerprint,
                 InvoiceNumber =
                     await GenerateInvoiceNumberAsync(
                         cancellationToken),
@@ -349,6 +539,11 @@ public class SaleService : ISaleService
 
                 DiscountAmount =
                     totalDiscount,
+
+                LineDiscountAmount = lineDiscountTotal,
+                OrderDiscountAmount = request.OrderDiscountAmount,
+                TransportAmount = calculatorMode ? request.TransportAmount : 0m,
+                SalesTaxRate = calculatorMode ? request.SalesTaxRate : 0m,
 
                 TaxAmount =
                     totalTax,
@@ -416,11 +611,11 @@ public class SaleService : ISaleService
                         $"Available: {available:N3}.");
                 }
 
-                var lineTotal =
-                    requestLine.Quantity *
-                    requestLine.UnitPrice -
-                    requestLine.DiscountAmount +
-                    requestLine.TaxAmount;
+                var calculatedLine = pricing?.Lines.Single(x =>
+                    x.ProductVariantId == requestLine.ProductVariantId);
+                var lineTotal = calculatedLine?.LineTotal ??
+                    (requestLine.Quantity * requestLine.UnitPrice -
+                     requestLine.DiscountAmount + requestLine.TaxAmount);
 
                 // Quoted warranties are historical snapshots. Ordinary sales
                 // continue using the product's current default warranty.
@@ -456,11 +651,11 @@ public class SaleService : ISaleService
                     UnitPrice =
                         requestLine.UnitPrice,
 
-                    DiscountAmount =
-                        requestLine.DiscountAmount,
-
-                    TaxAmount =
-                        requestLine.TaxAmount,
+                    DiscountAmount = requestLine.DiscountAmount,
+                    TaxAmount = requestLine.TaxAmount,
+                    DiscountType = calculatorMode ? requestLine.DiscountType : 1,
+                    DiscountValue = calculatorMode ? requestLine.DiscountValue : 0m,
+                    TaxRate = calculatorMode ? requestLine.TaxRate : 0m,
 
                     LineTotal =
                         lineTotal,
@@ -525,26 +720,7 @@ public class SaleService : ISaleService
             await transaction.CommitAsync(
                 cancellationToken);
 
-            return new SaleResultDto
-            {
-                SaleId =
-                    sale.Id,
-
-                InvoiceNumber =
-                    sale.InvoiceNumber,
-
-                TotalAmount =
-                    sale.TotalAmount,
-
-                PaidAmount =
-                    sale.PaidAmount,
-
-                DueAmount =
-                    sale.DueAmount,
-
-                Status =
-                    sale.Status.ToString()
-            };
+            return ToSaleResult(sale);
         }
         catch
         {
@@ -553,6 +729,68 @@ public class SaleService : ISaleService
 
             throw;
         }
+    }
+
+    private static SaleResultDto ToSaleResult(Sale sale)
+    {
+        return new SaleResultDto
+        {
+            SaleId = sale.Id,
+            InvoiceNumber = sale.InvoiceNumber,
+            TotalAmount = sale.TotalAmount,
+            PaidAmount = sale.PaidAmount,
+            DueAmount = sale.DueAmount,
+            Status = sale.Status.ToString()
+        };
+    }
+
+    private static string ComputeCheckoutFingerprint(CreateSaleRequest request)
+    {
+        // Sort order-insensitive collections for stable retries.
+        // The identifier is deliberately excluded from the payload.
+        var snapshot = new
+        {
+            request.LocationId,
+            request.CustomerId,
+            request.SalesQuoteId,
+            request.UsePricingCalculator,
+            request.OrderDiscountType,
+            request.OrderDiscountValue,
+            request.OrderDiscountAmount,
+            request.SalesTaxRate,
+            request.TaxAmount,
+            request.TransportAmount,
+            Notes = NormalizeOptional(request.Notes),
+            Lines = request.Lines
+                .OrderBy(x => x.ProductVariantId)
+                .Select(x => new
+                {
+                    x.ProductVariantId,
+                    x.Quantity,
+                    x.UnitPrice,
+                    x.DiscountType,
+                    x.DiscountValue,
+                    x.DiscountAmount,
+                    x.TaxRate,
+                    x.TaxAmount
+                })
+                .ToArray(),
+            Payments = request.Payments
+                .Select(x => new
+                {
+                    x.PaymentMethod,
+                    x.Amount,
+                    ReferenceNumber = NormalizeOptional(x.ReferenceNumber)
+                })
+                .OrderBy(x => x.PaymentMethod)
+                .ThenBy(x => x.Amount)
+                .ThenBy(x => x.ReferenceNumber)
+                .ToArray()
+        };
+
+        var json = JsonSerializer.Serialize(snapshot);
+        return Convert.ToHexString(
+            SHA256.HashData(Encoding.UTF8.GetBytes(json)));
     }
 
     private async Task ConsumeStockAsync(
@@ -701,26 +939,78 @@ public class SaleService : ISaleService
         return SaleStatus.Completed;
     }
 
-    private async Task<string>
-        GenerateInvoiceNumberAsync(
-            CancellationToken cancellationToken)
+    private async Task<string> GenerateInvoiceNumberAsync(
+        CancellationToken cancellationToken)
     {
-        var today =
-            DateTime.UtcNow.ToString(
-                "yyyyMMdd");
+        // Called inside CreateSaleAsync's existing PostgreSQL transaction.
+        // The transaction-scoped advisory lock serializes all invoice
+        // allocations for this UTC date, across POS workstations.
+        if (_dbContext.Database.CurrentTransaction is null)
+            throw new InvalidOperationException(
+                "Invoice numbering requires an active database transaction.");
 
-        var prefix =
-            $"INV-{today}-";
+        var documentDate = DateOnly.FromDateTime(DateTime.UtcNow);
+        const string documentPrefix = "INV";
+        var datePart = documentDate.ToString("yyyyMMdd");
+        var invoicePrefix = $"{documentPrefix}-{datePart}-";
+        var lockKey = $"InventoryPOS:DocumentNumber:{documentPrefix}:{datePart}";
 
-        var count =
-            await _dbContext.Sales
-                .CountAsync(
-                    x =>
-                        x.InvoiceNumber.StartsWith(
-                            prefix),
-                    cancellationToken);
+        await _dbContext.Database.SqlQuery<int>(
+            $"""
+            SELECT 1 AS "Value"
+            FROM (
+                SELECT pg_advisory_xact_lock(
+                    hashtextextended({lockKey}, 0)
+                )
+            ) AS invoice_number_lock
+            """)
+            .SingleAsync(cancellationToken);
 
-        return $"{prefix}{count + 1:0000}";
+        var counter = await _dbContext.DocumentNumberCounters
+            .SingleOrDefaultAsync(
+                x => x.DocumentPrefix == documentPrefix &&
+                     x.DocumentDate == documentDate,
+                cancellationToken);
+
+        if (counter is null)
+        {
+            // Seed from the largest existing suffix, NOT a row count.
+            // This is necessary when introducing counters to an existing DB.
+            var historicalNumbers = await _dbContext.Sales
+                .AsNoTracking()
+                .Where(x => x.InvoiceNumber.StartsWith(invoicePrefix))
+                .Select(x => x.InvoiceNumber)
+                .ToListAsync(cancellationToken);
+
+            var lastNumber = 0;
+            foreach (var invoiceNumber in historicalNumbers)
+            {
+                var suffix = invoiceNumber.Substring(invoicePrefix.Length);
+                if (int.TryParse(suffix, out var parsed) &&
+                    parsed > lastNumber)
+                    lastNumber = parsed;
+            }
+
+            counter = new DocumentNumberCounter
+            {
+                DocumentPrefix = documentPrefix,
+                DocumentDate = documentDate,
+                LastNumber = lastNumber
+            };
+            _dbContext.DocumentNumberCounters.Add(counter);
+        }
+
+        if (counter.LastNumber == int.MaxValue)
+            throw new InvalidOperationException(
+                "Invoice number range has been exhausted.");
+
+        counter.LastNumber++;
+
+        // Save the counter inside the sale transaction. If checkout fails,
+        // both the counter increment and sale are rolled back together.
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return $"{invoicePrefix}{counter.LastNumber:0000}";
     }
 
     private static void ValidateRequest(
@@ -759,6 +1049,11 @@ public class SaleService : ISaleService
                     "Unit price must be greater than zero.");
             }
 
+            if (line.DiscountValue < 0 || line.TaxRate < 0 ||
+                line.TaxRate > 100 ||
+                !Enum.IsDefined(typeof(PricingAdjustmentType), line.DiscountType))
+                throw new InvalidOperationException("Invalid line pricing inputs.");
+
             if (line.DiscountAmount < 0 ||
                 line.TaxAmount < 0)
             {
@@ -768,19 +1063,37 @@ public class SaleService : ISaleService
         }
 
         if (request.OrderDiscountAmount < 0 ||
-            request.TaxAmount < 0)
+            request.TaxAmount < 0 || request.TransportAmount < 0 ||
+            request.OrderDiscountValue < 0 ||
+            request.SalesTaxRate < 0 || request.SalesTaxRate > 100)
         {
             throw new InvalidOperationException(
                 "Discount and tax cannot be negative.");
         }
 
+        if (!Enum.IsDefined(typeof(PricingAdjustmentType), request.OrderDiscountType))
+            throw new InvalidOperationException("Invalid order discount type.");
+
         foreach (var payment in request.Payments)
         {
-            if (payment.Amount <= 0)
-            {
+            if (!Enum.IsDefined(typeof(PaymentMethod), payment.PaymentMethod))
+                throw new InvalidOperationException(
+                    "An invalid payment method was selected.");
+
+            if (payment.Amount <= 0m)
                 throw new InvalidOperationException(
                     "Payment amount must be greater than zero.");
-            }
+
+            var reference = payment.ReferenceNumber?.Trim();
+
+            if (payment.PaymentMethod != PaymentMethod.Cash &&
+                string.IsNullOrWhiteSpace(reference))
+                throw new InvalidOperationException(
+                    $"A payment reference is required for {payment.PaymentMethod}.");
+
+            if (reference?.Length > 100)
+                throw new InvalidOperationException(
+                    "Payment reference cannot exceed 100 characters.");
         }
     }
 
@@ -930,11 +1243,23 @@ public class SaleService : ISaleService
                                     ? x.Location.Name
                                     : string.Empty,
 
-                            TotalAmount =
-                                x.TotalAmount,
+                            Subtotal = x.Subtotal,
 
-                            PaidAmount =
-                                x.PaidAmount,
+                            LineDiscountAmount = x.LineDiscountAmount,
+
+                            OrderDiscountAmount = x.OrderDiscountAmount,
+
+                            DiscountAmount = x.DiscountAmount,
+
+                            TaxAmount = x.TaxAmount,
+
+                            SalesTaxRate = x.SalesTaxRate,
+
+                            TransportAmount = x.TransportAmount,
+
+                            TotalAmount = x.TotalAmount,
+
+                            PaidAmount = x.PaidAmount,
 
                             DueAmount =
                                 x.DueAmount,
@@ -1024,6 +1349,11 @@ public class SaleService : ISaleService
 
                     DiscountAmount =
                         x.DiscountAmount,
+
+                    LineDiscountAmount = x.LineDiscountAmount,
+                    OrderDiscountAmount = x.OrderDiscountAmount,
+                    TransportAmount = x.TransportAmount,
+                    SalesTaxRate = x.SalesTaxRate,
 
                     TaxAmount =
                         x.TaxAmount,
@@ -1133,6 +1463,8 @@ public class SaleService : ISaleService
 
         return sale;
     }
+
+
 
     private static string? NormalizeOptional(
         string? value)

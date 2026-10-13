@@ -12,7 +12,13 @@ public class SalesQuoteLine : BaseEntity
 
     public decimal UnitPrice { get; set; }
 
+    public int DiscountType { get; set; } = 1;
+
+    public decimal DiscountValue { get; set; }
+
     public decimal DiscountAmount { get; set; }
+
+    public decimal TaxRate { get; set; }
 
     public decimal TaxAmount { get; set; }
 

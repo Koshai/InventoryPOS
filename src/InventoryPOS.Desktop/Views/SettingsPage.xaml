@@ -366,6 +366,130 @@
                         </StackPanel>
                     </Border>
 
+                    <!-- Sales Pricing -->
+                    <Border
+    Padding="22"
+    CornerRadius="8"
+    BorderThickness="1"
+    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                        <StackPanel Spacing="18">
+
+                            <StackPanel Spacing="3">
+                                <TextBlock
+                Text="Sales Pricing"
+                FontSize="18"
+                FontWeight="SemiBold"/>
+
+                                <TextBlock
+                Text="Configure discounts, tax and transport charges used by sales and quotations."
+                FontSize="13"
+                Opacity="0.65"/>
+                            </StackPanel>
+
+                            <!-- Discounts -->
+                            <StackPanel Spacing="10">
+
+                                <TextBlock
+                Text="Discounts"
+                FontWeight="SemiBold"/>
+
+                                <CheckBox
+                Content="Enable line discounts"
+                IsChecked="{Binding EnableSalesLineDiscount, Mode=TwoWay}"/>
+
+                                <TextBlock
+                Text="Allow a discount to be applied to individual products in a sale or quotation."
+                Margin="28,-6,0,0"
+                FontSize="12"
+                Opacity="0.55"
+                TextWrapping="Wrap"/>
+
+                                <CheckBox
+                Content="Enable order discounts"
+                IsChecked="{Binding EnableSalesOrderDiscount, Mode=TwoWay}"/>
+
+                                <TextBlock
+                Text="Allow a discount to be applied to the entire sale or quotation."
+                Margin="28,-6,0,0"
+                FontSize="12"
+                Opacity="0.55"
+                TextWrapping="Wrap"/>
+
+                            </StackPanel>
+
+                            <Rectangle
+            Height="1"
+            Fill="{ThemeResource DividerStrokeColorDefaultBrush}"/>
+
+                            <!-- Tax -->
+                            <StackPanel Spacing="10">
+
+                                <TextBlock
+                Text="Tax / VAT"
+                FontWeight="SemiBold"/>
+
+                                <CheckBox
+                Content="Enable sales tax / VAT"
+                IsChecked="{Binding EnableSalesTax, Mode=TwoWay}"/>
+
+                                <StackPanel
+                Margin="28,0,0,0"
+                Spacing="6"
+                MaxWidth="260"
+                HorizontalAlignment="Left">
+
+                                    <TextBlock
+                    Text="Default tax rate"
+                    FontSize="13"/>
+
+                                    <NumberBox
+                    Value="{Binding DefaultSalesTaxRate, Mode=TwoWay}"
+                    Minimum="0"
+                    Maximum="100"
+                    SmallChange="0.5"
+                    SpinButtonPlacementMode="Inline"
+                    Header="Percentage (%)"/>
+
+                                </StackPanel>
+
+                                <TextBlock
+                Text="The default rate is retained even when sales tax is disabled."
+                Margin="28,0,0,0"
+                FontSize="12"
+                Opacity="0.55"
+                TextWrapping="Wrap"/>
+
+                            </StackPanel>
+
+                            <Rectangle
+            Height="1"
+            Fill="{ThemeResource DividerStrokeColorDefaultBrush}"/>
+
+                            <!-- Transport -->
+                            <StackPanel Spacing="10">
+
+                                <TextBlock
+                Text="Transport"
+                FontWeight="SemiBold"/>
+
+                                <CheckBox
+                Content="Enable transport charges"
+                IsChecked="{Binding EnableSalesTransportCharge, Mode=TwoWay}"/>
+
+                                <TextBlock
+                Text="Allow a fixed delivery or transport charge to be added to sales and quotations."
+                Margin="28,-6,0,0"
+                FontSize="12"
+                Opacity="0.55"
+                TextWrapping="Wrap"/>
+
+                            </StackPanel>
+
+                        </StackPanel>
+                    </Border>
+
                     <!-- Business Logo -->
                     <Border
                         Padding="22"

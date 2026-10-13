@@ -1,6 +1,8 @@
-﻿using InventoryPOS.Application.DTOs.Sales;
+﻿using InventoryPOS.Application.DTOs.Products;
+using InventoryPOS.Application.DTOs.Sales;
 using InventoryPOS.Application.DTOs.Settings;
 using InventoryPOS.Application.Interfaces;
+using InventoryPOS.Domain.Enums;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -20,15 +22,29 @@ public class SalesQuotePdfService : ISalesQuotePdfService
     private readonly IBusinessLogoProvider
         _businessLogoProvider;
 
+    private readonly IDocumentQrService
+        _documentQrService;
+
+    private readonly IProductBarcodeRenderService
+        _productBarcodeRenderService;
+
     public SalesQuotePdfService(
         IBusinessProfileService businessProfileService,
-        IBusinessLogoProvider businessLogoProvider)
+        IBusinessLogoProvider businessLogoProvider,
+        IDocumentQrService documentQrService,
+        IProductBarcodeRenderService productBarcodeRenderService)
     {
         _businessProfileService =
             businessProfileService;
 
         _businessLogoProvider =
             businessLogoProvider;
+
+        _documentQrService =
+            documentQrService;
+
+        _productBarcodeRenderService =
+            productBarcodeRenderService;
     }
 
     public async Task<byte[]> GenerateQuotationPdfAsync(
@@ -55,6 +71,30 @@ public class SalesQuotePdfService : ISalesQuotePdfService
         var accent =
             GetAccentColor(business);
 
+        // ---------------------------------------------------------
+        // DOCUMENT QR
+        // ---------------------------------------------------------
+
+        var documentQr =
+            await _documentQrService.GenerateAsync(
+                DocumentType.SalesQuote,
+                quote.Id,
+                cancellationToken);
+
+        var qrBytes =
+            documentQr.PngBytes;
+
+        // ---------------------------------------------------------
+        // PRODUCT BARCODES
+        // ---------------------------------------------------------
+
+        var productBarcodes =
+            await _productBarcodeRenderService
+                .GeneratePrimaryBarcodesAsync(
+                    quote.Lines.Select(
+                        x => x.ProductVariantId),
+                    cancellationToken);
+
         return Document
             .Create(document =>
             {
@@ -80,6 +120,7 @@ public class SalesQuotePdfService : ISalesQuotePdfService
                                 quote,
                                 business,
                                 logoBytes,
+                                qrBytes,
                                 accent));
 
                     page.Content()
@@ -89,6 +130,7 @@ public class SalesQuotePdfService : ISalesQuotePdfService
                                 container,
                                 quote,
                                 business,
+                                productBarcodes,
                                 accent));
 
                     page.Footer()
@@ -111,6 +153,7 @@ public class SalesQuotePdfService : ISalesQuotePdfService
         SalesQuoteDetailsDto quote,
         BusinessProfileDto? business,
         byte[]? logoBytes,
+        byte[] qrBytes,
         string accent)
     {
         container.Column(column =>
@@ -118,6 +161,10 @@ public class SalesQuotePdfService : ISalesQuotePdfService
             column.Item()
                 .Row(row =>
                 {
+                    // -------------------------------------------------
+                    // LOGO
+                    // -------------------------------------------------
+
                     row.ConstantItem(85)
                         .Height(65)
                         .Element(logo =>
@@ -131,6 +178,10 @@ public class SalesQuotePdfService : ISalesQuotePdfService
                                     .FitArea();
                             }
                         });
+
+                    // -------------------------------------------------
+                    // BUSINESS IDENTITY
+                    // -------------------------------------------------
 
                     row.RelativeItem()
                         .PaddingLeft(8)
@@ -195,38 +246,65 @@ public class SalesQuotePdfService : ISalesQuotePdfService
                             }
                         });
 
-                    row.ConstantItem(150)
-                        .AlignRight()
-                        .Column(meta =>
+                    // -------------------------------------------------
+                    // QUOTATION META + DOCUMENT QR
+                    // -------------------------------------------------
+
+                    row.ConstantItem(205)
+                        .Row(right =>
                         {
-                            meta.Item()
-                                .AlignRight()
-                                .Text("QUOTATION")
-                                .FontSize(17)
-                                .SemiBold()
-                                .FontColor(accent);
+                            right.RelativeItem()
+                                .PaddingRight(8)
+                                .Column(meta =>
+                                {
+                                    meta.Item()
+                                        .AlignRight()
+                                        .Text("QUOTATION")
+                                        .FontSize(17)
+                                        .SemiBold()
+                                        .FontColor(accent);
 
-                            meta.Item()
-                                .PaddingTop(1)
-                                .AlignRight()
-                                .Text("মূল্য প্রস্তাব")
-                                .FontSize(10)
-                                .SemiBold();
+                                    meta.Item()
+                                        .PaddingTop(1)
+                                        .AlignRight()
+                                        .Text("মূল্য প্রস্তাব")
+                                        .FontSize(10)
+                                        .SemiBold();
 
-                            meta.Item()
-                                .PaddingTop(7)
-                                .AlignRight()
-                                .Text(quote.QuoteNumber)
-                                .FontSize(10)
-                                .SemiBold();
+                                    meta.Item()
+                                        .PaddingTop(7)
+                                        .AlignRight()
+                                        .Text(
+                                            quote.QuoteNumber)
+                                        .FontSize(10)
+                                        .SemiBold();
 
-                            meta.Item()
-                                .PaddingTop(2)
-                                .AlignRight()
-                                .Text(
-                                    $"Status: {GetStatusDisplay(quote)}")
-                                .FontSize(7.5f)
-                                .FontColor(MutedText);
+                                    meta.Item()
+                                        .PaddingTop(2)
+                                        .AlignRight()
+                                        .Text(
+                                            $"Status: " +
+                                            $"{GetStatusDisplay(quote)}")
+                                        .FontSize(7.5f)
+                                        .FontColor(MutedText);
+                                });
+
+                            right.ConstantItem(58)
+                                .Column(qr =>
+                                {
+                                    qr.Item()
+                                        .Width(54)
+                                        .Height(54)
+                                        .Image(qrBytes)
+                                        .FitArea();
+
+                                    qr.Item()
+                                        .PaddingTop(2)
+                                        .AlignCenter()
+                                        .Text("Document QR")
+                                        .FontSize(5.5f)
+                                        .FontColor(MutedText);
+                                });
                         });
                 });
 
@@ -279,6 +357,8 @@ public class SalesQuotePdfService : ISalesQuotePdfService
         IContainer container,
         SalesQuoteDetailsDto quote,
         BusinessProfileDto? business,
+        IReadOnlyDictionary<Guid, ProductBarcodeRenderDto>
+            productBarcodes,
         string accent)
     {
         container.Column(column =>
@@ -298,6 +378,7 @@ public class SalesQuotePdfService : ISalesQuotePdfService
                     ComposeItemsTable(
                         c,
                         quote,
+                        productBarcodes,
                         accent));
 
             column.Item()
@@ -364,6 +445,10 @@ public class SalesQuotePdfService : ISalesQuotePdfService
             .PaddingVertical(4)
             .Row(row =>
             {
+                // -------------------------------------------------
+                // CUSTOMER
+                // -------------------------------------------------
+
                 row.RelativeItem()
                     .PaddingRight(20)
                     .Column(column =>
@@ -396,6 +481,10 @@ public class SalesQuotePdfService : ISalesQuotePdfService
                                 $"Email: {quote.CustomerEmail}");
                         }
                     });
+
+                // -------------------------------------------------
+                // BUSINESS
+                // -------------------------------------------------
 
                 row.RelativeItem()
                     .AlignRight()
@@ -478,6 +567,8 @@ public class SalesQuotePdfService : ISalesQuotePdfService
     private static void ComposeItemsTable(
         IContainer container,
         SalesQuoteDetailsDto quote,
+        IReadOnlyDictionary<Guid, ProductBarcodeRenderDto>
+            productBarcodes,
         string accent)
     {
         container.Table(table =>
@@ -549,11 +640,19 @@ public class SalesQuotePdfService : ISalesQuotePdfService
                 var alternate =
                     index % 2 == 0;
 
+                // -------------------------------------------------
+                // SL
+                // -------------------------------------------------
+
                 BodyCell(
                         table.Cell(),
                         alternate)
                     .Text(
                         index.ToString("00"));
+
+                // -------------------------------------------------
+                // PRODUCT + BARCODE + DESCRIPTION + WARRANTY
+                // -------------------------------------------------
 
                 BodyCell(
                         table.Cell(),
@@ -565,6 +664,35 @@ public class SalesQuotePdfService : ISalesQuotePdfService
                                 line.ProductName)
                             .SemiBold();
 
+                        // -----------------------------------------
+                        // PRIMARY PRODUCT BARCODE
+                        // -----------------------------------------
+
+                        if (productBarcodes.TryGetValue(
+                                line.ProductVariantId,
+                                out var barcode) &&
+                            barcode.ImageBytes.Length > 0)
+                        {
+                            product.Item()
+                                .PaddingTop(4)
+                                .Width(105)
+                                .Height(27)
+                                .Image(
+                                    barcode.ImageBytes)
+                                .FitArea();
+
+                            product.Item()
+                                .PaddingTop(1)
+                                .Text(
+                                    barcode.Value)
+                                .FontSize(5.5f)
+                                .FontColor(MutedText);
+                        }
+
+                        // -----------------------------------------
+                        // DESCRIPTION
+                        // -----------------------------------------
+
                         if (!string.IsNullOrWhiteSpace(
                                 line.Description))
                         {
@@ -575,6 +703,10 @@ public class SalesQuotePdfService : ISalesQuotePdfService
                                 .FontSize(6.5f)
                                 .FontColor(MutedText);
                         }
+
+                        // -----------------------------------------
+                        // WARRANTY
+                        // -----------------------------------------
 
                         if (line.WarrantyMonths.HasValue &&
                             line.WarrantyMonths.Value > 0)
@@ -598,11 +730,19 @@ public class SalesQuotePdfService : ISalesQuotePdfService
                         }
                     });
 
+                // -------------------------------------------------
+                // SKU
+                // -------------------------------------------------
+
                 BodyCell(
                         table.Cell(),
                         alternate)
                     .Text(
                         line.SKU);
+
+                // -------------------------------------------------
+                // QUANTITY
+                // -------------------------------------------------
 
                 BodyCell(
                         table.Cell(),
@@ -612,6 +752,10 @@ public class SalesQuotePdfService : ISalesQuotePdfService
                         BuildQuantity(
                             line));
 
+                // -------------------------------------------------
+                // PRICE
+                // -------------------------------------------------
+
                 BodyCell(
                         table.Cell(),
                         alternate)
@@ -619,6 +763,10 @@ public class SalesQuotePdfService : ISalesQuotePdfService
                     .Text(
                         FormatMoney(
                             line.UnitPrice));
+
+                // -------------------------------------------------
+                // DISCOUNT
+                // -------------------------------------------------
 
                 BodyCell(
                         table.Cell(),
@@ -628,6 +776,10 @@ public class SalesQuotePdfService : ISalesQuotePdfService
                         FormatMoney(
                             line.DiscountAmount));
 
+                // -------------------------------------------------
+                // TAX
+                // -------------------------------------------------
+
                 BodyCell(
                         table.Cell(),
                         alternate)
@@ -635,6 +787,10 @@ public class SalesQuotePdfService : ISalesQuotePdfService
                     .Text(
                         FormatMoney(
                             line.TaxAmount));
+
+                // -------------------------------------------------
+                // TOTAL
+                // -------------------------------------------------
 
                 BodyCell(
                         table.Cell(),
@@ -708,29 +864,19 @@ public class SalesQuotePdfService : ISalesQuotePdfService
         SalesQuoteDetailsDto quote,
         string accent)
     {
-        /*
-         * Current SalesQuote.DiscountAmount and TaxAmount are
-         * header-level values.
-         *
-         * Line discounts/taxes are already reflected in
-         * individual LineTotal values.
-         */
-
-        var lineDiscount =
-            quote.Lines.Sum(
-                x => x.DiscountAmount);
-
-        var lineTax =
-            quote.Lines.Sum(
-                x => x.TaxAmount);
-
-        var totalDiscount =
-            quote.DiscountAmount +
-            lineDiscount;
-
-        var totalTax =
-            quote.TaxAmount +
-            lineTax;
+        // Pricing v2 stores combined discounts and total tax on the quote.
+        // Legacy v1 stores header adjustments separately from line values.
+        var isPricingV2 = quote.PricingVersion >= 2;
+        var lineDiscount = isPricingV2
+            ? quote.LineDiscountAmount
+            : quote.Lines.Sum(x => x.DiscountAmount);
+        var orderDiscount = isPricingV2
+            ? quote.OrderDiscountAmount
+            : quote.DiscountAmount;
+        var totalTax = isPricingV2
+            ? quote.TaxAmount
+            : quote.TaxAmount + quote.Lines.Sum(x => x.TaxAmount);
+        var transport = isPricingV2 ? quote.TransportAmount : 0m;
 
         container.Column(column =>
         {
@@ -747,17 +893,34 @@ public class SalesQuotePdfService : ISalesQuotePdfService
                         FormatMoney(
                             quote.Subtotal));
 
-                    AddTotalRow(
-                        totals,
-                        "Discount / ছাড়",
-                        FormatMoney(
-                            totalDiscount));
+                    if (lineDiscount != 0m)
+                    {
+                        AddTotalRow(
+                            totals,
+                            "Line discount / পণ্য ছাড় (-)",
+                            FormatMoney(lineDiscount));
+                    }
+
+                    if (orderDiscount != 0m)
+                    {
+                        AddTotalRow(
+                            totals,
+                            "Order discount / অর্ডার ছাড় (-)",
+                            FormatMoney(orderDiscount));
+                    }
 
                     AddTotalRow(
                         totals,
-                        "VAT / Tax",
-                        FormatMoney(
-                            totalTax));
+                        "VAT / Tax (+)",
+                        FormatMoney(totalTax));
+
+                    if (transport != 0m)
+                    {
+                        AddTotalRow(
+                            totals,
+                            "Transport / পরিবহন (+)",
+                            FormatMoney(transport));
+                    }
 
                     totals.Item()
                         .PaddingTop(3)
@@ -996,6 +1159,7 @@ public class SalesQuotePdfService : ISalesQuotePdfService
      * represents a business/calendar date. Do not call
      * ToLocalTime here.
      */
+
     private static string FormatBusinessDate(
         DateTime? date)
     {
@@ -1010,22 +1174,22 @@ public class SalesQuotePdfService : ISalesQuotePdfService
     {
         return quote.Status switch
         {
-            Domain.Enums.SalesQuoteStatus.Draft =>
+            SalesQuoteStatus.Draft =>
                 "Draft",
 
-            Domain.Enums.SalesQuoteStatus.Issued =>
+            SalesQuoteStatus.Issued =>
                 "Issued",
 
-            Domain.Enums.SalesQuoteStatus.Accepted =>
+            SalesQuoteStatus.Accepted =>
                 "Accepted",
 
-            Domain.Enums.SalesQuoteStatus.ConvertedToSale =>
+            SalesQuoteStatus.ConvertedToSale =>
                 "Converted to Sale",
 
-            Domain.Enums.SalesQuoteStatus.Expired =>
+            SalesQuoteStatus.Expired =>
                 "Expired",
 
-            Domain.Enums.SalesQuoteStatus.Cancelled =>
+            SalesQuoteStatus.Cancelled =>
                 "Cancelled",
 
             _ =>
@@ -1089,7 +1253,7 @@ public class SalesQuotePdfService : ISalesQuotePdfService
                 business.TradeLicenseNumber))
         {
             parts.Add(
-                $"Trade License: " +
+                "Trade License: " +
                 $"{business.TradeLicenseNumber}");
         }
 

@@ -97,4 +97,9 @@ public class SaleDetailsDto
 
     public bool HasDue =>
         DueAmount > 0;
+
+    public decimal LineDiscountAmount { get; set; }
+    public decimal OrderDiscountAmount { get; set; }
+    public decimal TransportAmount { get; set; }
+    public decimal SalesTaxRate { get; set; }
 }
