@@ -16,15 +16,17 @@ namespace InventoryPOS.Infrastructure.Services;
 public class SaleService : ISaleService
 {
     private readonly InventoryPosDbContext _dbContext;
-
     private readonly IPricingCalculator _pricingCalculator;
+    private readonly ISaleFinancialService _financialService;
 
     public SaleService(
-    InventoryPosDbContext dbContext,
-    IPricingCalculator pricingCalculator)
+        InventoryPosDbContext dbContext,
+        IPricingCalculator pricingCalculator,
+        ISaleFinancialService financialService)
     {
         _dbContext = dbContext;
         _pricingCalculator = pricingCalculator;
+        _financialService = financialService;
     }
 
     public async Task<IReadOnlyList<PosProductDto>>
@@ -72,7 +74,7 @@ public class SaleService : ISaleService
     GetCustomersAsync(
         CancellationToken cancellationToken = default)
     {
-        return await _dbContext.Customers
+        var customers = await _dbContext.Customers
             .AsNoTracking()
             .Where(x => x.IsActive)
             .OrderBy(x => x.Name)
@@ -81,16 +83,55 @@ public class SaleService : ISaleService
                 Id = x.Id,
                 CustomerCode = x.CustomerCode,
                 Name = x.Name,
-                CreditLimit = x.CreditLimit,
-
-                OutstandingBalance =
-                    x.Sales
-                        .Where(s =>
-                            s.Status != SaleStatus.Cancelled &&
-                            s.Status != SaleStatus.Refunded)
-                        .Sum(s => s.DueAmount)
+                CreditLimit = x.CreditLimit
             })
             .ToListAsync(cancellationToken);
+
+        if (customers.Count == 0)
+            return customers;
+
+        var customerIds = customers
+            .Select(x => x.Id)
+            .ToList();
+
+        var saleCustomerPairs = await _dbContext.Sales
+            .AsNoTracking()
+            .Where(x =>
+                x.CustomerId.HasValue &&
+                customerIds.Contains(x.CustomerId.Value) &&
+                x.Status != SaleStatus.Cancelled &&
+                x.Status != SaleStatus.Refunded)
+            .Select(x => new
+            {
+                x.Id,
+                CustomerId = x.CustomerId!.Value
+            })
+            .ToListAsync(cancellationToken);
+
+        if (saleCustomerPairs.Count == 0)
+            return customers;
+
+        var states = await _financialService.GetStatesAsync(
+            saleCustomerPairs.Select(x => x.Id),
+            cancellationToken);
+
+        var outstandingByCustomer = saleCustomerPairs
+            .GroupBy(x => x.CustomerId)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Sum(x => states[x.Id].DueAmount));
+
+        foreach (var customer in customers)
+        {
+            customer.OutstandingBalance =
+                outstandingByCustomer.TryGetValue(
+                    customer.Id,
+                    out var outstanding)
+                    ? outstanding
+                    : 0m;
+        }
+
+        return customers;
     }
 
     public async Task<IReadOnlyList<LocationLookupDto>>
@@ -482,15 +523,9 @@ public class SaleService : ISaleService
                 }
 
                 var existingOutstanding =
-                    await _dbContext.Sales
-                        .Where(x =>
-                            x.CustomerId == customer.Id &&
-                            x.Status != SaleStatus.Cancelled &&
-                            x.Status != SaleStatus.Refunded)
-                        .SumAsync(
-                            x => (decimal?)x.DueAmount,
-                            cancellationToken)
-                    ?? 0m;
+                    await GetCustomerOutstandingAsync(
+                    customer.Id,
+                    cancellationToken);
 
                 var availableCredit =
                     customer.CreditLimit -
@@ -1459,5 +1494,28 @@ public class SaleService : ISaleService
         return string.IsNullOrWhiteSpace(value)
             ? null
             : value.Trim();
+    }
+
+    private async Task<decimal> GetCustomerOutstandingAsync(
+    Guid customerId,
+    CancellationToken cancellationToken)
+    {
+        var saleIds = await _dbContext.Sales
+            .AsNoTracking()
+            .Where(x =>
+                x.CustomerId == customerId &&
+                x.Status != SaleStatus.Cancelled &&
+                x.Status != SaleStatus.Refunded)
+            .Select(x => x.Id)
+            .ToListAsync(cancellationToken);
+
+        if (saleIds.Count == 0)
+            return 0m;
+
+        var states = await _financialService.GetStatesAsync(
+            saleIds,
+            cancellationToken);
+
+        return states.Values.Sum(x => x.DueAmount);
     }
 }
