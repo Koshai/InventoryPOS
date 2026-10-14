@@ -5,6 +5,7 @@ namespace InventoryPOS.Application.DTOs.SalesReturns;
 public sealed class CreateSalesReturnRequest
 {
     public Guid SaleId { get; set; }
+    public Guid ReturnRequestId { get; set; }
 
     public DateTime ReturnDate { get; set; } = DateTime.UtcNow;
 

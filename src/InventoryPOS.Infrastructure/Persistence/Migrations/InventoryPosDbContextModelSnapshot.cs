@@ -1551,6 +1551,14 @@ namespace InventoryPOS.Infrastructure.Persistence.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<string>("ReturnRequestFingerprint")
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid?>("ReturnRequestId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("SaleId")
                         .HasColumnType("uuid");
 
@@ -1574,6 +1582,10 @@ namespace InventoryPOS.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("ReturnNumber")
                         .IsUnique();
+
+                    b.HasIndex("ReturnRequestId")
+                        .IsUnique()
+                        .HasFilter("\"ReturnRequestId\" IS NOT NULL");
 
                     b.HasIndex("SaleId");
 

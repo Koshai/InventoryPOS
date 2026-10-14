@@ -92,6 +92,18 @@ public class InventoryPosDbContext : DbContext
         modelBuilder.ApplyConfigurationsFromAssembly(
             typeof(InventoryPosDbContext).Assembly);
 
+        // DT6.4.3A — Sales return idempotency.
+        modelBuilder.Entity<SalesReturn>(entity =>
+        {
+            entity.HasIndex(x => x.ReturnRequestId)
+                .IsUnique()
+                .HasFilter("\"ReturnRequestId\" IS NOT NULL");
+
+            entity.Property(x => x.ReturnRequestFingerprint)
+                .HasMaxLength(64)
+                .IsUnicode(false);
+        });
+
         modelBuilder.Entity<Sale>()
             .HasIndex(x => x.CheckoutRequestId)
             .IsUnique()

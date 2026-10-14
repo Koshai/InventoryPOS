@@ -1,5 +1,6 @@
 ﻿using InventoryPOS.Application.DTOs.SalesReturns;
 using InventoryPOS.Application.Interfaces;
+using InventoryPOS.Application.Pricing;
 using InventoryPOS.Domain.Entities;
 using InventoryPOS.Domain.Enums;
 using InventoryPOS.Infrastructure.Persistence;
@@ -43,6 +44,8 @@ public sealed class SalesReturnService :
                     x.LocationId,
                     x.CustomerId,
                     x.Status,
+                    x.OrderDiscountAmount,
+                    x.TaxAmount,
 
                     CustomerName =
                         x.Customer != null
@@ -109,12 +112,31 @@ public sealed class SalesReturnService :
                         x.Key,
 
                     Quantity =
-                        x.Sum(y => y.Quantity)
+                        x.Sum(y => y.Quantity),
+
+                    LineTotal =
+                        x.Sum(y => y.LineTotal)
                 })
                 .ToDictionaryAsync(
                     x => x.SaleLineId,
-                    x => x.Quantity,
+                    x => new
+                    {
+                        x.Quantity,
+                        x.LineTotal
+                    },
                     cancellationToken);
+
+        var originalAllocations =
+            SalesReturnAllocationCalculator.Allocate(
+                sale.Lines
+                    .Select(x =>
+                        new SalesReturnAllocationCalculator.SaleLineInput(
+                            x.Id,
+                            x.LineTotal))
+                    .ToList(),
+                sale.OrderDiscountAmount,
+                sale.TaxAmount)
+            .ToDictionary(x => x.SaleLineId);
 
         var result =
             new SalesReturnableSaleDto
@@ -152,12 +174,18 @@ public sealed class SalesReturnService :
 
         foreach (var line in sale.Lines)
         {
-            var returnedQuantity =
+            var previous =
                 returnedQuantities.TryGetValue(
                     line.Id,
-                    out var quantity)
-                        ? quantity
-                        : 0m;
+                    out var totals)
+                        ? totals
+                        : null;
+
+            var returnedQuantity =
+                previous?.Quantity ?? 0m;
+
+            var previouslyReturnedTotal =
+                previous?.LineTotal ?? 0m;
 
             result.Lines.Add(
                 new SalesReturnableLineDto
@@ -190,7 +218,13 @@ public sealed class SalesReturnService :
                         line.TaxAmount,
 
                     OriginalLineTotal =
-                        line.LineTotal
+                        line.LineTotal,
+
+                    OriginalRefundableTotal =
+                        originalAllocations[line.Id].RefundableTotal,
+
+                    PreviouslyReturnedTotal =
+                        previouslyReturnedTotal
                 });
         }
 
@@ -570,6 +604,7 @@ public sealed class SalesReturnService :
         ValidateCreateRequest(
             request);
 
+
         await using var transaction =
             await _dbContext.Database
                 .BeginTransactionAsync(
@@ -577,6 +612,28 @@ public sealed class SalesReturnService :
 
         try
         {
+            // DT6.4.1:
+            // Serialize returns for the same sale across all
+            // terminals connected to the PostgreSQL database.
+            //
+            // Lock must be acquired BEFORE loading the sale,
+            // financial state, or previous return quantities.
+
+            var lockKey =
+                $"InventoryPOS:SalesReturn:Sale:{request.SaleId:D}";
+
+            await _dbContext.Database
+                .SqlQuery<int>(
+                    $"""
+            SELECT 1 AS "Value"
+            FROM (
+                SELECT pg_advisory_xact_lock(
+                    hashtextextended({lockKey}, 0)
+                )
+            ) AS sales_return_lock
+            """)
+                .SingleAsync(cancellationToken);
+
             var sale =
                 await _dbContext.Sales
                     .Include(x => x.Lines)
@@ -687,6 +744,28 @@ public sealed class SalesReturnService :
                                 x.TaxAmount
                         });
 
+
+            /*
+             * DT6.3C.3
+             * Allocate the original saved order-level discount
+             * and VAT across all original sale lines.
+             *
+             * Transport is nonrefundable.
+             * Completed historical returns remain unchanged.
+             */
+            var originalAllocations =
+                SalesReturnAllocationCalculator.Allocate(
+                    sale.Lines
+                        .Select(x =>
+                            new SalesReturnAllocationCalculator.SaleLineInput(
+                                x.Id,
+                                x.LineTotal))
+                        .ToList(),
+                    sale.OrderDiscountAmount,
+                    sale.TaxAmount)
+                .ToDictionary(x => x.SaleLineId);
+
+
             var salesReturn =
                 new SalesReturn
                 {
@@ -765,16 +844,102 @@ public sealed class SalesReturnService :
                         $"Return quantity {requestedLine.Quantity:N3} exceeds the remaining returnable quantity of {returnableQuantity:N3}.");
                 }
 
+
                 var isFinalReturn =
                     requestedLine.Quantity ==
                     returnableQuantity;
 
-                var financials =
+                var allocation =
+                    originalAllocations[original.Id];
+
+                var previousReturnTotal =
+                    previous?.LineTotal ?? 0m;
+
+                var remainingRefundable =
+                    RoundMoney(
+                        allocation.RefundableTotal -
+                        previousReturnTotal);
+
+                if (remainingRefundable < 0m)
+                {
+                    throw new InvalidOperationException(
+                        "Previous returns exceed the original refundable value.");
+                }
+
+                /*
+                 * For partial returns, calculate the proportional
+                 * amount from the original historical allocation.
+                 *
+                 * For the final return, use the remaining balance
+                 * to absorb rounding differences and preserve
+                 * amounts already committed.
+                 */
+                var returnLineTotal =
+                    isFinalReturn
+                        ? remainingRefundable
+                        : RoundMoney(
+                            allocation.RefundableTotal *
+                            requestedLine.Quantity /
+                            original.Quantity);
+
+                if (returnLineTotal < 0m ||
+                    returnLineTotal > remainingRefundable)
+                {
+                    throw new InvalidOperationException(
+                        "Return amount exceeds the remaining refundable value.");
+                }
+
+                /*
+                 * Preserve the existing line-discount calculation.
+                 * Add the original header VAT allocation to the
+                 * returned tax component.
+                 */
+                var existingFinancials =
                     CalculateReturnLineFinancials(
                         original,
                         requestedLine.Quantity,
                         previous,
                         isFinalReturn);
+
+                var originalAllocatedTax =
+                    original.TaxAmount +
+                    allocation.HeaderTaxShare;
+
+                var previousReturnedTax =
+                    previous?.TaxAmount ?? 0m;
+
+                var returnTax =
+                    isFinalReturn
+                        ? RoundMoney(
+                            originalAllocatedTax -
+                            previousReturnedTax)
+                        : RoundMoney(
+                            originalAllocatedTax *
+                            requestedLine.Quantity /
+                            original.Quantity);
+
+                if (returnTax < 0m ||
+                    returnTax > RoundMoney(
+                        originalAllocatedTax -
+                        previousReturnedTax))
+                {
+                    throw new InvalidOperationException(
+                        "Return tax exceeds the remaining allocated tax.");
+                }
+
+                var financials =
+                    new ReturnLineFinancials
+                    {
+                        DiscountAmount =
+                            existingFinancials.DiscountAmount,
+
+                        TaxAmount =
+                            returnTax,
+
+                        LineTotal =
+                            returnLineTotal
+                    };
+
 
                 var returnLine =
                     new SalesReturnLine
@@ -1566,29 +1731,102 @@ public sealed class SalesReturnService :
     // RETURN NUMBER
     // ============================================================
 
-    private async Task<string>
-        GenerateReturnNumberAsync(
-            CancellationToken cancellationToken)
+
+    private async Task<string> GenerateReturnNumberAsync(
+        CancellationToken cancellationToken)
     {
-        var today =
-            DateTime.UtcNow
-                .ToString("yyyyMMdd");
+        if (_dbContext.Database.CurrentTransaction is null)
+        {
+            throw new InvalidOperationException(
+                "Return numbering requires an active database transaction.");
+        }
 
-        var prefix =
-            $"RET-{today}-";
+        var documentDate =
+            DateOnly.FromDateTime(DateTime.UtcNow);
 
-        var count =
-            await _dbContext.SalesReturns
-                .AsNoTracking()
-                .CountAsync(
+        const string documentPrefix = "RET";
+
+        var datePart =
+            documentDate.ToString("yyyyMMdd");
+
+        var numberPrefix =
+            $"{documentPrefix}-{datePart}-";
+
+        var lockKey =
+            $"InventoryPOS:DocumentNumber:{documentPrefix}:{datePart}";
+
+        // Serialize number allocation across all terminals.
+        await _dbContext.Database
+            .SqlQuery<int>(
+                $"""
+            SELECT 1 AS "Value"
+            FROM (
+                SELECT pg_advisory_xact_lock(
+                    hashtextextended({lockKey}, 0)
+                )
+            ) AS return_number_lock
+            """)
+            .SingleAsync(cancellationToken);
+
+        var counter =
+            await _dbContext.DocumentNumberCounters
+                .SingleOrDefaultAsync(
                     x =>
-                        x.ReturnNumber.StartsWith(
-                            prefix),
+                        x.DocumentPrefix == documentPrefix &&
+                        x.DocumentDate == documentDate,
                     cancellationToken);
 
-        return
-            $"{prefix}{count + 1:0000}";
+        if (counter is null)
+        {
+            // Preserve historical numbering when introducing
+            // counters to an existing database.
+            var historicalNumbers =
+                await _dbContext.SalesReturns
+                    .AsNoTracking()
+                    .Where(x =>
+                        x.ReturnNumber.StartsWith(numberPrefix))
+                    .Select(x => x.ReturnNumber)
+                    .ToListAsync(cancellationToken);
+
+            var lastNumber = 0;
+
+            foreach (var returnNumber in historicalNumbers)
+            {
+                var suffix =
+                    returnNumber.Substring(numberPrefix.Length);
+
+                if (int.TryParse(suffix, out var parsed) &&
+                    parsed > lastNumber)
+                {
+                    lastNumber = parsed;
+                }
+            }
+
+            counter = new DocumentNumberCounter
+            {
+                DocumentPrefix = documentPrefix,
+                DocumentDate = documentDate,
+                LastNumber = lastNumber
+            };
+
+            _dbContext.DocumentNumberCounters.Add(counter);
+        }
+
+        if (counter.LastNumber == int.MaxValue)
+        {
+            throw new InvalidOperationException(
+                "Return number range has been exhausted.");
+        }
+
+        counter.LastNumber++;
+
+        // The counter increment participates in the
+        // existing sales-return database transaction.
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return $"{numberPrefix}{counter.LastNumber:0000}";
     }
+
 
     // ============================================================
     // HELPERS

@@ -8,6 +8,10 @@ public class SalesReturn : BaseEntity
     public string ReturnNumber { get; set; }
         = string.Empty;
 
+    public Guid? ReturnRequestId { get; set; }
+
+    public string? ReturnRequestFingerprint { get; set; }
+
     public Guid SaleId { get; set; }
 
     public Guid LocationId { get; set; }

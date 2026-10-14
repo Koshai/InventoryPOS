@@ -327,7 +327,13 @@ public sealed class SalesReturnViewModel :
                             line.UnitPrice,
 
                         OriginalLineTotal =
-                            line.OriginalLineTotal
+                            line.OriginalLineTotal,
+
+                        OriginalRefundableTotal =
+                            line.OriginalRefundableTotal,
+
+                        PreviouslyReturnedTotal =
+                            line.PreviouslyReturnedTotal
                     };
 
                 item.ReturnQuantityChanged +=
