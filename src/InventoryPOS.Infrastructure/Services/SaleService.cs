@@ -2,6 +2,7 @@
 using InventoryPOS.Application.DTOs.Sales;
 using InventoryPOS.Application.Interfaces;
 using InventoryPOS.Application.Pricing;
+using InventoryPOS.Application.Validation;
 using InventoryPOS.Domain.Entities;
 using InventoryPOS.Domain.Enums;
 using InventoryPOS.Infrastructure.Persistence;
@@ -1076,24 +1077,10 @@ public class SaleService : ISaleService
 
         foreach (var payment in request.Payments)
         {
-            if (!Enum.IsDefined(typeof(PaymentMethod), payment.PaymentMethod))
-                throw new InvalidOperationException(
-                    "An invalid payment method was selected.");
-
-            if (payment.Amount <= 0m)
-                throw new InvalidOperationException(
-                    "Payment amount must be greater than zero.");
-
-            var reference = payment.ReferenceNumber?.Trim();
-
-            if (payment.PaymentMethod != PaymentMethod.Cash &&
-                string.IsNullOrWhiteSpace(reference))
-                throw new InvalidOperationException(
-                    $"A payment reference is required for {payment.PaymentMethod}.");
-
-            if (reference?.Length > 100)
-                throw new InvalidOperationException(
-                    "Payment reference cannot exceed 100 characters.");
+            PaymentValidator.Validate(
+                payment.PaymentMethod,
+                payment.Amount,
+                payment.ReferenceNumber);
         }
     }
 

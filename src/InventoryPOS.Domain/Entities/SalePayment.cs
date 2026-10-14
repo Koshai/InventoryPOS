@@ -18,4 +18,6 @@ public class SalePayment : BaseEntity
     public string? Notes { get; set; }
 
     public Sale? Sale { get; set; }
+
+    public Guid? PaymentRequestId { get; set; }
 }

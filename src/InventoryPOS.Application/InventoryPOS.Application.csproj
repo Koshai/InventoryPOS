@@ -16,7 +16,6 @@
     <Folder Include="Features\Purchasing\" />
     <Folder Include="Features\Suppliers\" />
     <Folder Include="Features\Products\" />
-    <Folder Include="Validation\" />
     <Folder Include="Services\" />
   </ItemGroup>
 

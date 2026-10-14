@@ -235,6 +235,48 @@ namespace InventoryPOS.Infrastructure.Persistence.Migrations
                     b.ToTable("Customers", (string)null);
                 });
 
+            modelBuilder.Entity("InventoryPOS.Domain.Entities.CustomerPaymentOperation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("PaymentRequestId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RequestFingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("ResultJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("TargetSaleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PaymentRequestId")
+                        .IsUnique();
+
+                    b.ToTable("CustomerPaymentOperations", (string)null);
+                });
+
             modelBuilder.Entity("InventoryPOS.Domain.Entities.DocumentIdentifier", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1230,6 +1272,9 @@ namespace InventoryPOS.Infrastructure.Persistence.Migrations
 
                     b.Property<int>("PaymentMethod")
                         .HasColumnType("integer");
+
+                    b.Property<Guid?>("PaymentRequestId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("ReferenceNumber")
                         .HasMaxLength(200)

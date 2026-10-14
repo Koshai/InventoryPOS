@@ -55,6 +55,7 @@ public partial class App : Microsoft.UI.Xaml.Application
                 services.AddSingleton<IBusinessLogoService, BusinessLogoService>();
                 services.AddSingleton<IBusinessLogoProvider, BusinessLogoProvider>();
                 services.AddSingleton<IPendingCheckoutJournalService, PendingCheckoutJournalService>();
+                services.AddSingleton<IPendingCustomerPaymentJournalService, PendingCustomerPaymentJournalService>();
                 services.AddTransient<ProductsViewModel>();
                 services.AddTransient<AddProductViewModel>();
                 services.AddTransient<ProductDetailsViewModel>();

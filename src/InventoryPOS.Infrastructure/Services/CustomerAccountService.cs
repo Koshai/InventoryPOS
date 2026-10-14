@@ -1,6 +1,17 @@
-﻿using InventoryPOS.Application.DTOs.Customers;
+﻿
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
+using InventoryPOS.Application.DTOs.Customers;
 using InventoryPOS.Application.DTOs.Sales;
 using InventoryPOS.Application.Interfaces;
+using InventoryPOS.Application.Validation;
 using InventoryPOS.Domain.Entities;
 using InventoryPOS.Domain.Enums;
 using InventoryPOS.Infrastructure.Persistence;
@@ -8,8 +19,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace InventoryPOS.Infrastructure.Services;
 
-public sealed class CustomerAccountService :
-    ICustomerAccountService
+public sealed class CustomerAccountService : ICustomerAccountService
 {
     private readonly InventoryPosDbContext _dbContext;
     private readonly ISaleFinancialService _financialService;
@@ -26,53 +36,44 @@ public sealed class CustomerAccountService :
     // GET CUSTOMER ACCOUNT
     // ============================================================
 
-    public async Task<CustomerAccountDto?>
-        GetAccountAsync(
-            Guid customerId,
-            CancellationToken cancellationToken = default)
+    public async Task<CustomerAccountDto?> GetAccountAsync(
+        Guid customerId,
+        CancellationToken cancellationToken = default)
     {
-        var customer =
-            await _dbContext.Customers
-                .AsNoTracking()
-                .Where(x =>
-                    x.Id == customerId)
-                .Select(x => new
-                {
-                    x.Id,
-                    x.CustomerCode,
-                    x.Name,
-                    x.Phone,
-                    x.CreditLimit
-                })
-                .FirstOrDefaultAsync(
-                    cancellationToken);
+        var customer = await _dbContext.Customers
+            .AsNoTracking()
+            .Where(x => x.Id == customerId)
+            .Select(x => new
+            {
+                x.Id,
+                x.CustomerCode,
+                x.Name,
+                x.Phone,
+                x.CreditLimit
+            })
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (customer is null)
             return null;
 
-        var sales =
-            await _dbContext.Sales
-                .AsNoTracking()
-                .Where(x =>
-                    x.CustomerId ==
-                        customerId &&
-                    x.Status !=
-                        SaleStatus.Cancelled &&
-                    x.Status !=
-                        SaleStatus.Refunded)
-                .OrderBy(x => x.SaleDate)
-                .ThenBy(x => x.InvoiceNumber)
-                .Select(x => new
-                {
-                    x.Id,
-                    x.InvoiceNumber,
-                    x.SaleDate
-                })
-                .ToListAsync(
-                    cancellationToken);
+        var sales = await _dbContext.Sales
+            .AsNoTracking()
+            .Where(x =>
+                x.CustomerId == customerId &&
+                x.Status != SaleStatus.Cancelled &&
+                x.Status != SaleStatus.Refunded)
+            .OrderBy(x => x.SaleDate)
+            .ThenBy(x => x.InvoiceNumber)
+            .Select(x => new
+            {
+                x.Id,
+                x.InvoiceNumber,
+                x.SaleDate
+            })
+            .ToListAsync(cancellationToken);
 
-        var financialStates =
-            await _financialService.GetStatesAsync(
+        var financialStates = await _financialService
+            .GetStatesAsync(
                 sales.Select(x => x.Id),
                 cancellationToken);
 
@@ -81,110 +82,57 @@ public sealed class CustomerAccountService :
 
         foreach (var sale in sales)
         {
-            var state =
-                financialStates[sale.Id];
+            var state = financialStates[sale.Id];
 
-            if (state.DueAmount <= 0)
+            if (state.DueAmount <= 0m)
                 continue;
 
             outstandingSales.Add(
                 new CustomerOutstandingSaleDto
                 {
-                    SaleId =
-                        sale.Id,
-
-                    InvoiceNumber =
-                        sale.InvoiceNumber,
-
-                    SaleDate =
-                        sale.SaleDate,
-
-                    TotalAmount =
-                        state.EffectiveTotal,
-
-                    PaidAmount =
-                        state.NetPaidAmount,
-
-                    DueAmount =
-                        state.DueAmount,
-
-                    Status =
-                        state.NetPaidAmount > 0
-                            ? SaleStatus.PartiallyPaid
-                            : SaleStatus.Credit
+                    SaleId = sale.Id,
+                    InvoiceNumber = sale.InvoiceNumber,
+                    SaleDate = sale.SaleDate,
+                    TotalAmount = state.EffectiveTotal,
+                    PaidAmount = state.NetPaidAmount,
+                    DueAmount = state.DueAmount,
+                    Status = state.NetPaidAmount > 0m
+                        ? SaleStatus.PartiallyPaid
+                        : SaleStatus.Credit
                 });
         }
 
-        var paymentHistory =
-            await _dbContext.SalePayments
-                .AsNoTracking()
-                .Where(x =>
-                    x.Sale != null &&
-                    x.Sale.CustomerId ==
-                        customerId)
-                .OrderByDescending(
-                    x => x.PaymentDate)
-                .ThenByDescending(
-                    x => x.CreatedAtUtc)
-                .Select(x =>
-                    new CustomerPaymentHistoryDto
-                    {
-                        SalePaymentId =
-                            x.Id,
-
-                        SaleId =
-                            x.SaleId,
-
-                        InvoiceNumber =
-                            x.Sale!.InvoiceNumber,
-
-                        PaymentDate =
-                            x.PaymentDate,
-
-                        PaymentMethod =
-                            x.PaymentMethod,
-
-                        Amount =
-                            x.Amount,
-
-                        ReferenceNumber =
-                            x.ReferenceNumber,
-
-                        Notes =
-                            x.Notes
-                    })
-                .ToListAsync(
-                    cancellationToken);
-
-        var outstandingBalance =
-            outstandingSales
-                .Sum(x => x.DueAmount);
+        var paymentHistory = await _dbContext.SalePayments
+            .AsNoTracking()
+            .Where(x =>
+                x.Sale != null &&
+                x.Sale.CustomerId == customerId)
+            .OrderByDescending(x => x.PaymentDate)
+            .ThenByDescending(x => x.CreatedAtUtc)
+            .Select(x => new CustomerPaymentHistoryDto
+            {
+                SalePaymentId = x.Id,
+                SaleId = x.SaleId,
+                InvoiceNumber = x.Sale!.InvoiceNumber,
+                PaymentDate = x.PaymentDate,
+                PaymentMethod = x.PaymentMethod,
+                Amount = x.Amount,
+                ReferenceNumber = x.ReferenceNumber,
+                Notes = x.Notes
+            })
+            .ToListAsync(cancellationToken);
 
         return new CustomerAccountDto
         {
-            CustomerId =
-                customer.Id,
-
-            CustomerCode =
-                customer.CustomerCode,
-
-            CustomerName =
-                customer.Name,
-
-            Phone =
-                customer.Phone,
-
-            CreditLimit =
-                customer.CreditLimit,
-
+            CustomerId = customer.Id,
+            CustomerCode = customer.CustomerCode,
+            CustomerName = customer.Name,
+            Phone = customer.Phone,
+            CreditLimit = customer.CreditLimit,
             OutstandingBalance =
-                outstandingBalance,
-
-            OutstandingSales =
-                outstandingSales,
-
-            PaymentHistory =
-                paymentHistory
+                outstandingSales.Sum(x => x.DueAmount),
+            OutstandingSales = outstandingSales,
+            PaymentHistory = paymentHistory
         };
     }
 
@@ -198,21 +146,43 @@ public sealed class CustomerAccountService :
             ReceiveCustomerPaymentRequest request,
             CancellationToken cancellationToken = default)
     {
-        ValidatePaymentRequest(
-            request);
+        ValidatePaymentRequest(request);
+
+        if (saleId == Guid.Empty)
+        {
+            throw new InvalidOperationException(
+                "An invoice is required.");
+        }
 
         await using var transaction =
-            await _dbContext.Database
-                .BeginTransactionAsync(
-                    cancellationToken);
+            await _dbContext.Database.BeginTransactionAsync(
+                cancellationToken);
 
         try
         {
-            var sale =
-                await _dbContext.Sales
-                    .FirstOrDefaultAsync(
-                        x => x.Id == saleId,
-                        cancellationToken);
+            await LockPaymentCustomerAsync(
+                request.CustomerId,
+                cancellationToken);
+
+            var fingerprint = GetPaymentFingerprint(
+                saleId,
+                request);
+
+            var previous = await FindPreviousPaymentAsync(
+                request,
+                fingerprint,
+                cancellationToken);
+
+            if (previous is not null)
+            {
+                await transaction.CommitAsync(cancellationToken);
+                return previous;
+            }
+
+            var sale = await _dbContext.Sales
+                .FirstOrDefaultAsync(
+                    x => x.Id == saleId,
+                    cancellationToken);
 
             if (sale is null)
             {
@@ -220,50 +190,40 @@ public sealed class CustomerAccountService :
                     "Sale was not found.");
             }
 
-            if (sale.CustomerId !=
-                request.CustomerId)
+            if (sale.CustomerId != request.CustomerId)
             {
                 throw new InvalidOperationException(
                     "The selected invoice does not belong to this customer.");
             }
 
-            EnsureSaleCanReceivePayment(
-                sale);
+            EnsureSaleCanReceivePayment(sale);
 
-            var state =
-                await _financialService.GetStateAsync(
+            var state = await _financialService
+                .GetStateAsync(
                     sale.Id,
                     cancellationToken);
 
-            if (state.DueAmount <= 0)
+            if (state.DueAmount <= 0m)
             {
                 throw new InvalidOperationException(
                     "This invoice is already fully paid.");
             }
 
-            if (request.Amount >
-                state.DueAmount)
+            if (request.Amount > state.DueAmount)
             {
                 throw new InvalidOperationException(
                     $"Payment cannot exceed the invoice due amount of {state.DueAmount:N2}.");
             }
 
-            var payment =
-                CreatePayment(
-                    sale.Id,
-                    request,
-                    request.Amount);
+            var payment = CreatePayment(
+                sale.Id,
+                request,
+                request.Amount);
 
-            _dbContext.SalePayments.Add(
-                payment);
+            _dbContext.SalePayments.Add(payment);
 
-            /*
-             * NetPaidAmount already accounts for previous
-             * physical refunds.
-             */
             var newNetPaid =
-                state.NetPaidAmount +
-                request.Amount;
+                state.NetPaidAmount + request.Amount;
 
             ApplyPaymentState(
                 sale,
@@ -278,43 +238,41 @@ public sealed class CustomerAccountService :
                     request.CustomerId,
                     cancellationToken);
 
-            await transaction.CommitAsync(
-                cancellationToken);
-
-            return new CustomerPaymentResultDto
+            var result = new CustomerPaymentResultDto
             {
-                AmountReceived =
-                    request.Amount,
-
-                AmountApplied =
-                    request.Amount,
-
-                RemainingOutstanding =
-                    remainingOutstanding,
-
-                Allocations =
+                AmountReceived = request.Amount,
+                AmountApplied = request.Amount,
+                RemainingOutstanding = remainingOutstanding,
+                Allocations = new List<CustomerPaymentAllocationDto>
                 {
-                    new CustomerPaymentAllocationDto
+                    new()
                     {
-                        SaleId =
-                            sale.Id,
-
-                        InvoiceNumber =
-                            sale.InvoiceNumber,
-
-                        AmountApplied =
-                            request.Amount,
-
-                        RemainingDue =
-                            sale.DueAmount
+                        SaleId = sale.Id,
+                        InvoiceNumber = sale.InvoiceNumber,
+                        AmountApplied = request.Amount,
+                        RemainingDue = sale.DueAmount
                     }
                 }
             };
+
+            RecordPaymentOperation(
+                saleId,
+                request,
+                fingerprint,
+                result);
+
+            await _dbContext.SaveChangesAsync(
+                cancellationToken);
+
+            await transaction.CommitAsync(
+                cancellationToken);
+
+            return result;
         }
         catch
         {
             await transaction.RollbackAsync(
-                cancellationToken);
+                CancellationToken.None);
 
             throw;
         }
@@ -329,24 +287,38 @@ public sealed class CustomerAccountService :
             ReceiveCustomerPaymentRequest request,
             CancellationToken cancellationToken = default)
     {
-        ValidatePaymentRequest(
-            request);
+        ValidatePaymentRequest(request);
 
         await using var transaction =
-            await _dbContext.Database
-                .BeginTransactionAsync(
-                    cancellationToken);
+            await _dbContext.Database.BeginTransactionAsync(
+                cancellationToken);
 
         try
         {
-            var customerExists =
-                await _dbContext.Customers
-                    .AnyAsync(
-                        x =>
-                            x.Id ==
-                                request.CustomerId &&
-                            x.IsActive,
-                        cancellationToken);
+            await LockPaymentCustomerAsync(
+                request.CustomerId,
+                cancellationToken);
+
+            var fingerprint = GetPaymentFingerprint(
+                null,
+                request);
+
+            var previous = await FindPreviousPaymentAsync(
+                request,
+                fingerprint,
+                cancellationToken);
+
+            if (previous is not null)
+            {
+                await transaction.CommitAsync(cancellationToken);
+                return previous;
+            }
+
+            var customerExists = await _dbContext.Customers
+                .AnyAsync(
+                    x => x.Id == request.CustomerId &&
+                         x.IsActive,
+                    cancellationToken);
 
             if (!customerExists)
             {
@@ -354,23 +326,14 @@ public sealed class CustomerAccountService :
                     "Customer was not found or is inactive.");
             }
 
-            /*
-             * FIFO:
-             * oldest sale first.
-             */
-            var sales =
-                await _dbContext.Sales
-                    .Where(x =>
-                        x.CustomerId ==
-                            request.CustomerId &&
-                        x.Status !=
-                            SaleStatus.Cancelled &&
-                        x.Status !=
-                            SaleStatus.Refunded)
-                    .OrderBy(x => x.SaleDate)
-                    .ThenBy(x => x.InvoiceNumber)
-                    .ToListAsync(
-                        cancellationToken);
+            var sales = await _dbContext.Sales
+                .Where(x =>
+                    x.CustomerId == request.CustomerId &&
+                    x.Status != SaleStatus.Cancelled &&
+                    x.Status != SaleStatus.Refunded)
+                .OrderBy(x => x.SaleDate)
+                .ThenBy(x => x.InvoiceNumber)
+                .ToListAsync(cancellationToken);
 
             if (sales.Count == 0)
             {
@@ -378,8 +341,8 @@ public sealed class CustomerAccountService :
                     "This customer has no outstanding invoices.");
             }
 
-            var states =
-                await _financialService.GetStatesAsync(
+            var states = await _financialService
+                .GetStatesAsync(
                     sales.Select(x => x.Id),
                     cancellationToken);
 
@@ -388,26 +351,18 @@ public sealed class CustomerAccountService :
 
             foreach (var sale in sales)
             {
-                var state =
-                    states[sale.Id];
+                var state = states[sale.Id];
 
-                if (state.DueAmount <= 0)
+                if (state.DueAmount <= 0m)
                     continue;
 
                 outstandingSales.Add(
                     new OutstandingSaleState
                     {
-                        Sale =
-                            sale,
-
-                        EffectiveTotal =
-                            state.EffectiveTotal,
-
-                        NetPaidAmount =
-                            state.NetPaidAmount,
-
-                        DueAmount =
-                            state.DueAmount
+                        Sale = sale,
+                        EffectiveTotal = state.EffectiveTotal,
+                        NetPaidAmount = state.NetPaidAmount,
+                        DueAmount = state.DueAmount
                     });
             }
 
@@ -418,81 +373,60 @@ public sealed class CustomerAccountService :
             }
 
             var totalOutstanding =
-                outstandingSales
-                    .Sum(x => x.DueAmount);
+                outstandingSales.Sum(x => x.DueAmount);
 
-            if (request.Amount >
-                totalOutstanding)
+            if (request.Amount > totalOutstanding)
             {
                 throw new InvalidOperationException(
                     $"Payment cannot exceed the customer's outstanding balance of {totalOutstanding:N2}.");
             }
 
-            var remaining =
-                request.Amount;
+            var remaining = request.Amount;
 
-            var result =
-                new CustomerPaymentResultDto
-                {
-                    AmountReceived =
-                        request.Amount
-                };
-
-            foreach (var item
-                     in outstandingSales)
+            var result = new CustomerPaymentResultDto
             {
-                if (remaining <= 0)
+                AmountReceived = request.Amount
+            };
+
+            foreach (var item in outstandingSales)
+            {
+                if (remaining <= 0m)
                     break;
 
                 var amountToApply =
-                    Math.Min(
-                        remaining,
-                        item.DueAmount);
+                    Math.Min(remaining, item.DueAmount);
 
-                var payment =
-                    CreatePayment(
-                        item.Sale.Id,
-                        request,
-                        amountToApply);
+                var payment = CreatePayment(
+                    item.Sale.Id,
+                    request,
+                    amountToApply);
 
-                _dbContext.SalePayments.Add(
-                    payment);
+                _dbContext.SalePayments.Add(payment);
 
                 var newNetPaid =
-                    item.NetPaidAmount +
-                    amountToApply;
+                    item.NetPaidAmount + amountToApply;
 
                 ApplyPaymentState(
                     item.Sale,
                     item.EffectiveTotal,
                     newNetPaid);
 
-                remaining -=
-                    amountToApply;
+                remaining -= amountToApply;
 
                 result.Allocations.Add(
                     new CustomerPaymentAllocationDto
                     {
-                        SaleId =
-                            item.Sale.Id,
-
-                        InvoiceNumber =
-                            item.Sale.InvoiceNumber,
-
-                        AmountApplied =
-                            amountToApply,
-
-                        RemainingDue =
-                            item.Sale.DueAmount
+                        SaleId = item.Sale.Id,
+                        InvoiceNumber = item.Sale.InvoiceNumber,
+                        AmountApplied = amountToApply,
+                        RemainingDue = item.Sale.DueAmount
                     });
             }
 
             result.AmountApplied =
-                request.Amount -
-                remaining;
+                request.Amount - remaining;
 
-            if (result.AmountApplied !=
-                request.Amount)
+            if (result.AmountApplied != request.Amount)
             {
                 throw new InvalidOperationException(
                     "The full customer payment could not be allocated.");
@@ -506,6 +440,15 @@ public sealed class CustomerAccountService :
                     request.CustomerId,
                     cancellationToken);
 
+            RecordPaymentOperation(
+                null,
+                request,
+                fingerprint,
+                result);
+
+            await _dbContext.SaveChangesAsync(
+                cancellationToken);
+
             await transaction.CommitAsync(
                 cancellationToken);
 
@@ -514,10 +457,122 @@ public sealed class CustomerAccountService :
         catch
         {
             await transaction.RollbackAsync(
-                cancellationToken);
+                CancellationToken.None);
 
             throw;
         }
+    }
+
+    // ============================================================
+    // CUSTOMER PAYMENT SERIALIZATION
+    // ============================================================
+
+    private async Task LockPaymentCustomerAsync(
+    Guid customerId,
+    CancellationToken cancellationToken)
+    {
+        var lockKey =
+            "InventoryPOS:CustomerPayment:" +
+            customerId.ToString("D");
+
+        await _dbContext.Database
+            .SqlQueryRaw<int>(
+                """
+            SELECT 1 AS "Value"
+            FROM (
+                SELECT pg_advisory_xact_lock(
+                    hashtextextended({0}, 0)
+                )
+            ) AS payment_lock
+            """,
+                lockKey)
+            .SingleAsync(cancellationToken);
+    }
+
+    // ============================================================
+    // REQUEST FINGERPRINT
+    // ============================================================
+
+    private static string GetPaymentFingerprint(
+        Guid? targetSaleId,
+        ReceiveCustomerPaymentRequest request)
+    {
+        var fields = new[]
+        {
+            request.CustomerId.ToString("D"),
+            targetSaleId?.ToString("D") ?? "",
+            request.Amount.ToString(
+                "0.00", CultureInfo.InvariantCulture),
+            ((int)request.PaymentMethod).ToString(
+                CultureInfo.InvariantCulture),
+            request.PaymentDate.ToUniversalTime()
+                .Ticks.ToString(CultureInfo.InvariantCulture),
+            Clean(request.ReferenceNumber) ?? "",
+            Clean(request.Notes) ?? ""
+        };
+
+        var payload = JsonSerializer.Serialize(fields);
+
+        return Convert.ToHexString(
+            SHA256.HashData(
+                Encoding.UTF8.GetBytes(payload)));
+    }
+
+    // ============================================================
+    // EXISTING PAYMENT REPLAY
+    // ============================================================
+
+    private async Task<CustomerPaymentResultDto?>
+        FindPreviousPaymentAsync(
+            ReceiveCustomerPaymentRequest request,
+            string fingerprint,
+            CancellationToken cancellationToken)
+    {
+        var operation =
+            await _dbContext.CustomerPaymentOperations
+                .AsNoTracking()
+                .SingleOrDefaultAsync(
+                    x => x.PaymentRequestId ==
+                         request.PaymentRequestId,
+                    cancellationToken);
+
+        if (operation is null)
+            return null;
+
+        if (operation.RequestFingerprint != fingerprint ||
+            operation.CustomerId != request.CustomerId)
+        {
+            throw new InvalidOperationException(
+                "Payment request ID was reused with different payment details.");
+        }
+
+        return JsonSerializer
+            .Deserialize<CustomerPaymentResultDto>(
+                operation.ResultJson)
+            ?? throw new InvalidOperationException(
+                "The stored payment result is invalid.");
+    }
+
+    // ============================================================
+    // PERSIST PAYMENT OPERATION
+    // ============================================================
+
+    private void RecordPaymentOperation(
+        Guid? targetSaleId,
+        ReceiveCustomerPaymentRequest request,
+        string fingerprint,
+        CustomerPaymentResultDto result)
+    {
+        _dbContext.CustomerPaymentOperations.Add(
+            new CustomerPaymentOperation
+            {
+                PaymentRequestId = request.PaymentRequestId,
+                CustomerId = request.CustomerId,
+                TargetSaleId = targetSaleId,
+                Amount = request.Amount,
+                RequestFingerprint = fingerprint,
+                ResultJson = JsonSerializer.Serialize(result)
+            });
     }
 
     // ============================================================
@@ -529,30 +584,24 @@ public sealed class CustomerAccountService :
             Guid customerId,
             CancellationToken cancellationToken)
     {
-        var saleIds =
-            await _dbContext.Sales
-                .AsNoTracking()
-                .Where(x =>
-                    x.CustomerId ==
-                        customerId &&
-                    x.Status !=
-                        SaleStatus.Cancelled &&
-                    x.Status !=
-                        SaleStatus.Refunded)
-                .Select(x => x.Id)
-                .ToListAsync(
-                    cancellationToken);
+        var saleIds = await _dbContext.Sales
+            .AsNoTracking()
+            .Where(x =>
+                x.CustomerId == customerId &&
+                x.Status != SaleStatus.Cancelled &&
+                x.Status != SaleStatus.Refunded)
+            .Select(x => x.Id)
+            .ToListAsync(cancellationToken);
 
         if (saleIds.Count == 0)
             return 0m;
 
-        var states =
-            await _financialService.GetStatesAsync(
+        var states = await _financialService
+            .GetStatesAsync(
                 saleIds,
                 cancellationToken);
 
-        return states.Values
-            .Sum(x => x.DueAmount);
+        return states.Values.Sum(x => x.DueAmount);
     }
 
     // ============================================================
@@ -566,30 +615,18 @@ public sealed class CustomerAccountService :
     {
         return new SalePayment
         {
-            SaleId =
-                saleId,
-
-            PaymentMethod =
-                request.PaymentMethod,
-
-            Amount =
-                amount,
-
-            PaymentDate =
-                request.PaymentDate,
-
-            ReferenceNumber =
-                Clean(
-                    request.ReferenceNumber),
-
-            Notes =
-                Clean(
-                    request.Notes)
+            SaleId = saleId,
+            PaymentRequestId = request.PaymentRequestId,
+            PaymentMethod = request.PaymentMethod,
+            Amount = amount,
+            PaymentDate = request.PaymentDate,
+            ReferenceNumber = Clean(request.ReferenceNumber),
+            Notes = Clean(request.Notes)
         };
     }
 
     // ============================================================
-    // CACHE / STATUS
+    // PAYMENT STATE
     // ============================================================
 
     private static void ApplyPaymentState(
@@ -597,39 +634,32 @@ public sealed class CustomerAccountService :
         decimal effectiveTotal,
         decimal netPaidAmount)
     {
-        if (effectiveTotal < 0)
+        if (effectiveTotal < 0m)
         {
             throw new InvalidOperationException(
                 $"Invoice {sale.InvoiceNumber} has an invalid effective total.");
         }
 
-        if (netPaidAmount < 0)
+        if (netPaidAmount < 0m)
         {
             throw new InvalidOperationException(
                 $"Invoice {sale.InvoiceNumber} has an invalid net payment total.");
         }
 
-        sale.PaidAmount =
-            netPaidAmount;
+        sale.PaidAmount = netPaidAmount;
 
         sale.DueAmount =
-            Math.Max(
-                0m,
-                effectiveTotal -
-                netPaidAmount);
+            Math.Max(0m, effectiveTotal - netPaidAmount);
 
-        if (sale.DueAmount <= 0)
+        if (sale.DueAmount <= 0m)
         {
-            sale.Status =
-                SaleStatus.Completed;
-
+            sale.Status = SaleStatus.Completed;
             return;
         }
 
-        sale.Status =
-            netPaidAmount > 0
-                ? SaleStatus.PartiallyPaid
-                : SaleStatus.Credit;
+        sale.Status = netPaidAmount > 0m
+            ? SaleStatus.PartiallyPaid
+            : SaleStatus.Credit;
     }
 
     // ============================================================
@@ -639,55 +669,46 @@ public sealed class CustomerAccountService :
     private static void ValidatePaymentRequest(
         ReceiveCustomerPaymentRequest request)
     {
-        if (request.CustomerId ==
-            Guid.Empty)
+        if (request is null)
+        {
+            throw new ArgumentNullException(nameof(request));
+        }
+
+        if (request.CustomerId == Guid.Empty)
         {
             throw new InvalidOperationException(
                 "Customer is required.");
         }
 
-        if (request.Amount <= 0)
+        if (request.PaymentRequestId == Guid.Empty)
         {
             throw new InvalidOperationException(
-                "Payment amount must be greater than zero.");
+                "Payment request ID is required.");
         }
 
-        if (request.PaymentDate ==
-            default)
+        if (request.PaymentDate == default)
         {
             throw new InvalidOperationException(
                 "Payment date is required.");
         }
 
-        if (RequiresReference(
-                request.PaymentMethod) &&
-            string.IsNullOrWhiteSpace(
-                request.ReferenceNumber))
-        {
-            throw new InvalidOperationException(
-                "A payment reference is required for this payment method.");
-        }
-    }
-
-    private static bool RequiresReference(
-        PaymentMethod paymentMethod)
-    {
-        return paymentMethod !=
-               PaymentMethod.Cash;
+        PaymentValidator.Validate(
+            request.PaymentMethod,
+            request.Amount,
+            request.ReferenceNumber,
+            request.Notes);
     }
 
     private static void EnsureSaleCanReceivePayment(
         Sale sale)
     {
-        if (sale.Status ==
-            SaleStatus.Cancelled)
+        if (sale.Status == SaleStatus.Cancelled)
         {
             throw new InvalidOperationException(
                 "Payments cannot be applied to a cancelled sale.");
         }
 
-        if (sale.Status ==
-            SaleStatus.Refunded)
+        if (sale.Status == SaleStatus.Refunded)
         {
             throw new InvalidOperationException(
                 "Payments cannot be applied to a refunded sale.");
@@ -700,11 +721,9 @@ public sealed class CustomerAccountService :
         }
     }
 
-    private static string? Clean(
-        string? value)
+    private static string? Clean(string? value)
     {
-        return string.IsNullOrWhiteSpace(
-                value)
+        return string.IsNullOrWhiteSpace(value)
             ? null
             : value.Trim();
     }

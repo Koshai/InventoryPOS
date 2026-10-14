@@ -1,5 +1,6 @@
 ﻿using InventoryPOS.Application.DTOs.Customers;
 using InventoryPOS.Application.Interfaces;
+using InventoryPOS.Desktop.Services;
 using InventoryPOS.Domain.Enums;
 using System;
 using System.Collections.Generic;
@@ -12,7 +13,8 @@ namespace InventoryPOS.Desktop.ViewModels;
 public sealed class CustomerAccountViewModel : INotifyPropertyChanged
 {
     private readonly ICustomerAccountService _customerAccountService;
-
+    private readonly IPendingCustomerPaymentJournalService _paymentJournal;
+    private PendingCustomerPayment? _pendingPayment;
     private Guid _customerId;
     private CustomerAccountDto? _account;
 
@@ -21,6 +23,8 @@ public sealed class CustomerAccountViewModel : INotifyPropertyChanged
 
     private string? _errorMessage;
     private string? _successMessage;
+
+    private bool _paymentRecoveryBlocked;
 
     private double _paymentAmount;
     private PaymentMethod _selectedPaymentMethod =
@@ -32,13 +36,13 @@ public sealed class CustomerAccountViewModel : INotifyPropertyChanged
     private CustomerOutstandingSaleDto? _selectedInvoice;
 
     public CustomerAccountViewModel(
-        ICustomerAccountService customerAccountService)
+    ICustomerAccountService customerAccountService,
+    IPendingCustomerPaymentJournalService paymentJournal)
     {
-        _customerAccountService =
-            customerAccountService;
+        _customerAccountService = customerAccountService;
+        _paymentJournal = paymentJournal;
 
-        PaymentMethods =
-            Enum.GetValues<PaymentMethod>();
+        PaymentMethods = Enum.GetValues<PaymentMethod>();
     }
 
     // ============================================================
@@ -85,6 +89,19 @@ public sealed class CustomerAccountViewModel : INotifyPropertyChanged
 
     public bool HasOutstandingBalance =>
         (Account?.OutstandingBalance ?? 0) > 0;
+
+    public bool HasPendingPayment => _pendingPayment is not null;
+
+    public bool CanStartPayment =>
+    !IsBusy &&
+    !HasPendingPayment &&
+    !_paymentRecoveryBlocked;
+
+    private void NotifyPaymentState()
+    {
+        OnPropertyChanged(nameof(HasPendingPayment));
+        OnPropertyChanged(nameof(CanStartPayment));
+    }
 
     // ============================================================
     // PAYMENT
@@ -208,6 +225,7 @@ public sealed class CustomerAccountViewModel : INotifyPropertyChanged
             _isLoading = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsBusy));
+            OnPropertyChanged(nameof(CanStartPayment));
         }
     }
 
@@ -219,6 +237,7 @@ public sealed class CustomerAccountViewModel : INotifyPropertyChanged
             _isSaving = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsBusy));
+            OnPropertyChanged(nameof(CanStartPayment));
         }
     }
 
@@ -268,6 +287,11 @@ public sealed class CustomerAccountViewModel : INotifyPropertyChanged
 
             _customerId = customerId;
 
+            _paymentRecoveryBlocked = false;
+
+            _pendingPayment = await _paymentJournal.LoadAsync();
+            NotifyPaymentState();
+
             Account =
                 await _customerAccountService
                     .GetAccountAsync(customerId);
@@ -277,10 +301,21 @@ public sealed class CustomerAccountViewModel : INotifyPropertyChanged
                 ErrorMessage =
                     "Customer account was not found.";
             }
+
+            if (_pendingPayment is not null)
+            {
+                ErrorMessage =
+                    _pendingPayment.Request.CustomerId == customerId
+                        ? "An unresolved customer payment exists. " +
+                          "Use Retry Pending Payment before recording another payment."
+                        : "An unresolved payment belongs to another customer. " +
+                          "Resolve that payment before recording new payments.";
+            }
         }
         catch (Exception ex)
         {
             ErrorMessage = ex.Message;
+            _paymentRecoveryBlocked = true;
         }
         finally
         {
@@ -294,60 +329,30 @@ public sealed class CustomerAccountViewModel : INotifyPropertyChanged
 
     public async Task<bool> ReceiveAccountPaymentAsync()
     {
+        if (!CanStartPayment)
+        {
+            ErrorMessage =
+                "Resolve the pending payment before starting another.";
+            return false;
+        }
+
         if (!ValidatePayment())
             return false;
 
-        if (Account is null)
+        if (!TryGetPaymentAmount(out var amount))
+            return false;
+
+        if (Account is null || amount > Account.OutstandingBalance)
         {
             ErrorMessage =
-                "Customer account is not loaded.";
-
+                "Payment exceeds the outstanding balance.";
             return false;
         }
 
-        var amount = (decimal)PaymentAmount;
-
-        if (amount > Account.OutstandingBalance)
-        {
-            ErrorMessage =
-                $"Payment cannot exceed the outstanding balance of ৳{Account.OutstandingBalance:N2}.";
-
-            return false;
-        }
-
-        try
-        {
-            IsSaving = true;
-
-            ErrorMessage = null;
-            SuccessMessage = null;
-
-            var request =
-                CreatePaymentRequest(amount);
-
-            var result =
-                await _customerAccountService
-                    .ReceiveAccountPaymentAsync(
-                        request);
-
-            SuccessMessage =
-                $"Payment of ৳{result.AmountApplied:N2} received successfully.";
-
-            ClearPaymentForm();
-
-            await ReloadAsync();
-
-            return true;
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = ex.Message;
-            return false;
-        }
-        finally
-        {
-            IsSaving = false;
-        }
+        return await SubmitPaymentAsync(
+            false,
+            null,
+            amount);
     }
 
     // ============================================================
@@ -356,67 +361,36 @@ public sealed class CustomerAccountViewModel : INotifyPropertyChanged
 
     public async Task<bool> ReceiveInvoicePaymentAsync()
     {
-        if (SelectedInvoice is null)
+        if (!CanStartPayment)
         {
             ErrorMessage =
-                "Select an outstanding invoice first.";
+                "Resolve the pending payment before starting another.";
+            return false;
+        }
 
+        if (SelectedInvoice is null)
+        {
+            ErrorMessage = "Select an outstanding invoice first.";
             return false;
         }
 
         if (!ValidatePayment())
             return false;
 
-        var amount =
-            (decimal)PaymentAmount;
+        if (!TryGetPaymentAmount(out var amount))
+            return false;
 
         if (amount > SelectedInvoice.DueAmount)
         {
             ErrorMessage =
-                $"Payment cannot exceed the selected invoice due amount of ৳{SelectedInvoice.DueAmount:N2}.";
-
+                "Payment exceeds the selected invoice due amount.";
             return false;
         }
 
-        try
-        {
-            IsSaving = true;
-
-            ErrorMessage = null;
-            SuccessMessage = null;
-
-            var invoiceNumber =
-                SelectedInvoice.InvoiceNumber;
-
-            var request =
-                CreatePaymentRequest(amount);
-
-            var result =
-                await _customerAccountService
-                    .ReceiveInvoicePaymentAsync(
-                        SelectedInvoice.SaleId,
-                        request);
-
-            SuccessMessage =
-                $"Payment of ৳{result.AmountApplied:N2} applied to {invoiceNumber}.";
-
-            SelectedInvoice = null;
-
-            ClearPaymentForm();
-
-            await ReloadAsync();
-
-            return true;
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = ex.Message;
-            return false;
-        }
-        finally
-        {
-            IsSaving = false;
-        }
+        return await SubmitPaymentAsync(
+            true,
+            SelectedInvoice.SaleId,
+            amount);
     }
 
     // ============================================================
@@ -426,6 +400,11 @@ public sealed class CustomerAccountViewModel : INotifyPropertyChanged
     public void PrepareInvoicePayment(
         CustomerOutstandingSaleDto invoice)
     {
+        if (!CanStartPayment)
+        {
+            return;
+        }
+
         SelectedInvoice = invoice;
 
         PaymentAmount =
@@ -437,6 +416,11 @@ public sealed class CustomerAccountViewModel : INotifyPropertyChanged
 
     public void PrepareAccountPayment()
     {
+        if (!CanStartPayment)
+        {
+            return;
+        }
+
         SelectedInvoice = null;
 
         PaymentAmount =
@@ -448,6 +432,11 @@ public sealed class CustomerAccountViewModel : INotifyPropertyChanged
 
     public void CancelPayment()
     {
+        if (!CanStartPayment)
+        {
+            return;
+        }
+
         SelectedInvoice = null;
 
         ClearPaymentForm();
@@ -546,5 +535,174 @@ public sealed class CustomerAccountViewModel : INotifyPropertyChanged
             this,
             new PropertyChangedEventArgs(
                 propertyName));
+    }
+
+    private async Task<bool> SubmitPaymentAsync(
+    bool isInvoicePayment,
+    Guid? saleId,
+    decimal amount)
+    {
+        if (IsBusy || HasPendingPayment || _paymentRecoveryBlocked)
+        {
+            ErrorMessage =
+                "A payment is already processing or requires recovery.";
+            return false;
+        }
+
+        var pending = new PendingCustomerPayment
+        {
+            IsInvoicePayment = isInvoicePayment,
+            TargetSaleId = saleId,
+            Request = CreatePaymentRequest(amount)
+        };
+
+        pending.Request.PaymentRequestId = Guid.NewGuid();
+
+        try
+        {
+            IsSaving = true;
+            ErrorMessage = null;
+            SuccessMessage = null;
+
+            await _paymentJournal.SaveAsync(pending);
+
+            _pendingPayment = pending;
+            NotifyPaymentState();
+
+            return await ExecutePendingPaymentAsync(pending);
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+            return false;
+        }
+        finally
+        {
+            IsSaving = false;
+        }
+    }
+
+    private async Task<bool> ExecutePendingPaymentAsync(
+    PendingCustomerPayment pending)
+    {
+        CustomerPaymentResultDto result;
+
+        if (pending.IsInvoicePayment)
+        {
+            if (!pending.TargetSaleId.HasValue)
+                throw new InvalidOperationException(
+                    "Pending invoice payment has no target invoice.");
+
+            result = await _customerAccountService
+                .ReceiveInvoicePaymentAsync(
+                    pending.TargetSaleId.Value,
+                    pending.Request);
+        }
+        else
+        {
+            result = await _customerAccountService
+                .ReceiveAccountPaymentAsync(
+                    pending.Request);
+        }
+
+        // The backend confirmed this exact operation.
+        // Clear the journal before allowing another payment.
+        await _paymentJournal.ClearAsync(
+            pending.Request.PaymentRequestId);
+
+        _pendingPayment = null;
+        NotifyPaymentState();
+
+        SelectedInvoice = null;
+        ClearPaymentForm();
+
+        SuccessMessage =
+            $"Payment of ৳{result.AmountApplied:N2} confirmed.";
+
+        try
+        {
+            await ReloadAsync();
+        }
+        catch (Exception ex)
+        {
+            // Payment is confirmed even if refreshing the account fails.
+            ErrorMessage =
+                "Payment was confirmed, but account refresh failed: " +
+                ex.Message;
+        }
+
+        return true;
+    }
+
+    private bool TryGetPaymentAmount(out decimal amount)
+    {
+        amount = 0m;
+
+        if (double.IsNaN(PaymentAmount) ||
+            double.IsInfinity(PaymentAmount) ||
+            PaymentAmount <= 0 ||
+            PaymentAmount > (double)decimal.MaxValue)
+        {
+            ErrorMessage = "Enter a valid payment amount.";
+            return false;
+        }
+
+        try
+        {
+            amount = Convert.ToDecimal(PaymentAmount);
+            return amount > 0m;
+        }
+        catch (OverflowException)
+        {
+            ErrorMessage = "Payment amount is too large.";
+            return false;
+        }
+    }
+
+    public async Task<bool> RetryPendingPaymentAsync()
+    {
+        if (IsBusy)
+            return false;
+
+        try
+        {
+            IsSaving = true;
+            ErrorMessage = null;
+
+            // Always use the saved request, never a newly generated one.
+            var pending = await _paymentJournal.LoadAsync();
+
+            if (pending is null)
+            {
+                _pendingPayment = null;
+                NotifyPaymentState();
+
+                ErrorMessage = "No pending payment was found.";
+                return false;
+            }
+
+            _pendingPayment = pending;
+            NotifyPaymentState();
+
+            if (pending.Request.CustomerId != _customerId)
+            {
+                ErrorMessage =
+                    "This payment belongs to another customer. " +
+                    "Open that customer account to recover it.";
+                return false;
+            }
+
+            return await ExecutePendingPaymentAsync(pending);
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage =
+                "Payment outcome remains unresolved: " + ex.Message;
+            return false;
+        }
+        finally
+        {
+            IsSaving = false;
+        }
     }
 }

@@ -32,6 +32,10 @@ public sealed partial class CustomerAccountPage : Page
         if (e.Parameter is Guid customerId)
         {
             await ViewModel.LoadAsync(customerId);
+            if (ViewModel.HasPendingPayment)
+            {
+                await ShowRecoveryDialogAsync();
+            }
         }
     }
 
@@ -53,6 +57,12 @@ public sealed partial class CustomerAccountPage : Page
         object sender,
         RoutedEventArgs e)
     {
+        if (!ViewModel.CanStartPayment)
+        {
+            await ShowRecoveryDialogAsync();
+            return;
+        }
+
         ViewModel.PrepareAccountPayment();
 
         await ShowPaymentDialogAsync(
@@ -64,6 +74,12 @@ public sealed partial class CustomerAccountPage : Page
         object sender,
         RoutedEventArgs e)
     {
+        if (!ViewModel.CanStartPayment)
+        {
+            await ShowRecoveryDialogAsync();
+            return;
+        }
+
         if (sender is not Button button ||
             button.Tag is not CustomerOutstandingSaleDto invoice)
         {
@@ -219,6 +235,28 @@ public sealed partial class CustomerAccountPage : Page
         {
             await ViewModel
                 .ReceiveAccountPaymentAsync();
+        }
+    }
+
+    private async System.Threading.Tasks.Task ShowRecoveryDialogAsync()
+    {
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = "Pending Customer Payment",
+            Content =
+                "A previous payment has an unresolved outcome. " +
+                "Retry the original payment request before recording another.",
+            PrimaryButtonText = "Retry Pending Payment",
+            CloseButtonText = "Close",
+            DefaultButton = ContentDialogButton.Close
+        };
+
+        var result = await dialog.ShowAsync();
+
+        if (result == ContentDialogResult.Primary)
+        {
+            await ViewModel.RetryPendingPaymentAsync();
         }
     }
 }

@@ -83,6 +83,7 @@ public class InventoryPosDbContext : DbContext
     public DbSet<DocumentIdentifier> DocumentIdentifiers => Set<DocumentIdentifier>();
     public DbSet<ProductBarcode> ProductBarcodes => Set<ProductBarcode>();
     public DbSet<DocumentNumberCounter> DocumentNumberCounters => Set<DocumentNumberCounter>();
+    public DbSet<CustomerPaymentOperation> CustomerPaymentOperations => Set<CustomerPaymentOperation>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -156,6 +157,26 @@ public class InventoryPosDbContext : DbContext
             AND "QuantityReserved" <= "QuantityOnHand"
             """);
             });
+        });
+
+        modelBuilder.Entity<CustomerPaymentOperation>(entity =>
+        {
+            entity.ToTable("CustomerPaymentOperations");
+
+            entity.HasKey(x => x.Id);
+
+            entity.HasIndex(x => x.PaymentRequestId)
+                .IsUnique();
+
+            entity.Property(x => x.Amount)
+                .HasPrecision(18, 2);
+
+            entity.Property(x => x.RequestFingerprint)
+                .HasMaxLength(64)
+                .IsRequired();
+
+            entity.Property(x => x.ResultJson)
+                .IsRequired();
         });
     }
 }

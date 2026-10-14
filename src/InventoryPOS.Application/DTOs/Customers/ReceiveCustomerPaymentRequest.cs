@@ -16,4 +16,6 @@ public sealed class ReceiveCustomerPaymentRequest
     public string? ReferenceNumber { get; set; }
 
     public string? Notes { get; set; }
+
+    public Guid PaymentRequestId { get; set; }
 }
