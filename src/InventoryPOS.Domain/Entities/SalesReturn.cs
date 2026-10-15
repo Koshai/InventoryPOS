@@ -37,6 +37,7 @@ public class SalesReturn : BaseEntity
     public Location? Location { get; set; }
 
     public Customer? Customer { get; set; }
+    public string? ReturnResultJson { get; set; }
 
     public ICollection<SalesReturnLine> Lines { get; set; }
         = new List<SalesReturnLine>();

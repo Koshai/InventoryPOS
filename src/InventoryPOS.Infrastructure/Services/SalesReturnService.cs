@@ -5,6 +5,9 @@ using InventoryPOS.Domain.Entities;
 using InventoryPOS.Domain.Enums;
 using InventoryPOS.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 
 namespace InventoryPOS.Infrastructure.Services;
 
@@ -604,6 +607,8 @@ public sealed class SalesReturnService :
         ValidateCreateRequest(
             request);
 
+        var requestFingerprint = ComputeReturnRequestFingerprint(request);
+
 
         await using var transaction =
             await _dbContext.Database
@@ -633,6 +638,42 @@ public sealed class SalesReturnService :
             ) AS sales_return_lock
             """)
                 .SingleAsync(cancellationToken);
+
+            if (request.ReturnRequestId != Guid.Empty)
+            {
+                var existingReturn = await _dbContext.SalesReturns
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(
+                        x => x.ReturnRequestId == request.ReturnRequestId,
+                        cancellationToken);
+
+                if (existingReturn is not null)
+                {
+                    if (existingReturn.ReturnRequestFingerprint !=
+                        requestFingerprint)
+                    {
+                        throw new InvalidOperationException(
+                            "This return request ID has already been used " +
+                            "with different return details.");
+                    }
+
+                    if (string.IsNullOrWhiteSpace(
+                            existingReturn.ReturnResultJson))
+                    {
+                        throw new InvalidOperationException(
+                            "The original return result is unavailable. " +
+                            "Do not resubmit this return automatically.");
+                    }
+
+                    var originalResult =
+                        JsonSerializer.Deserialize<CreateSalesReturnResultDto>(
+                            existingReturn.ReturnResultJson);
+
+                    return originalResult
+                        ?? throw new InvalidOperationException(
+                            "The saved return result could not be restored.");
+                }
+            }
 
             var sale =
                 await _dbContext.Sales
@@ -794,7 +835,17 @@ public sealed class SalesReturnService :
 
                     Notes =
                         Clean(
-                            request.Notes)
+                            request.Notes),
+
+                    ReturnRequestId =
+                        request.ReturnRequestId == Guid.Empty
+                            ? null
+                            : request.ReturnRequestId,
+
+                    ReturnRequestFingerprint =
+                        request.ReturnRequestId == Guid.Empty
+                            ? null
+                            : requestFingerprint,
                 };
 
             decimal returnTotal = 0m;
@@ -1160,31 +1211,29 @@ public sealed class SalesReturnService :
                 salesReturn,
                 cancellationToken);
 
-            await _dbContext.SaveChangesAsync(
-                cancellationToken);
+            result.ReturnAmount = returnTotal;
 
-            await transaction.CommitAsync(
-                cancellationToken);
+            result.CreditAdjustmentAmount = creditAdjustment;
 
-            result.ReturnAmount =
-                returnTotal;
+            result.RefundableAmount = refundableAmount;
 
-            result.CreditAdjustmentAmount =
-                creditAdjustment;
-
-            result.RefundableAmount =
-                refundableAmount;
-
-            result.RefundedAmount =
-                requestedRefund;
+            result.RefundedAmount = requestedRefund;
 
             result.RemainingRefundableAmount =
-                RoundMoney(
-                    refundableAmount -
-                    requestedRefund);
+                RoundMoney(refundableAmount - requestedRefund);
 
-            result.RemainingSaleDue =
-                dueAfterReturn;
+            result.RemainingSaleDue = dueAfterReturn;
+
+            // Store the exact original result in the same transaction.
+            if (request.ReturnRequestId != Guid.Empty)
+            {
+                salesReturn.ReturnResultJson =
+                    JsonSerializer.Serialize(result);
+            }
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            await transaction.CommitAsync(cancellationToken);
 
             return result;
         }
@@ -1614,6 +1663,12 @@ public sealed class SalesReturnService :
                 "At least one return line is required.");
         }
 
+        if (request.ReturnRequestId == Guid.Empty)
+        {
+            throw new InvalidOperationException(
+                "ReturnRequestId is required.");
+        }
+
         foreach (var line
                  in request.Lines)
         {
@@ -1848,6 +1903,45 @@ public sealed class SalesReturnService :
                 value)
             ? null
             : value.Trim();
+    }
+
+    private static string ComputeReturnRequestFingerprint(
+    CreateSalesReturnRequest request)
+    {
+        var normalized = new
+        {
+            request.SaleId,
+            ReturnDate = request.ReturnDate.ToUniversalTime().Ticks,
+            Reason = Clean(request.Reason),
+            Notes = Clean(request.Notes),
+
+            Lines = request.Lines
+                .OrderBy(x => x.SaleLineId)
+                .Select(x => new
+                {
+                    x.SaleLineId,
+                    x.Quantity,
+                    x.IsRestockable,
+                    Reason = Clean(x.Reason)
+                })
+                .ToArray(),
+
+            request.RefundAmount,
+            request.RefundPaymentMethod,
+
+            RefundReferenceNumber =
+                Clean(request.RefundReferenceNumber),
+
+            RefundNotes =
+                Clean(request.RefundNotes)
+        };
+
+        var json = JsonSerializer.Serialize(normalized);
+
+        var bytes = SHA256.HashData(
+            Encoding.UTF8.GetBytes(json));
+
+        return Convert.ToHexString(bytes);
     }
 
     private sealed class PreviousReturnTotals

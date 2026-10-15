@@ -1559,6 +1559,9 @@ namespace InventoryPOS.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("ReturnRequestId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ReturnResultJson")
+                        .HasColumnType("text");
+
                     b.Property<Guid>("SaleId")
                         .HasColumnType("uuid");
 

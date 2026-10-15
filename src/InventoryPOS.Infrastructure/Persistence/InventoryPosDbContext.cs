@@ -85,6 +85,7 @@ public class InventoryPosDbContext : DbContext
     public DbSet<DocumentNumberCounter> DocumentNumberCounters => Set<DocumentNumberCounter>();
     public DbSet<CustomerPaymentOperation> CustomerPaymentOperations => Set<CustomerPaymentOperation>();
 
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -102,6 +103,9 @@ public class InventoryPosDbContext : DbContext
             entity.Property(x => x.ReturnRequestFingerprint)
                 .HasMaxLength(64)
                 .IsUnicode(false);
+
+            entity.Property(x => x.ReturnResultJson)
+                .HasColumnType("text");
         });
 
         modelBuilder.Entity<Sale>()
