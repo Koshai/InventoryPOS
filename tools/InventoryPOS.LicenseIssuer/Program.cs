@@ -22,6 +22,10 @@ try
             IssueBeta(args);
             break;
 
+        case "verify":
+            VerifyLicense(args);
+            break;
+
         default:
             ShowUsage();
             break;
@@ -177,6 +181,58 @@ static void IssueBeta(string[] args)
     Console.WriteLine($"License:  {outputPath}");
 }
 
+
+static void VerifyLicense(string[] args)
+{
+    if (args.Length != 3)
+    {
+        throw new ArgumentException(
+            "Usage: verify <license-file> <installation-id>");
+    }
+
+    string publicPath = Path.Combine(
+        Environment.GetFolderPath(
+            Environment.SpecialFolder.ApplicationData),
+        "InventoryPOS",
+        "LicenseIssuer",
+        "public-key.pem");
+
+    if (!File.Exists(publicPath))
+    {
+        throw new FileNotFoundException(
+            "Public verification key not found.");
+    }
+
+    string licenseJson = File.ReadAllText(args[1]);
+
+    var signedLicense =
+        JsonSerializer.Deserialize<SignedLicense>(licenseJson)
+        ?? throw new InvalidOperationException(
+            "Invalid license file.");
+
+    var trustedKeys = new Dictionary<string, string>
+    {
+        ["inventorypos-2026-01"] =
+            File.ReadAllText(publicPath)
+    };
+
+    var validator = new RsaLicenseValidator(trustedKeys);
+
+    var result = validator.Validate(
+        signedLicense,
+        args[2],
+        DateTimeOffset.UtcNow);
+
+    Console.WriteLine($"Status: {result.Status}");
+    Console.WriteLine($"Message: {result.Message}");
+
+    if (!result.IsUsable)
+    {
+        Environment.ExitCode = 1;
+    }
+}
+
+
 static void ShowUsage()
 {
     Console.WriteLine("InventoryPOS License Issuer");
@@ -186,4 +242,6 @@ static void ShowUsage()
     Console.WriteLine(
         "  issue-beta <customer-id> <customer-name> " +
         "<installation-id> <days>");
+    Console.WriteLine(
+    "  verify <license-file> <installation-id>");
 }

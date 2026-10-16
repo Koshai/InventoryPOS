@@ -17,8 +17,10 @@ public static class LicensePolicy
             license.IssuedAtUtc == default ||
             license.ValidFromUtc == default ||
             license.ValidFromUtc < license.IssuedAtUtc ||
+            (license.Edition == LicenseEdition.Beta &&
+            !license.ExpiresAtUtc.HasValue) ||
             (license.ExpiresAtUtc.HasValue &&
-             license.ExpiresAtUtc.Value <= license.ValidFromUtc))
+            license.ExpiresAtUtc.Value <= license.ValidFromUtc))
         {
             return Result(
                 LicenseStatus.InvalidLicense,

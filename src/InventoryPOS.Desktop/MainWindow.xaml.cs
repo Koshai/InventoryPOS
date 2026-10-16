@@ -92,6 +92,10 @@ public sealed partial class MainWindow : Window
                 ContentFrame.Navigate(
                     typeof(CustomersPage));
                 break;
+            case "licensing":
+                ContentFrame.Navigate(
+                    typeof(LicenseActivationPage));
+                break;
             case "Settings":
                 ContentFrame.Navigate(typeof(SettingsPage));
                 break;

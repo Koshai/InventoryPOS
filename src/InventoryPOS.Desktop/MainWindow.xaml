@@ -99,6 +99,14 @@
                 </NavigationViewItem.Icon>
             </NavigationViewItem>
 
+            <NavigationViewItem
+                Content="Licensing"
+                Tag="licensing">
+                <NavigationViewItem.Icon>
+                    <SymbolIcon Symbol="Permissions"/>
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+
         </NavigationView.MenuItems>
 
         <!-- CONTENT AREA -->

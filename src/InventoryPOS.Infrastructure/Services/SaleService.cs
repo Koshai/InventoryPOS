@@ -1,6 +1,7 @@
 ﻿using InventoryPOS.Application.DTOs.Inventory;
 using InventoryPOS.Application.DTOs.Sales;
 using InventoryPOS.Application.Interfaces;
+using InventoryPOS.Application.Licensing;
 using InventoryPOS.Application.Pricing;
 using InventoryPOS.Application.Validation;
 using InventoryPOS.Domain.Entities;
@@ -18,15 +19,18 @@ public class SaleService : ISaleService
     private readonly InventoryPosDbContext _dbContext;
     private readonly IPricingCalculator _pricingCalculator;
     private readonly ISaleFinancialService _financialService;
+    private readonly ILicenseAccessGuard _licenseAccessGuard;
 
     public SaleService(
-        InventoryPosDbContext dbContext,
-        IPricingCalculator pricingCalculator,
-        ISaleFinancialService financialService)
+    InventoryPosDbContext dbContext,
+    IPricingCalculator pricingCalculator,
+    ISaleFinancialService financialService,
+    ILicenseAccessGuard licenseAccessGuard)
     {
         _dbContext = dbContext;
         _pricingCalculator = pricingCalculator;
         _financialService = financialService;
+        _licenseAccessGuard = licenseAccessGuard;
     }
 
     public async Task<IReadOnlyList<PosProductDto>>
@@ -231,6 +235,12 @@ public class SaleService : ISaleService
                 await transaction.CommitAsync(cancellationToken);
                 return ToSaleResult(existingSale);
             }
+
+            // A previously committed checkout may be recovered
+            // regardless of license status.
+            //
+            // A genuinely new sale requires a usable license.
+            _licenseAccessGuard.EnsureCanWrite();
 
             // Lock the accepted quotation before creating a sale.
             // This lock is held until the sale and quote are committed together.

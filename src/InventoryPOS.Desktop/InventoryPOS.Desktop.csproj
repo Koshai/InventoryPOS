@@ -38,6 +38,7 @@
     <None Remove="Views\InventoryLedgerPage.xaml" />
     <None Remove="Views\InventoryPage.xaml" />
     <None Remove="Views\InvoicePage.xaml" />
+    <None Remove="Views\LicenseActivationPage.xaml" />
     <None Remove="Views\POSPage.xaml" />
     <None Remove="Views\ProductDetailsPage.xaml" />
     <None Remove="Views\ProductPage.xaml" />
@@ -112,6 +113,11 @@
   <ItemGroup>
     <ProjectReference Include="..\InventoryPOS.Application\InventoryPOS.Application.csproj" />
     <ProjectReference Include="..\InventoryPOS.Infrastructure\InventoryPOS.Infrastructure.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Views\LicenseActivationPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Page Update="Views\WarrantyClaimsPage.xaml">

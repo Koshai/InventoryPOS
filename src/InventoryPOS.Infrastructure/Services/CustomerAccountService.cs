@@ -1,4 +1,13 @@
 ﻿
+using InventoryPOS.Application.DTOs.Customers;
+using InventoryPOS.Application.DTOs.Sales;
+using InventoryPOS.Application.Interfaces;
+using InventoryPOS.Application.Licensing;
+using InventoryPOS.Application.Validation;
+using InventoryPOS.Domain.Entities;
+using InventoryPOS.Domain.Enums;
+using InventoryPOS.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -8,14 +17,6 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using InventoryPOS.Application.DTOs.Customers;
-using InventoryPOS.Application.DTOs.Sales;
-using InventoryPOS.Application.Interfaces;
-using InventoryPOS.Application.Validation;
-using InventoryPOS.Domain.Entities;
-using InventoryPOS.Domain.Enums;
-using InventoryPOS.Infrastructure.Persistence;
-using Microsoft.EntityFrameworkCore;
 
 namespace InventoryPOS.Infrastructure.Services;
 
@@ -23,13 +24,16 @@ public sealed class CustomerAccountService : ICustomerAccountService
 {
     private readonly InventoryPosDbContext _dbContext;
     private readonly ISaleFinancialService _financialService;
+    private readonly ILicenseAccessGuard _licenseAccessGuard;
 
     public CustomerAccountService(
-        InventoryPosDbContext dbContext,
-        ISaleFinancialService financialService)
+    InventoryPosDbContext dbContext,
+    ISaleFinancialService financialService,
+    ILicenseAccessGuard licenseAccessGuard)
     {
         _dbContext = dbContext;
         _financialService = financialService;
+        _licenseAccessGuard = licenseAccessGuard;
     }
 
     // ============================================================
@@ -179,6 +183,10 @@ public sealed class CustomerAccountService : ICustomerAccountService
                 return previous;
             }
 
+            // Allow recovery of a previously committed payment.
+            // Require a usable license for a genuinely new payment.
+            _licenseAccessGuard.EnsureCanWrite();
+
             var sale = await _dbContext.Sales
                 .FirstOrDefaultAsync(
                     x => x.Id == saleId,
@@ -313,6 +321,10 @@ public sealed class CustomerAccountService : ICustomerAccountService
                 await transaction.CommitAsync(cancellationToken);
                 return previous;
             }
+
+            // Existing payment recovery is permitted.
+            // New customer account payments require a valid license.
+            _licenseAccessGuard.EnsureCanWrite();
 
             var customerExists = await _dbContext.Customers
                 .AnyAsync(

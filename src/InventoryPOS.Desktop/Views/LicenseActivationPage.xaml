@@ -1,0 +1,56 @@
+<Page
+    x:Class="InventoryPOS.Desktop.Views.LicenseActivationPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer>
+        <StackPanel
+            MaxWidth="680"
+            HorizontalAlignment="Left"
+            Margin="28"
+            Spacing="16">
+
+            <TextBlock
+                Text="InventoryPOS Licensing"
+                FontSize="26"
+                FontWeight="SemiBold"/>
+
+            <TextBlock
+                Text="Activate your installation using a signed license file."
+                TextWrapping="Wrap"/>
+
+            <TextBlock
+                Text="Installation ID"
+                FontWeight="SemiBold"/>
+
+            <TextBox
+                x:Name="InstallationIdBox"
+                IsReadOnly="True"
+                PlaceholderText="Loading installation ID..."/>
+
+            <Button
+                Content="Copy Installation ID"
+                Click="CopyInstallationId_Click"/>
+
+            <TextBlock
+                Text="License Status"
+                FontWeight="SemiBold"/>
+
+            <InfoBar
+                x:Name="LicenseInfoBar"
+                IsOpen="True"
+                Severity="Informational"
+                Title="Checking license..."/>
+
+            <TextBlock
+                x:Name="LicenseDetailsText"
+                TextWrapping="Wrap"/>
+
+            <Button
+                x:Name="ActivateButton"
+                Content="Import License File"
+                Click="ActivateButton_Click"/>
+
+        </StackPanel>
+    </ScrollViewer>
+</Page>

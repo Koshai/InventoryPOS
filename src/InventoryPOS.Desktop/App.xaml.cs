@@ -1,6 +1,8 @@
 ﻿using InventoryPOS.Application;
 using InventoryPOS.Application.Common.Settings;
 using InventoryPOS.Application.Interfaces;
+using InventoryPOS.Application.Licensing;
+using InventoryPOS.Desktop.Licensing;
 using InventoryPOS.Desktop.Services;
 using InventoryPOS.Desktop.ViewModels;
 using InventoryPOS.Infrastructure;
@@ -48,6 +50,19 @@ public partial class App : Microsoft.UI.Xaml.Application
                 services.AddInfrastructure(
                     context.Configuration);
 
+                // InventoryPOS offline licensing
+                services.AddSingleton<
+                    IInstallationIdentityService,
+                    FileInstallationIdentityService>();
+
+                services.AddSingleton<ILicenseValidator>(
+                    _ => new RsaLicenseValidator(
+                        TrustedLicenseKeys.GetKeys()));
+
+                services.AddSingleton<
+                    ILicenseActivationService,
+                    FileLicenseActivationService>();
+
                 services.AddSingleton<MainWindow>();
 
                 services.AddSingleton<IRegionalSettingsService, RegionalSettingsService>();
@@ -56,6 +71,7 @@ public partial class App : Microsoft.UI.Xaml.Application
                 services.AddSingleton<IBusinessLogoProvider, BusinessLogoProvider>();
                 services.AddSingleton<IPendingCheckoutJournalService, PendingCheckoutJournalService>();
                 services.AddSingleton<IPendingCustomerPaymentJournalService, PendingCustomerPaymentJournalService>();
+                services.AddSingleton<ILicenseAccessGuard, LicenseAccessGuard>();
                 services.AddTransient<ProductsViewModel>();
                 services.AddTransient<AddProductViewModel>();
                 services.AddTransient<ProductDetailsViewModel>();
