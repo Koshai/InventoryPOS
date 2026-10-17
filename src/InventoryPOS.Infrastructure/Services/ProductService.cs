@@ -1,4 +1,5 @@
-﻿using InventoryPOS.Application.DTOs.Products;
+﻿using InventoryPOS.Application.Licensing;
+using InventoryPOS.Application.DTOs.Products;
 using InventoryPOS.Application.Interfaces;
 using InventoryPOS.Domain.Entities;
 using InventoryPOS.Infrastructure.Persistence;
@@ -10,9 +11,14 @@ public class ProductService : IProductService
 {
     private readonly InventoryPosDbContext _dbContext;
 
+    private readonly ILicenseAccessGuard _licenseAccessGuard;
+
+
     public ProductService(
-        InventoryPosDbContext dbContext)
+        InventoryPosDbContext dbContext,
+        ILicenseAccessGuard licenseAccessGuard)
     {
+        _licenseAccessGuard = licenseAccessGuard ?? throw new ArgumentNullException(nameof(licenseAccessGuard));
         _dbContext = dbContext;
     }
 
@@ -101,6 +107,8 @@ public class ProductService : IProductService
         CreateProductRequest request,
         CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
+
         ValidateProductValues(
             request.Name,
             request.SKU,
@@ -185,6 +193,8 @@ public class ProductService : IProductService
         UpdateProductRequest request,
         CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
+
         ValidateProductValues(
             request.Name,
             request.SKU,

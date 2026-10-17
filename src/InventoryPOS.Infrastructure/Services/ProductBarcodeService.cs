@@ -1,4 +1,5 @@
-﻿using InventoryPOS.Application.DTOs.Products;
+﻿using InventoryPOS.Application.Licensing;
+using InventoryPOS.Application.DTOs.Products;
 using InventoryPOS.Application.Interfaces;
 using InventoryPOS.Domain.Entities;
 using InventoryPOS.Domain.Enums;
@@ -12,9 +13,14 @@ public sealed class ProductBarcodeService
 {
     private readonly InventoryPosDbContext _db;
 
+    private readonly ILicenseAccessGuard _licenseAccessGuard;
+
+
     public ProductBarcodeService(
-        InventoryPosDbContext db)
+        InventoryPosDbContext db,
+        ILicenseAccessGuard licenseAccessGuard)
     {
+        _licenseAccessGuard = licenseAccessGuard ?? throw new ArgumentNullException(nameof(licenseAccessGuard));
         _db = db;
     }
 
@@ -80,6 +86,8 @@ public sealed class ProductBarcodeService
         bool isPrimary,
         CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
+
         if (productVariantId == Guid.Empty)
         {
             throw new InvalidOperationException(
@@ -209,6 +217,8 @@ public sealed class ProductBarcodeService
     Guid barcodeId,
     CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
+
         if (barcodeId == Guid.Empty)
         {
             return;

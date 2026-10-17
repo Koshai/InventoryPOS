@@ -1,4 +1,5 @@
-﻿using InventoryPOS.Application.DTOs.Suppliers;
+﻿using InventoryPOS.Application.Licensing;
+using InventoryPOS.Application.DTOs.Suppliers;
 using InventoryPOS.Application.Interfaces;
 using InventoryPOS.Domain.Entities;
 using InventoryPOS.Infrastructure.Persistence;
@@ -10,9 +11,14 @@ public class SupplierService : ISupplierService
 {
     private readonly InventoryPosDbContext _dbContext;
 
+    private readonly ILicenseAccessGuard _licenseAccessGuard;
+
+
     public SupplierService(
-        InventoryPosDbContext dbContext)
+        InventoryPosDbContext dbContext,
+        ILicenseAccessGuard licenseAccessGuard)
     {
+        _licenseAccessGuard = licenseAccessGuard ?? throw new ArgumentNullException(nameof(licenseAccessGuard));
         _dbContext = dbContext;
     }
 
@@ -61,6 +67,8 @@ public class SupplierService : ISupplierService
         CreateSupplierRequest request,
         CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
+
         Validate(request.SupplierCode, request.Name);
 
         var normalizedCode =
@@ -102,6 +110,8 @@ public class SupplierService : ISupplierService
         UpdateSupplierRequest request,
         CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
+
         if (request.Id == Guid.Empty)
         {
             throw new InvalidOperationException(

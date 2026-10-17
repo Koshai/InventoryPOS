@@ -69,8 +69,28 @@ public partial class App : Microsoft.UI.Xaml.Application
                 services.AddSingleton<IPdfPrintService, PdfPrintService>();
                 services.AddSingleton<IBusinessLogoService, BusinessLogoService>();
                 services.AddSingleton<IBusinessLogoProvider, BusinessLogoProvider>();
-                services.AddSingleton<IPendingCheckoutJournalService, PendingCheckoutJournalService>();
-                services.AddSingleton<IPendingCustomerPaymentJournalService, PendingCustomerPaymentJournalService>();
+                services.AddSingleton<IPendingCheckoutJournalService>(sp =>
+                {
+                    var configuration = sp.GetRequiredService<IConfiguration>();
+                    var dataRoot = configuration["Storage:DataRoot"];
+                    if (string.IsNullOrWhiteSpace(dataRoot))
+                        dataRoot = Path.Combine(
+                            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                            "InventoryPOS",
+                            "Data");
+                    return new PendingCheckoutJournalService(dataRoot);
+                });
+                services.AddSingleton<IPendingCustomerPaymentJournalService>(sp =>
+                {
+                    var configuration = sp.GetRequiredService<IConfiguration>();
+                    var dataRoot = configuration["Storage:DataRoot"];
+                    if (string.IsNullOrWhiteSpace(dataRoot))
+                        dataRoot = Path.Combine(
+                            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                            "InventoryPOS",
+                            "Data");
+                    return new PendingCustomerPaymentJournalService(dataRoot);
+                });
                 services.AddSingleton<ILicenseAccessGuard, LicenseAccessGuard>();
                 services.AddTransient<ProductsViewModel>();
                 services.AddTransient<AddProductViewModel>();

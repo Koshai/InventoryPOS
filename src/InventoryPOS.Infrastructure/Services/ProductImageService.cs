@@ -1,4 +1,5 @@
-﻿using InventoryPOS.Application.Interfaces;
+﻿using InventoryPOS.Application.Licensing;
+using InventoryPOS.Application.Interfaces;
 using InventoryPOS.Domain.Entities;
 using InventoryPOS.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -11,10 +12,15 @@ public class ProductImageService : IProductImageService
     private readonly InventoryPosDbContext _dbContext;
     private readonly string _dataRoot;
 
+    private readonly ILicenseAccessGuard _licenseAccessGuard;
+
+
     public ProductImageService(
         InventoryPosDbContext dbContext,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        ILicenseAccessGuard licenseAccessGuard)
     {
+        _licenseAccessGuard = licenseAccessGuard ?? throw new ArgumentNullException(nameof(licenseAccessGuard));
         _dbContext = dbContext;
 
         var configuredRoot =
@@ -35,6 +41,8 @@ public class ProductImageService : IProductImageService
         string sourceFilePath,
         CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
+
         if (!File.Exists(sourceFilePath))
         {
             throw new FileNotFoundException(
@@ -184,6 +192,8 @@ public class ProductImageService : IProductImageService
         Guid productId,
         CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
+
         var image =
             await _dbContext.ProductImages
                 .FirstOrDefaultAsync(

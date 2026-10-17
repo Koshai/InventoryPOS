@@ -1,4 +1,5 @@
-﻿using InventoryPOS.Application.DTOs.Sales;
+﻿using InventoryPOS.Application.Licensing;
+using InventoryPOS.Application.DTOs.Sales;
 using InventoryPOS.Application.Interfaces;
 using InventoryPOS.Application.Pricing;
 using InventoryPOS.Domain.Entities;
@@ -13,10 +14,15 @@ public class SalesQuoteService : ISalesQuoteService
     private readonly InventoryPosDbContext _dbContext;
     private readonly IPricingCalculator _pricingCalculator;
 
+    private readonly ILicenseAccessGuard _licenseAccessGuard;
+
+
     public SalesQuoteService(
         InventoryPosDbContext dbContext,
-        IPricingCalculator pricingCalculator)
+        IPricingCalculator pricingCalculator,
+        ILicenseAccessGuard licenseAccessGuard)
     {
+        _licenseAccessGuard = licenseAccessGuard ?? throw new ArgumentNullException(nameof(licenseAccessGuard));
         _dbContext = dbContext;
         _pricingCalculator = pricingCalculator;
     }
@@ -29,6 +35,8 @@ public class SalesQuoteService : ISalesQuoteService
         CreateSalesQuoteRequest request,
         CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
+
         ArgumentNullException.ThrowIfNull(request);
 
         // -----------------------------------------------------
@@ -687,6 +695,8 @@ public class SalesQuoteService : ISalesQuoteService
     Guid salesQuoteId,
     CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
+
         var quote =
             await _dbContext.SalesQuotes
                 .SingleOrDefaultAsync(
@@ -718,6 +728,8 @@ public class SalesQuoteService : ISalesQuoteService
         Guid salesQuoteId,
         CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
+
         var quote =
             await _dbContext.SalesQuotes
                 .SingleOrDefaultAsync(
@@ -757,6 +769,8 @@ public class SalesQuoteService : ISalesQuoteService
         Guid salesQuoteId,
         CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
+
         var quote =
             await _dbContext.SalesQuotes
                 .SingleOrDefaultAsync(
@@ -793,6 +807,8 @@ public class SalesQuoteService : ISalesQuoteService
         Guid salesQuoteId,
         CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
+
         var quote =
             await _dbContext.SalesQuotes
                 .SingleOrDefaultAsync(

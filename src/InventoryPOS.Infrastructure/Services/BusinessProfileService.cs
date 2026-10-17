@@ -1,4 +1,5 @@
-﻿using InventoryPOS.Application.DTOs.Settings;
+﻿using InventoryPOS.Application.Licensing;
+using InventoryPOS.Application.DTOs.Settings;
 using InventoryPOS.Application.Interfaces;
 using InventoryPOS.Domain.Entities;
 using InventoryPOS.Infrastructure.Persistence;
@@ -10,9 +11,14 @@ public sealed class BusinessProfileService : IBusinessProfileService
 {
     private readonly InventoryPosDbContext _dbContext;
 
+    private readonly ILicenseAccessGuard _licenseAccessGuard;
+
+
     public BusinessProfileService(
-        InventoryPosDbContext dbContext)
+        InventoryPosDbContext dbContext,
+        ILicenseAccessGuard licenseAccessGuard)
     {
+        _licenseAccessGuard = licenseAccessGuard ?? throw new ArgumentNullException(nameof(licenseAccessGuard));
         _dbContext = dbContext;
     }
 
@@ -34,6 +40,8 @@ public sealed class BusinessProfileService : IBusinessProfileService
         BusinessProfileDto profile,
         CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
+
         if (string.IsNullOrWhiteSpace(profile.BusinessName))
         {
             throw new InvalidOperationException(

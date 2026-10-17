@@ -6,6 +6,11 @@ namespace InventoryPOS.Desktop.Services;
 
 public interface IPendingCustomerPaymentJournalService
 {
+    /// <summary>
+    /// Absolute path of the durable recovery journal file.
+    /// </summary>
+    string JournalFilePath { get; }
+
     Task<PendingCustomerPayment?> LoadAsync(
         CancellationToken cancellationToken = default);
 

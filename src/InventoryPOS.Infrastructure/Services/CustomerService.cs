@@ -1,4 +1,5 @@
-﻿using InventoryPOS.Application.DTOs.Customers;
+﻿using InventoryPOS.Application.Licensing;
+using InventoryPOS.Application.DTOs.Customers;
 using InventoryPOS.Application.Interfaces;
 using InventoryPOS.Domain.Entities;
 using InventoryPOS.Infrastructure.Persistence;
@@ -10,9 +11,14 @@ public class CustomerService : ICustomerService
 {
     private readonly InventoryPosDbContext _dbContext;
 
+    private readonly ILicenseAccessGuard _licenseAccessGuard;
+
+
     public CustomerService(
-        InventoryPosDbContext dbContext)
+        InventoryPosDbContext dbContext,
+        ILicenseAccessGuard licenseAccessGuard)
     {
+        _licenseAccessGuard = licenseAccessGuard ?? throw new ArgumentNullException(nameof(licenseAccessGuard));
         _dbContext = dbContext;
     }
 
@@ -61,6 +67,8 @@ public class CustomerService : ICustomerService
         CreateCustomerRequest request,
         CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
+
         Validate(
             request.CustomerCode,
             request.Name,
@@ -116,6 +124,8 @@ public class CustomerService : ICustomerService
         UpdateCustomerRequest request,
         CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
+
         Validate(
             request.CustomerCode,
             request.Name,

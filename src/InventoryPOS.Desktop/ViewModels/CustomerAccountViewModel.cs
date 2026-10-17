@@ -305,16 +305,19 @@ public sealed class CustomerAccountViewModel : INotifyPropertyChanged
             if (_pendingPayment is not null)
             {
                 ErrorMessage =
-                    _pendingPayment.Request.CustomerId == customerId
+                    (_pendingPayment.Request.CustomerId == customerId
                         ? "An unresolved customer payment exists. " +
-                          "Use Retry Pending Payment before recording another payment."
+                          "Use Retry Pending Payment before recording another payment. "
                         : "An unresolved payment belongs to another customer. " +
-                          "Resolve that payment before recording new payments.";
+                          "Resolve that payment before recording new payments. ") +
+                    "Journal: " + _paymentJournal.JournalFilePath;
             }
         }
         catch (Exception ex)
         {
-            ErrorMessage = ex.Message;
+            ErrorMessage =
+                ex.Message +
+                " Journal: " + _paymentJournal.JournalFilePath;
             _paymentRecoveryBlocked = true;
         }
         finally
@@ -677,7 +680,9 @@ public sealed class CustomerAccountViewModel : INotifyPropertyChanged
                 _pendingPayment = null;
                 NotifyPaymentState();
 
-                ErrorMessage = "No pending payment was found.";
+                ErrorMessage =
+                    "No pending payment was found. Expected journal: " +
+                    _paymentJournal.JournalFilePath;
                 return false;
             }
 

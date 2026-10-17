@@ -1191,7 +1191,7 @@
                             Padding="20,10"
                             FontSize="15"
                             FontWeight="SemiBold"
-                            IsEnabled="{Binding HasItems}"
+                            IsEnabled="{Binding CanCompleteSale}"
                             Click="CompleteSaleButton_Click" />
 
                     </Grid>

@@ -1,0 +1,104 @@
+BusinessProfileService.cs:19: public async Task<BusinessProfileDto?> GetAsync(
+BusinessProfileService.cs:33: public async Task<BusinessProfileDto> SaveAsync(
+CatalogLookupService.cs:18: public async Task<IReadOnlyList<CategoryLookupDto>>
+CatalogLookupService.cs:34: public async Task<IReadOnlyList<BrandLookupDto>>
+CatalogLookupService.cs:50: public async Task<IReadOnlyList<UnitLookupDto>>
+CustomerAccountService.cs:43: public async Task<CustomerAccountDto?> GetAccountAsync(
+CustomerAccountService.cs:147: public async Task<CustomerPaymentResultDto>
+CustomerAccountService.cs:293: public async Task<CustomerPaymentResultDto>
+CustomerService.cs:19: public async Task<IReadOnlyList<CustomerListItemDto>>
+CustomerService.cs:39: public async Task<CustomerDetailsDto?> GetByIdAsync(
+CustomerService.cs:60: public async Task<Guid> CreateAsync(
+CustomerService.cs:115: public async Task UpdateAsync(
+DocumentIdentifierService.cs:27: public async Task<DocumentIdentifierDto> GetOrCreateAsync(
+DocumentIdentifierService.cs:175: public async Task<DocumentIdentifierDto?> ResolveTokenAsync(
+DocumentIdentifierService.cs:201: public async Task<DocumentIdentifierDto?> ResolvePayloadAsync(
+DocumentIdentifierService.cs:217: public async Task RevokeAsync(
+DocumentLookupService.cs:19: public async Task<DocumentLookupResultDto?> ResolveAsync(
+DocumentQrService.cs:27: public async Task<DocumentQrDto> GenerateAsync(
+GoodsReceiptService.cs:20: public async Task<ReceivePurchaseOrderDto?>
+GoodsReceiptService.cs:90: public async Task<Guid> CreateReceiptAsync(
+GoodsReceiptService.cs:424: public async Task<IReadOnlyList<GoodsReceiptListItemDto>>
+GoodsReceiptService.cs:453: public async Task<GoodsReceiptDetailsDto?> GetByIdAsync(
+InventoryService.cs:20: public async Task<IReadOnlyList<InventoryItemDto>>
+InventoryService.cs:60: public async Task SetOpeningStockAsync(
+InventoryService.cs:214: public async Task<IReadOnlyList<InventoryProductLookupDto>>
+InventoryService.cs:242: public async Task<IReadOnlyList<LocationLookupDto>>
+InventoryService.cs:260: public async Task<IReadOnlyList<InventoryLedgerItemDto>>
+InvoicePdfService.cs:48: public async Task<byte[]> GenerateInvoicePdfAsync(
+ProductBarcodeLabelService.cs:30: public async Task<byte[]> GenerateLabelPdfAsync(
+ProductBarcodeRenderService.cs:23: public async Task<
+ProductBarcodeRenderService.cs:195: public async Task<ProductBarcodeRenderDto?>
+ProductBarcodeService.cs:21: public async Task<IReadOnlyList<ProductBarcodeDto>>
+ProductBarcodeService.cs:46: public async Task<ProductBarcodeLookupDto?>
+ProductBarcodeService.cs:75: public async Task<ProductBarcodeDto>
+ProductBarcodeService.cs:208: public async Task DeleteAsync(
+ProductImageService.cs:33: public async Task<string> SetPrimaryImageAsync(
+ProductImageService.cs:155: public async Task<string?> GetPrimaryImagePathAsync(
+ProductImageService.cs:183: public async Task RemovePrimaryImageAsync(
+ProductService.cs:19: public async Task<IReadOnlyList<ProductListItemDto>>
+ProductService.cs:54: public async Task<ProductDetailsDto?> GetByIdAsync(
+ProductService.cs:100: public async Task<Guid> CreateAsync(
+ProductService.cs:184: public async Task UpdateAsync(
+PurchaseOrderService.cs:21: public async Task<IReadOnlyList<PurchaseOrderListItemDto>> GetAllAsync(
+PurchaseOrderService.cs:43: public async Task<PurchaseOrderDetailsDto?> GetByIdAsync(
+PurchaseOrderService.cs:83: public async Task<IReadOnlyList<SupplierLookupDto>> GetSuppliersAsync(
+PurchaseOrderService.cs:99: public async Task<IReadOnlyList<InventoryProductLookupDto>>
+PurchaseOrderService.cs:127: public async Task<IReadOnlyList<LocationLookupDto>> GetLocationsAsync(
+PurchaseOrderService.cs:143: public async Task<Guid> CreateAsync(
+PurchaseRequisitionPdfService.cs:40: public async Task<byte[]> GeneratePdfAsync(
+PurchaseRequisitionService.cs:20: public async Task<PurchaseRequisitionResultDto> CreateAsync(
+PurchaseRequisitionService.cs:214: public async Task<
+PurchaseRequisitionService.cs:292: public async Task<PurchaseRequisitionDetailsDto?>
+PurchaseRequisitionService.cs:406: public async Task MarkAsSentAsync(
+PurchaseRequisitionService.cs:464: public async Task CancelAsync(
+PurchaseRequisitionService.cs:515: public async Task<PurchaseRequisitionToPurchaseOrderDto>
+PurchaseRequisitionService.cs:589: public async Task<Guid> ConvertToPurchaseOrderAsync(
+PurchaseReturnService.cs:25: public async Task<PurchaseReturnableReceiptDto?>
+PurchaseReturnService.cs:176: public async Task<PurchaseReturnResultDto>
+PurchaseReturnService.cs:573: public async Task<IReadOnlyList<PurchaseReturnHistoryDto>>
+PurchaseReturnService.cs:636: public async Task<PurchaseReturnDetailsDto?>
+SaleFinancialService.cs:20: public async Task<SaleFinancialStateDto>
+SaleFinancialService.cs:41: public async Task<Dictionary<Guid, SaleFinancialStateDto>>
+SaleService.cs:36: public async Task<IReadOnlyList<PosProductDto>>
+SaleService.cs:77: public async Task<IReadOnlyList<PosCustomerDto>>
+SaleService.cs:141: public async Task<IReadOnlyList<LocationLookupDto>>
+SaleService.cs:159: public async Task<SaleResultDto?> FindCommittedCheckoutAsync(
+SaleService.cs:186: public async Task<SaleResultDto> CreateSaleAsync(
+SaleService.cs:1132: public async Task<SalesHistoryResultDto> GetSalesHistoryAsync(
+SaleService.cs:1321: public async Task<SaleDetailsDto?> GetSaleDetailsAsync(
+SalesQuotePdfService.cs:50: public async Task<byte[]> GenerateQuotationPdfAsync(
+SalesQuoteService.cs:28: public async Task<SalesQuoteResultDto> CreateAsync(
+SalesQuoteService.cs:401: public async Task<
+SalesQuoteService.cs:498: public async Task<SalesQuoteDetailsDto?>
+SalesQuoteService.cs:686: public async Task IssueAsync(
+SalesQuoteService.cs:717: public async Task AcceptAsync(
+SalesQuoteService.cs:756: public async Task CancelAsync(
+SalesQuoteService.cs:792: public async Task ExpireAsync(
+SalesReturnService.cs:32: public async Task<SalesReturnableSaleDto?>
+SalesReturnService.cs:241: public async Task<SalesReturnHistoryResultDto>
+SalesReturnService.cs:432: public async Task<SalesReturnDetailsDto?>
+SalesReturnService.cs:602: public async Task<CreateSalesReturnResultDto>
+StockAdjustmentService.cs:20: public async Task<StockAdjustmentResultDto> CreateAsync(
+StockAdjustmentService.cs:241: public async Task<decimal?> GetCurrentQuantityAsync(
+StockAdjustmentService.cs:255: public async Task<StockAdjustmentDetailsDto?> GetByIdAsync(
+SupplierService.cs:19: public async Task<IReadOnlyList<SupplierListItemDto>> GetAllAsync(
+SupplierService.cs:38: public async Task<SupplierDetailsDto?> GetByIdAsync(
+SupplierService.cs:60: public async Task<Guid> CreateAsync(
+SupplierService.cs:101: public async Task UpdateAsync(
+WarrantyClaimManagementService.cs:22: public async Task StartInspectionAsync(
+WarrantyClaimManagementService.cs:61: public async Task SaveInspectionAsync(
+WarrantyClaimManagementService.cs:166: public async Task ApproveAsync(
+WarrantyClaimManagementService.cs:219: public async Task RejectAsync(
+WarrantyClaimManagementService.cs:272: public Task StartRepairAsync(
+WarrantyClaimManagementService.cs:282: public Task PrepareReplacementAsync(
+WarrantyClaimManagementService.cs:385: public async Task SaveTechnicianNotesAsync(
+WarrantyClaimManagementService.cs:445: public async Task CompleteRepairAsync(
+WarrantyClaimPdfService.cs:43: public async Task<byte[]> GenerateWarrantyClaimPdfAsync(
+WarrantyClaimQueryService.cs:19: public async Task<WarrantyClaimPageDto> SearchAsync(
+WarrantyClaimQueryService.cs:121: public async Task<WarrantyClaimDetailsDto?> GetDetailsAsync(
+WarrantyClaimService.cs:27: public async Task<RegisterWarrantyClaimResultDto> RegisterAsync(
+WarrantyLookupService.cs:20: public async Task<WarrantyInvoiceSearchPageDto> SearchInvoicesAsync(
+WarrantyLookupService.cs:133: public async Task<WarrantyLookupResultDto?> GetByInvoiceNumberAsync(
+WarrantyLookupService.cs:156: public async Task<WarrantyLookupResultDto?> GetBySaleIdAsync(
+WarrantyReplacementService.cs:22: public async Task<IssueWarrantyReplacementResult> IssueAsync(

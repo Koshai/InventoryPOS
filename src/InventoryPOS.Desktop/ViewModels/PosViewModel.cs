@@ -1,6 +1,7 @@
 ﻿using InventoryPOS.Application.DTOs.Inventory;
 using InventoryPOS.Application.DTOs.Sales;
 using InventoryPOS.Application.Interfaces;
+using InventoryPOS.Application.Licensing;
 using InventoryPOS.Application.Pricing;
 using InventoryPOS.Domain.Enums;
 using InventoryPOS.Desktop.Services;
@@ -68,6 +69,15 @@ public class PosViewModel : INotifyPropertyChanged
     public bool CanEditCart => !HasLoadedQuote && !HasPendingCheckout && !_checkoutJournalLoadFailed;
 
     public bool CanCreateQuote => HasItems && !HasLoadedQuote && !HasPendingCheckout && !_checkoutJournalLoadFailed;
+
+    /// <summary>
+    /// Complete Sale must stay available for a recovered journal even when the
+    /// on-screen cart is empty (retry uses the journaled request, not the UI).
+    /// </summary>
+    public bool CanCompleteSale =>
+        !IsSaving &&
+        !_checkoutJournalLoadFailed &&
+        (HasPendingCheckout || HasItems);
 
     // ---------------------------------------------------------
     // Collections
@@ -382,6 +392,7 @@ public class PosViewModel : INotifyPropertyChanged
             _isSaving = value;
 
             OnPropertyChanged();
+            OnPropertyChanged(nameof(CanCompleteSale));
         }
     }
 
@@ -555,13 +566,18 @@ public class PosViewModel : INotifyPropertyChanged
                 if (recovered is not null)
                 {
                     SetPendingCheckout(recovered, true);
-                    ErrorMessage = "An unfinished checkout was recovered. Use Complete Sale to retry the original request.";
+                    ErrorMessage =
+                        "An unfinished checkout was recovered. Use Complete Sale to retry the original request. " +
+                        "Journal: " + _checkoutJournal.JournalFilePath;
                 }
             }
             catch (Exception journalError)
             {
                 _checkoutJournalLoadFailed = true;
-                ErrorMessage = "Checkout recovery journal could not be read. New checkout is blocked: " + journalError.Message;
+                ErrorMessage =
+                    "Checkout recovery journal could not be read. New checkout is blocked: " +
+                    journalError.Message +
+                    " Journal: " + _checkoutJournal.JournalFilePath;
             }
 
             await LoadPricingSettingsAsync();
@@ -617,7 +633,8 @@ public class PosViewModel : INotifyPropertyChanged
                     {
                         ErrorMessage =
                             "Recovered checkout was not found in the database. " +
-                            "Review it and use Complete Sale to retry the original request.";
+                            "Review it and use Complete Sale to retry the original request. " +
+                            "Journal: " + _checkoutJournal.JournalFilePath;
                     }
                 }
                 catch (Exception reconciliationError)
@@ -625,7 +642,8 @@ public class PosViewModel : INotifyPropertyChanged
                     ErrorMessage =
                         "Checkout reconciliation could not be completed. " +
                         "The original request remains locked for recovery: " +
-                        reconciliationError.Message;
+                        reconciliationError.Message +
+                        " Journal: " + _checkoutJournal.JournalFilePath;
                 }
             }
         }
@@ -692,7 +710,10 @@ public class PosViewModel : INotifyPropertyChanged
         try
         {
             IsLoading = true;
-            ErrorMessage = null;
+
+            // Do not clear a pending-checkout recovery message while products load.
+            if (!HasPendingCheckout && !_checkoutJournalLoadFailed)
+                ErrorMessage = null;
 
             var products =
                 await _saleService
@@ -1102,6 +1123,7 @@ public class PosViewModel : INotifyPropertyChanged
 
         OnPropertyChanged(nameof(HasItems));
         OnPropertyChanged(nameof(CanCreateQuote));
+        OnPropertyChanged(nameof(CanCompleteSale));
         NotifyPricingVisibilityChanged();
         OnPropertyChanged(nameof(TaxDisplay));
 
@@ -2002,6 +2024,16 @@ public class PosViewModel : INotifyPropertyChanged
             await HandleCompletedSaleAsync(result);
             return result;
         }
+        catch (LicenseAccessDeniedException ex)
+        {
+            // License rejection happens before any sale row is written.
+            // Drop the journal so POS is not locked into recovery.
+            var cleared = await AbandonPreCommitCheckoutAsync();
+            ErrorMessage = cleared
+                ? ex.Message
+                : (ErrorMessage ?? ex.Message);
+            return null;
+        }
         catch (Exception ex)
         {
             ErrorMessage =
@@ -2034,6 +2066,13 @@ public class PosViewModel : INotifyPropertyChanged
             await HandleCompletedSaleAsync(result);
             return result;
         }
+        catch (LicenseAccessDeniedException ex)
+        {
+            // Still not committed. Keep the journal so the same request can be
+            // retried after the license is restored (idempotent checkout id).
+            ErrorMessage = ex.Message;
+            return null;
+        }
         catch (Exception ex)
         {
             _checkoutOutcomeUncertain = true;
@@ -2045,6 +2084,32 @@ public class PosViewModel : INotifyPropertyChanged
         {
             IsSaving = false;
         }
+    }
+
+    /// <summary>
+    /// Removes a journal written for a request that never reached a durable sale.
+    /// </summary>
+    /// <returns>True when the pending journal was cleared (or none existed).</returns>
+    private async Task<bool> AbandonPreCommitCheckoutAsync()
+    {
+        var pending = _pendingCheckoutRequest;
+        if (pending is null)
+            return true;
+
+        try
+        {
+            await _checkoutJournal.ClearAsync(pending.CheckoutRequestId);
+        }
+        catch (Exception clearError)
+        {
+            ErrorMessage =
+                "License blocked the sale, but the recovery journal could not be cleared: " +
+                clearError.Message;
+            return false;
+        }
+
+        SetPendingCheckout(null, false);
+        return true;
     }
 
     private async Task HandleCompletedSaleAsync(SaleResultDto result)
@@ -2189,6 +2254,7 @@ public class PosViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(CheckoutOutcomeUncertain));
         OnPropertyChanged(nameof(CanEditCart));
         OnPropertyChanged(nameof(CanCreateQuote));
+        OnPropertyChanged(nameof(CanCompleteSale));
     }
 
     private bool RejectPendingCheckoutEdit()

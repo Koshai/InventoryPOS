@@ -1,4 +1,5 @@
-﻿using InventoryPOS.Application.DTOs.SalesReturns;
+﻿using InventoryPOS.Application.Licensing;
+using InventoryPOS.Application.DTOs.SalesReturns;
 using InventoryPOS.Application.Interfaces;
 using InventoryPOS.Application.Pricing;
 using InventoryPOS.Domain.Entities;
@@ -17,10 +18,15 @@ public sealed class SalesReturnService :
     private readonly InventoryPosDbContext _dbContext;
     private readonly ISaleFinancialService _financialService;
 
+    private readonly ILicenseAccessGuard _licenseAccessGuard;
+
+
     public SalesReturnService(
         InventoryPosDbContext dbContext,
-        ISaleFinancialService financialService)
+        ISaleFinancialService financialService,
+        ILicenseAccessGuard licenseAccessGuard)
     {
+        _licenseAccessGuard = licenseAccessGuard ?? throw new ArgumentNullException(nameof(licenseAccessGuard));
         _dbContext = dbContext;
         _financialService = financialService;
     }
@@ -604,6 +610,8 @@ public sealed class SalesReturnService :
             CreateSalesReturnRequest request,
             CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
+
         ValidateCreateRequest(
             request);
 

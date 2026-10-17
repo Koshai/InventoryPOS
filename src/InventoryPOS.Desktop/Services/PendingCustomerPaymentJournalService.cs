@@ -7,13 +7,17 @@ using System.Threading.Tasks;
 namespace InventoryPOS.Desktop.Services;
 
 /// <summary>
-/// Stores one unresolved customer payment per Windows user profile.
+/// Stores one unresolved customer payment per workstation.
+/// Stored under Storage:DataRoot (not MSIX LocalCache) so operators can find it.
 /// PostgreSQL remains the authority on whether payment committed.
 /// </summary>
 public sealed class PendingCustomerPaymentJournalService
     : IPendingCustomerPaymentJournalService
 {
+    private const string FileName = "pending-customer-payment.json";
+
     private readonly string _path;
+    private readonly string? _legacyPath;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -22,21 +26,31 @@ public sealed class PendingCustomerPaymentJournalService
     };
 
     public PendingCustomerPaymentJournalService()
+        : this(ResolveDefaultDataRoot())
     {
-        var directory = Path.Combine(
-            Environment.GetFolderPath(
-                Environment.SpecialFolder.LocalApplicationData),
-            "InventoryPOS",
-            "CustomerPaymentRecovery");
-
-        _path = Path.Combine(
-            directory,
-            "pending-customer-payment.json");
     }
+
+    public PendingCustomerPaymentJournalService(string dataRoot)
+    {
+        if (string.IsNullOrWhiteSpace(dataRoot))
+            throw new ArgumentException("Data root is required.", nameof(dataRoot));
+
+        var directory = Path.Combine(dataRoot.Trim(), "CustomerPaymentRecovery");
+        _path = Path.Combine(directory, FileName);
+        _legacyPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "InventoryPOS",
+            "CustomerPaymentRecovery",
+            FileName);
+    }
+
+    public string JournalFilePath => _path;
 
     public async Task<PendingCustomerPayment?> LoadAsync(
         CancellationToken cancellationToken = default)
     {
+        MigrateLegacyJournalIfNeeded();
+
         if (!File.Exists(_path))
             return null;
 
@@ -64,6 +78,7 @@ public sealed class PendingCustomerPaymentJournalService
         CancellationToken cancellationToken = default)
     {
         Validate(payment);
+        MigrateLegacyJournalIfNeeded();
 
         Directory.CreateDirectory(
             Path.GetDirectoryName(_path)!);
@@ -72,7 +87,8 @@ public sealed class PendingCustomerPaymentJournalService
         {
             throw new InvalidOperationException(
                 "An unresolved customer payment already exists. " +
-                "Reconcile it before recording another payment.");
+                "Reconcile it before recording another payment. " +
+                "Journal: " + _path);
         }
 
         var temporaryPath =
@@ -116,12 +132,13 @@ public sealed class PendingCustomerPaymentJournalService
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        MigrateLegacyJournalIfNeeded();
 
         if (!File.Exists(_path))
         {
             throw new IOException(
                 "The pending customer payment journal is missing. " +
-                "Recovery requires review.");
+                "Recovery requires review. Expected: " + _path);
         }
 
         var saved = await LoadAsync(cancellationToken);
@@ -131,10 +148,34 @@ public sealed class PendingCustomerPaymentJournalService
         {
             throw new InvalidOperationException(
                 "Customer payment journal ID mismatch. " +
-                "Refusing to clear it.");
+                "Refusing to clear it. Journal: " + _path);
         }
 
         File.Delete(_path);
+    }
+
+    private void MigrateLegacyJournalIfNeeded()
+    {
+        if (File.Exists(_path) || string.IsNullOrWhiteSpace(_legacyPath) || !File.Exists(_legacyPath))
+            return;
+
+        Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
+        File.Move(_legacyPath, _path, overwrite: false);
+
+        try
+        {
+            var legacyDirectory = Path.GetDirectoryName(_legacyPath);
+            if (legacyDirectory is not null &&
+                Directory.Exists(legacyDirectory) &&
+                Directory.GetFileSystemEntries(legacyDirectory).Length == 0)
+            {
+                Directory.Delete(legacyDirectory);
+            }
+        }
+        catch
+        {
+            // Best-effort cleanup of the empty legacy folder.
+        }
     }
 
     private static void Validate(
@@ -143,7 +184,7 @@ public sealed class PendingCustomerPaymentJournalService
         if (payment?.Request is null)
         {
             throw new InvalidDataException(
-                "Pending customer payment journal is invalid.");
+                "Pending customer payment journal is invalid. Journal may be at a DataRoot path.");
         }
 
         var request = payment.Request;
@@ -172,4 +213,10 @@ public sealed class PendingCustomerPaymentJournalService
                 "General account payment must not specify an invoice.");
         }
     }
+
+    private static string ResolveDefaultDataRoot() =>
+        Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            "InventoryPOS",
+            "Data");
 }

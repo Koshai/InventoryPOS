@@ -430,7 +430,7 @@ public sealed class LicenseDatabaseIntegrationTests
         {
             CallCount++;
 
-            throw new InvalidOperationException(
+            throw new LicenseAccessDeniedException(
                 "License expired: write operations are disabled.");
         }
     }

@@ -1,4 +1,5 @@
-﻿using System.Data;
+﻿using InventoryPOS.Application.Licensing;
+using System.Data;
 using InventoryPOS.Application.DTOs.WarrantyClaims;
 using InventoryPOS.Application.Interfaces;
 using InventoryPOS.Domain.Entities;
@@ -13,9 +14,14 @@ public sealed class WarrantyReplacementService
 {
     private readonly InventoryPosDbContext _db;
 
+    private readonly ILicenseAccessGuard _licenseAccessGuard;
+
+
     public WarrantyReplacementService(
-        InventoryPosDbContext db)
+        InventoryPosDbContext db,
+        ILicenseAccessGuard licenseAccessGuard)
     {
+        _licenseAccessGuard = licenseAccessGuard ?? throw new ArgumentNullException(nameof(licenseAccessGuard));
         _db = db;
     }
 
@@ -23,6 +29,8 @@ public sealed class WarrantyReplacementService
         IssueWarrantyReplacementRequest request,
         CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
+
         if (request.ClaimId == Guid.Empty ||
             request.ClaimItemId == Guid.Empty)
         {

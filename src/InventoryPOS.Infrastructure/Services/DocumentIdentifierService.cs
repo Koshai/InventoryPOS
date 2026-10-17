@@ -1,4 +1,5 @@
-﻿using System.Security.Cryptography;
+﻿using InventoryPOS.Application.Licensing;
+using System.Security.Cryptography;
 using InventoryPOS.Application.DTOs.Documents;
 using InventoryPOS.Application.Interfaces;
 using InventoryPOS.Domain.Entities;
@@ -18,9 +19,14 @@ public sealed class DocumentIdentifierService
 
     private readonly InventoryPosDbContext _db;
 
+    private readonly ILicenseAccessGuard _licenseAccessGuard;
+
+
     public DocumentIdentifierService(
-        InventoryPosDbContext db)
+        InventoryPosDbContext db,
+        ILicenseAccessGuard licenseAccessGuard)
     {
+        _licenseAccessGuard = licenseAccessGuard ?? throw new ArgumentNullException(nameof(licenseAccessGuard));
         _db = db;
     }
 
@@ -29,6 +35,8 @@ public sealed class DocumentIdentifierService
     Guid documentId,
     CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
+
         ValidateDocumentType(documentType);
 
         if (documentId == Guid.Empty)
@@ -219,6 +227,8 @@ public sealed class DocumentIdentifierService
         Guid documentId,
         CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
+
         ValidateDocumentType(documentType);
 
         if (documentId == Guid.Empty)

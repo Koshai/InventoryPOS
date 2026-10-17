@@ -1,4 +1,5 @@
-﻿using InventoryPOS.Application.DTOs.Purchasing;
+﻿using InventoryPOS.Application.Licensing;
+using InventoryPOS.Application.DTOs.Purchasing;
 using InventoryPOS.Application.Interfaces;
 using InventoryPOS.Domain.Entities;
 using InventoryPOS.Domain.Enums;
@@ -12,9 +13,14 @@ public class PurchaseReturnService
 {
     private readonly InventoryPosDbContext _dbContext;
 
+    private readonly ILicenseAccessGuard _licenseAccessGuard;
+
+
     public PurchaseReturnService(
-        InventoryPosDbContext dbContext)
+        InventoryPosDbContext dbContext,
+        ILicenseAccessGuard licenseAccessGuard)
     {
+        _licenseAccessGuard = licenseAccessGuard ?? throw new ArgumentNullException(nameof(licenseAccessGuard));
         _dbContext = dbContext;
     }
 
@@ -178,6 +184,8 @@ public class PurchaseReturnService
             CreatePurchaseReturnRequest request,
             CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
+
         ValidateRequest(request);
 
         await using var transaction =

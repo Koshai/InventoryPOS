@@ -1,4 +1,5 @@
-﻿using System;
+﻿using InventoryPOS.Application.Licensing;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -18,9 +19,14 @@ public sealed class WarrantyClaimService : IWarrantyClaimService
 {
     private readonly InventoryPosDbContext _dbContext;
 
+    private readonly ILicenseAccessGuard _licenseAccessGuard;
+
+
     public WarrantyClaimService(
-        InventoryPosDbContext dbContext)
+        InventoryPosDbContext dbContext,
+        ILicenseAccessGuard licenseAccessGuard)
     {
+        _licenseAccessGuard = licenseAccessGuard ?? throw new ArgumentNullException(nameof(licenseAccessGuard));
         _dbContext = dbContext;
     }
 
@@ -28,6 +34,8 @@ public sealed class WarrantyClaimService : IWarrantyClaimService
         RegisterWarrantyClaimRequest request,
         CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
+
         ArgumentNullException.ThrowIfNull(request);
 
         if (request.SaleId == Guid.Empty)

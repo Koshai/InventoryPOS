@@ -31,7 +31,7 @@ public sealed class LicenseAccessGuardTests
         var activation = new FakeActivationService(status);
         var guard = new LicenseAccessGuard(activation);
 
-        var exception = Assert.Throws<InvalidOperationException>(
+        var exception = Assert.Throws<LicenseAccessDeniedException>(
             () => guard.EnsureCanWrite());
 
         Assert.Contains(status.ToString(), exception.Message);
@@ -50,7 +50,7 @@ public sealed class LicenseAccessGuardTests
 
         activation.Status = LicenseStatus.Expired;
 
-        Assert.Throws<InvalidOperationException>(
+        Assert.Throws<LicenseAccessDeniedException>(
             () => guard.EnsureCanWrite());
 
         Assert.Equal(2, activation.StatusCheckCount);

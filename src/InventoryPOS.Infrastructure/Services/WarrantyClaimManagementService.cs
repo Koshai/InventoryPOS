@@ -1,4 +1,5 @@
-﻿using System.Data;
+﻿using InventoryPOS.Application.Licensing;
+using System.Data;
 using InventoryPOS.Application.DTOs.WarrantyClaims;
 using InventoryPOS.Application.Interfaces;
 using InventoryPOS.Domain.Entities;
@@ -13,9 +14,14 @@ public sealed class WarrantyClaimManagementService
 {
     private readonly InventoryPosDbContext _db;
 
+    private readonly ILicenseAccessGuard _licenseAccessGuard;
+
+
     public WarrantyClaimManagementService(
-        InventoryPosDbContext db)
+        InventoryPosDbContext db,
+        ILicenseAccessGuard licenseAccessGuard)
     {
+        _licenseAccessGuard = licenseAccessGuard ?? throw new ArgumentNullException(nameof(licenseAccessGuard));
         _db = db;
     }
 
@@ -23,6 +29,8 @@ public sealed class WarrantyClaimManagementService
         Guid claimId,
         CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
+
         RequireClaimId(claimId);
 
         await using var transaction =
@@ -62,6 +70,8 @@ public sealed class WarrantyClaimManagementService
         SaveWarrantyInspectionRequest request,
         CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
+
         ArgumentNullException.ThrowIfNull(request);
         RequireClaimId(request.ClaimId);
 
@@ -167,6 +177,8 @@ public sealed class WarrantyClaimManagementService
         DecideWarrantyClaimRequest request,
         CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
+
         ArgumentNullException.ThrowIfNull(request);
         RequireClaimId(request.ClaimId);
 
@@ -220,6 +232,8 @@ public sealed class WarrantyClaimManagementService
         DecideWarrantyClaimRequest request,
         CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
+
         ArgumentNullException.ThrowIfNull(request);
         RequireClaimId(request.ClaimId);
 
@@ -273,6 +287,8 @@ public sealed class WarrantyClaimManagementService
         StartWarrantyProcessingRequest request,
         CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
+
         return StartProcessingAsync(
             request,
             WarrantyClaimStatus.InRepair,
@@ -283,6 +299,8 @@ public sealed class WarrantyClaimManagementService
         StartWarrantyProcessingRequest request,
         CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
+
         return StartProcessingAsync(
             request,
             WarrantyClaimStatus.AwaitingReplacement,
@@ -388,6 +406,8 @@ public sealed class WarrantyClaimManagementService
         string technicianNotes,
         CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
+
         RequireClaimId(claimId);
 
         if (claimItemId == Guid.Empty)
@@ -446,6 +466,8 @@ public sealed class WarrantyClaimManagementService
         CompleteWarrantyRepairRequest request,
         CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
+
         ArgumentNullException.ThrowIfNull(request);
         RequireClaimId(request.ClaimId);
 

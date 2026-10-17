@@ -18,7 +18,7 @@ public sealed class LicenseAccessGuard : ILicenseAccessGuard
         if (result.IsUsable)
             return;
 
-        throw new InvalidOperationException(
+        throw new LicenseAccessDeniedException(
             $"InventoryPOS cannot perform this operation. " +
             $"License status: {result.Status}. " +
             result.Message);

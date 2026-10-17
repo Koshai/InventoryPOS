@@ -171,7 +171,7 @@ public sealed class LicenseInventoryIntegrationTests
     {
         public void EnsureCanWrite()
         {
-            throw new InvalidOperationException(
+            throw new LicenseAccessDeniedException(
                 "InventoryPOS cannot perform this operation. " +
                 "License status: Expired.");
         }
