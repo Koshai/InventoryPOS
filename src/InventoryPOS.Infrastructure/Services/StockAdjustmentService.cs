@@ -1,5 +1,6 @@
 ﻿using InventoryPOS.Application.DTOs.Inventory;
 using InventoryPOS.Application.Interfaces;
+using InventoryPOS.Application.Licensing;
 using InventoryPOS.Domain.Entities;
 using InventoryPOS.Domain.Enums;
 using InventoryPOS.Infrastructure.Persistence;
@@ -10,17 +11,21 @@ namespace InventoryPOS.Infrastructure.Services;
 public class StockAdjustmentService : IStockAdjustmentService
 {
     private readonly InventoryPosDbContext _dbContext;
+    private readonly ILicenseAccessGuard _licenseAccessGuard;
 
     public StockAdjustmentService(
-        InventoryPosDbContext dbContext)
+        InventoryPosDbContext dbContext,
+        ILicenseAccessGuard licenseAccessGuard)
     {
         _dbContext = dbContext;
+        _licenseAccessGuard = licenseAccessGuard;
     }
 
     public async Task<StockAdjustmentResultDto> CreateAsync(
         CreateStockAdjustmentRequest request,
         CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
         if (request.ProductVariantId == Guid.Empty)
         {
             throw new InvalidOperationException(

@@ -1,5 +1,6 @@
 ﻿using InventoryPOS.Application.DTOs.Purchasing;
 using InventoryPOS.Application.Interfaces;
+using InventoryPOS.Application.Licensing;
 using InventoryPOS.Domain.Entities;
 using InventoryPOS.Domain.Enums;
 using InventoryPOS.Infrastructure.Persistence;
@@ -10,11 +11,14 @@ namespace InventoryPOS.Infrastructure.Services;
 public class GoodsReceiptService : IGoodsReceiptService
 {
     private readonly InventoryPosDbContext _dbContext;
+    private readonly ILicenseAccessGuard _licenseAccessGuard;
 
     public GoodsReceiptService(
-        InventoryPosDbContext dbContext)
+        InventoryPosDbContext dbContext,
+        ILicenseAccessGuard licenseAccessGuard)
     {
         _dbContext = dbContext;
+        _licenseAccessGuard = licenseAccessGuard;
     }
 
     public async Task<ReceivePurchaseOrderDto?>
@@ -91,6 +95,7 @@ public class GoodsReceiptService : IGoodsReceiptService
     CreateGoodsReceiptRequest request,
     CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
         if (request.PurchaseOrderId == Guid.Empty)
             throw new InvalidOperationException(
                 "Purchase order is required.");

@@ -1,5 +1,6 @@
 ﻿using InventoryPOS.Application.DTOs.Purchasing;
 using InventoryPOS.Application.Interfaces;
+using InventoryPOS.Application.Licensing;
 using InventoryPOS.Domain.Entities;
 using InventoryPOS.Domain.Enums;
 using InventoryPOS.Infrastructure.Persistence;
@@ -10,17 +11,21 @@ namespace InventoryPOS.Infrastructure.Services;
 public class PurchaseRequisitionService : IPurchaseRequisitionService
 {
     private readonly InventoryPosDbContext _dbContext;
+    private readonly ILicenseAccessGuard _licenseAccessGuard;
 
     public PurchaseRequisitionService(
-        InventoryPosDbContext dbContext)
+        InventoryPosDbContext dbContext,
+        ILicenseAccessGuard licenseAccessGuard)
     {
         _dbContext = dbContext;
+        _licenseAccessGuard = licenseAccessGuard;
     }
 
     public async Task<PurchaseRequisitionResultDto> CreateAsync(
         CreatePurchaseRequisitionRequest request,
         CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
         if (request.SupplierId == Guid.Empty)
             throw new InvalidOperationException(
                 "A supplier is required.");
@@ -407,6 +412,7 @@ public class PurchaseRequisitionService : IPurchaseRequisitionService
     Guid purchaseRequisitionId,
     CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
         if (purchaseRequisitionId == Guid.Empty)
             throw new ArgumentException(
                 "Purchase requisition ID is required.",
@@ -465,6 +471,7 @@ public class PurchaseRequisitionService : IPurchaseRequisitionService
     Guid purchaseRequisitionId,
     CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
         if (purchaseRequisitionId == Guid.Empty)
             throw new ArgumentException(
                 "Purchase requisition ID is required.",
@@ -591,6 +598,7 @@ public class PurchaseRequisitionService : IPurchaseRequisitionService
     CreatePurchaseOrderRequest request,
     CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
         if (purchaseRequisitionId == Guid.Empty)
             throw new InvalidOperationException(
                 "Purchase requisition is required.");

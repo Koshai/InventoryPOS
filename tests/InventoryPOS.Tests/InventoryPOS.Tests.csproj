@@ -26,4 +26,9 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\..\src\InventoryPOS.Desktop\Services\FileLicenseActivationService.cs"
+             Link="Licensing\FileLicenseActivationService.cs" />
+  </ItemGroup>
+
 </Project>

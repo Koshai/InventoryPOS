@@ -13,21 +13,44 @@ public sealed class FileLicenseActivationService
     private readonly ILicenseValidator _validator;
     private readonly string _licensePath;
 
+
     public FileLicenseActivationService(
         IInstallationIdentityService identityService,
         ILicenseValidator validator)
+        : this(
+            identityService,
+            validator,
+            Path.Combine(
+                Environment.GetFolderPath(
+                    Environment.SpecialFolder.CommonApplicationData),
+                "InventoryPOS",
+                "Licensing"))
     {
-        _identityService = identityService;
-        _validator = validator;
-
-        string directory = Path.Combine(
-            Environment.GetFolderPath(
-                Environment.SpecialFolder.CommonApplicationData),
-            "InventoryPOS",
-            "Licensing");
-
-        _licensePath = Path.Combine(directory, "license.iposlic");
     }
+
+    public FileLicenseActivationService(
+        IInstallationIdentityService identityService,
+        ILicenseValidator validator,
+        string licenseDirectory)
+    {
+        _identityService = identityService
+            ?? throw new ArgumentNullException(nameof(identityService));
+
+        _validator = validator
+            ?? throw new ArgumentNullException(nameof(validator));
+
+        if (string.IsNullOrWhiteSpace(licenseDirectory))
+        {
+            throw new ArgumentException(
+                "License directory is required.",
+                nameof(licenseDirectory));
+        }
+
+        _licensePath = Path.Combine(
+            licenseDirectory,
+            "license.iposlic");
+    }
+
 
     public LicenseValidationResult GetCurrentLicenseStatus()
     {

@@ -1,6 +1,7 @@
 ﻿using InventoryPOS.Application.DTOs.Inventory;
 using InventoryPOS.Application.DTOs.Purchasing;
 using InventoryPOS.Application.Interfaces;
+using InventoryPOS.Application.Licensing;
 using InventoryPOS.Domain.Entities;
 using InventoryPOS.Domain.Enums;
 using InventoryPOS.Infrastructure.Persistence;
@@ -11,11 +12,14 @@ namespace InventoryPOS.Infrastructure.Services;
 public class PurchaseOrderService : IPurchaseOrderService
 {
     private readonly InventoryPosDbContext _dbContext;
+    private readonly ILicenseAccessGuard _licenseAccessGuard;
 
     public PurchaseOrderService(
-        InventoryPosDbContext dbContext)
+        InventoryPosDbContext dbContext,
+        ILicenseAccessGuard licenseAccessGuard)
     {
         _dbContext = dbContext;
+        _licenseAccessGuard = licenseAccessGuard;
     }
 
     public async Task<IReadOnlyList<PurchaseOrderListItemDto>> GetAllAsync(
@@ -144,6 +148,7 @@ public class PurchaseOrderService : IPurchaseOrderService
         CreatePurchaseOrderRequest request,
         CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
         if (request.SupplierId == Guid.Empty)
             throw new InvalidOperationException("Supplier is required.");
 

@@ -1,5 +1,6 @@
 ﻿using InventoryPOS.Application.DTOs.Inventory;
 using InventoryPOS.Application.Interfaces;
+using InventoryPOS.Application.Licensing;
 using InventoryPOS.Domain.Entities;
 using InventoryPOS.Domain.Enums;
 using InventoryPOS.Infrastructure.Persistence;
@@ -10,11 +11,14 @@ namespace InventoryPOS.Infrastructure.Services;
 public class InventoryService : IInventoryService
 {
     private readonly InventoryPosDbContext _dbContext;
+    private readonly ILicenseAccessGuard _licenseAccessGuard;
 
     public InventoryService(
-        InventoryPosDbContext dbContext)
+        InventoryPosDbContext dbContext,
+        ILicenseAccessGuard licenseAccessGuard)
     {
         _dbContext = dbContext;
+        _licenseAccessGuard = licenseAccessGuard;
     }
 
     public async Task<IReadOnlyList<InventoryItemDto>>
@@ -61,6 +65,7 @@ public class InventoryService : IInventoryService
         SetOpeningStockRequest request,
         CancellationToken cancellationToken = default)
     {
+        _licenseAccessGuard.EnsureCanWrite();
         if (request.Quantity <= 0)
         {
             throw new ArgumentException(
