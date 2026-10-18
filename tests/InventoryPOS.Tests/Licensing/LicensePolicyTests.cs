@@ -74,6 +74,32 @@ public sealed class LicensePolicyTests
         Assert.False(result.IsUsable);
     }
 
+    [Fact]
+    public void Schema2_RequiresCustomerEmail()
+    {
+        var license = CreateLicenseSchema2();
+        license.CustomerEmail = string.Empty;
+        license.CustomerId = "NOT-AN-EMAIL";
+
+        var result = LicensePolicy.Evaluate(
+            license, "TEST-PC", Now);
+
+        Assert.Equal(
+            LicenseStatus.InvalidLicense, result.Status);
+    }
+
+    [Fact]
+    public void Schema2_ValidEmailLicense_IsUsable()
+    {
+        var license = CreateLicenseSchema2();
+
+        var result = LicensePolicy.Evaluate(
+            license, "TEST-PC", Now);
+
+        Assert.Equal(LicenseStatus.Valid, result.Status);
+        Assert.Equal("shop@example.com", license.ResolveCustomerEmail());
+    }
+
     private static LicenseDocument CreateLicense()
     {
         return new LicenseDocument
@@ -82,6 +108,24 @@ public sealed class LicensePolicyTests
             LicenseId = Guid.NewGuid(),
             CustomerId = "TEST-001",
             CustomerName = "Test Customer",
+            Edition = LicenseEdition.Beta,
+            InstallationId = "TEST-PC",
+            IssuedAtUtc = Now.AddDays(-1),
+            ValidFromUtc = Now.AddDays(-1),
+            ExpiresAtUtc = Now.AddDays(29),
+            MaxInstallations = 1
+        };
+    }
+
+    private static LicenseDocument CreateLicenseSchema2()
+    {
+        return new LicenseDocument
+        {
+            SchemaVersion = 2,
+            LicenseId = Guid.NewGuid(),
+            CustomerId = "shop@example.com",
+            CustomerEmail = "shop@example.com",
+            CustomerName = "Example Shop",
             Edition = LicenseEdition.Beta,
             InstallationId = "TEST-PC",
             IssuedAtUtc = Now.AddDays(-1),

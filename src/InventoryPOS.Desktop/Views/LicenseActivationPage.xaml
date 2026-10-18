@@ -5,19 +5,19 @@
 
     <ScrollViewer>
         <StackPanel
-            MaxWidth="680"
+            MaxWidth="720"
             HorizontalAlignment="Left"
             Margin="28"
             Spacing="16">
 
             <TextBlock
-                Text="InventoryPOS Licensing"
+                Text="Licensing"
                 FontSize="26"
                 FontWeight="SemiBold"/>
 
             <TextBlock
-                Text="Activate your installation using a signed license file."
-                TextWrapping="Wrap"/>
+                TextWrapping="Wrap"
+                Text="Send your email address and Installation ID to your vendor. They will email you a .iposlic license file to import below."/>
 
             <TextBlock
                 Text="Installation ID"
@@ -26,6 +26,7 @@
             <TextBox
                 x:Name="InstallationIdBox"
                 IsReadOnly="True"
+                FontSize="16"
                 PlaceholderText="Loading installation ID..."/>
 
             <Button
@@ -33,7 +34,7 @@
                 Click="CopyInstallationId_Click"/>
 
             <TextBlock
-                Text="License Status"
+                Text="License status"
                 FontWeight="SemiBold"/>
 
             <InfoBar
@@ -48,7 +49,8 @@
 
             <Button
                 x:Name="ActivateButton"
-                Content="Import License File"
+                Content="Import license file (.iposlic)"
+                Style="{StaticResource AccentButtonStyle}"
                 Click="ActivateButton_Click"/>
 
         </StackPanel>

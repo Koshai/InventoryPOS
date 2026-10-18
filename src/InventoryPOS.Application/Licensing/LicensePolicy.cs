@@ -7,20 +7,7 @@ public static class LicensePolicy
         string installationId,
         DateTimeOffset currentUtc)
     {
-        if (license.SchemaVersion != 1 ||
-            license.LicenseId == Guid.Empty ||
-            string.IsNullOrWhiteSpace(license.CustomerId) ||
-            string.IsNullOrWhiteSpace(license.CustomerName) ||
-            string.IsNullOrWhiteSpace(license.InstallationId) ||
-            license.MaxInstallations < 1 ||
-            !Enum.IsDefined(license.Edition) ||
-            license.IssuedAtUtc == default ||
-            license.ValidFromUtc == default ||
-            license.ValidFromUtc < license.IssuedAtUtc ||
-            (license.Edition == LicenseEdition.Beta &&
-            !license.ExpiresAtUtc.HasValue) ||
-            (license.ExpiresAtUtc.HasValue &&
-            license.ExpiresAtUtc.Value <= license.ValidFromUtc))
+        if (!IsStructurallyValid(license))
         {
             return Result(
                 LicenseStatus.InvalidLicense,
@@ -70,6 +57,38 @@ public static class LicensePolicy
             LicenseStatus.Valid,
             license,
             "The license is valid.");
+    }
+
+    private static bool IsStructurallyValid(LicenseDocument license)
+    {
+        if (license.LicenseId == Guid.Empty ||
+            string.IsNullOrWhiteSpace(license.CustomerId) ||
+            string.IsNullOrWhiteSpace(license.CustomerName) ||
+            string.IsNullOrWhiteSpace(license.InstallationId) ||
+            license.MaxInstallations < 1 ||
+            !Enum.IsDefined(license.Edition) ||
+            license.IssuedAtUtc == default ||
+            license.ValidFromUtc == default ||
+            license.ValidFromUtc < license.IssuedAtUtc ||
+            (license.Edition == LicenseEdition.Beta &&
+            !license.ExpiresAtUtc.HasValue) ||
+            (license.ExpiresAtUtc.HasValue &&
+            license.ExpiresAtUtc.Value <= license.ValidFromUtc))
+        {
+            return false;
+        }
+
+        if (license.SchemaVersion == 1)
+            return true;
+
+        if (license.SchemaVersion == 2)
+        {
+            var email = license.ResolveCustomerEmail();
+            return !string.IsNullOrWhiteSpace(email) &&
+                   email.Contains('@');
+        }
+
+        return false;
     }
 
     private static LicenseValidationResult Result(

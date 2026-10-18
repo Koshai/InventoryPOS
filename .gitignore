@@ -366,3 +366,11 @@ FodyWeavers.xsd
 **/private-key.pem
 **/issued-licenses/
 *.iposlic
+
+# Local / machine secrets (never commit)
+**/appsettings.Development.json
+**/appsettings.Local.json
+installer/redist/*
+!installer/redist/README.md
+artifacts/
+**/postgres-super.secret

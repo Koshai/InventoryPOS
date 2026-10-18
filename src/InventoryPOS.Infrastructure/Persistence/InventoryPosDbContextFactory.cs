@@ -8,15 +8,21 @@ public class InventoryPosDbContextFactory
 {
     public InventoryPosDbContext CreateDbContext(string[] args)
     {
+        var connectionString =
+            Environment.GetEnvironmentVariable("INVENTORYPOS_CONNECTION")
+            ?? Environment.GetEnvironmentVariable("ConnectionStrings__InventoryPosDatabase");
+
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            throw new InvalidOperationException(
+                "Set INVENTORYPOS_CONNECTION (or ConnectionStrings__InventoryPosDatabase) " +
+                "to a PostgreSQL connection string before running EF design-time tools.");
+        }
+
         var optionsBuilder =
             new DbContextOptionsBuilder<InventoryPosDbContext>();
 
-        optionsBuilder.UseNpgsql(
-            "Host=localhost;" +
-            "Port=5432;" +
-            "Database=inventorypos_dev;" +
-            "Username=postgres;" +
-            "Password=austin316");
+        optionsBuilder.UseNpgsql(connectionString);
 
         return new InventoryPosDbContext(optionsBuilder.Options);
     }

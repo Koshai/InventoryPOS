@@ -137,7 +137,12 @@ public sealed partial class LicenseActivationPage : Page
                 .ToString("yyyy-MM-dd")
             : "No expiration";
 
+        var email = license.ResolveCustomerEmail();
+        if (string.IsNullOrWhiteSpace(email))
+            email = "(not set)";
+
         LicenseDetailsText.Text =
+            $"Licensed email: {email}\n" +
             $"Customer: {license.CustomerName}\n" +
             $"Edition: {license.Edition}\n" +
             $"Expires: {expiry}";

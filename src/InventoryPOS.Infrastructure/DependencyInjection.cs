@@ -19,10 +19,18 @@ public static class DependencyInjection
             configuration.GetConnectionString(
                 "InventoryPosDatabase");
 
-        if (string.IsNullOrWhiteSpace(connectionString))
+        var isConfigured = !string.IsNullOrWhiteSpace(connectionString);
+
+        services.AddSingleton(new DatabaseConnectionStatus(isConfigured));
+
+        // When the installer has not written a local connection string yet,
+        // register a non-functional placeholder so the UI can still start
+        // and show a setup message instead of crashing during host build.
+        if (!isConfigured)
         {
-            throw new InvalidOperationException(
-                "InventoryPOS database connection string is missing.");
+            connectionString =
+                "Host=127.0.0.1;Port=1;Database=inventorypos_unconfigured;" +
+                "Username=inventorypos;Password=unconfigured";
         }
 
         services.AddDbContext<InventoryPosDbContext>(

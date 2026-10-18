@@ -11,10 +11,12 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using QuestPDF.Drawing;
 using QuestPDF.Infrastructure;
 using System;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace InventoryPOS.Desktop;
 
@@ -24,6 +26,13 @@ public partial class App : Microsoft.UI.Xaml.Application
 
     public static IServiceProvider Services =>
         ((App)Current)._host.Services;
+
+    public static string LocalConfigPath { get; } =
+        Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            "InventoryPOS",
+            "config",
+            "appsettings.Local.json");
 
     public App()
     {
@@ -37,6 +46,18 @@ public partial class App : Microsoft.UI.Xaml.Application
                 config.AddJsonFile(
                     "appsettings.json",
                     optional: false,
+                    reloadOnChange: false);
+
+                // Installer-written machine config (preferred for shipped installs).
+                config.AddJsonFile(
+                    LocalConfigPath,
+                    optional: true,
+                    reloadOnChange: false);
+
+                // Optional developer override (gitignored).
+                config.AddJsonFile(
+                    "appsettings.Development.json",
+                    optional: true,
                     reloadOnChange: false);
             })
             .ConfigureServices((context, services) =>
@@ -141,13 +162,62 @@ public partial class App : Microsoft.UI.Xaml.Application
 
         await _host.StartAsync();
 
-        await DatabaseInitializer.InitializeAsync(
-            _host.Services);
-
         var window =
             _host.Services.GetRequiredService<MainWindow>();
 
         window.Activate();
+
+        var dbStatus =
+            _host.Services.GetRequiredService<DatabaseConnectionStatus>();
+
+        if (!dbStatus.IsConfigured)
+        {
+            await ShowSetupIncompleteAsync(
+                window,
+                "Database setup is incomplete.\n\n" +
+                "Run InventoryPOSSetup.exe to install PostgreSQL and configure the connection, " +
+                "or for development copy appsettings.Development.json.example to " +
+                "appsettings.Development.json and set your connection string.\n\n" +
+                "Expected installer config:\n" + LocalConfigPath);
+            return;
+        }
+
+        try
+        {
+            await DatabaseInitializer.InitializeAsync(
+                _host.Services);
+        }
+        catch (Exception ex)
+        {
+            await ShowSetupIncompleteAsync(
+                window,
+                "InventoryPOS could not connect to PostgreSQL or apply migrations.\n\n" +
+                ex.Message +
+                "\n\nLocal config: " + LocalConfigPath);
+        }
+    }
+
+    private static async Task ShowSetupIncompleteAsync(
+        Window window,
+        string message)
+    {
+        var dialog = new ContentDialog
+        {
+            Title = "Setup incomplete",
+            Content = message,
+            CloseButtonText = "OK",
+            XamlRoot = window.Content?.XamlRoot
+        };
+
+        // XamlRoot may not be ready on first frame.
+        if (dialog.XamlRoot is null && window.Content is FrameworkElement root)
+        {
+            await Task.Yield();
+            dialog.XamlRoot = root.XamlRoot;
+        }
+
+        if (dialog.XamlRoot is not null)
+            await dialog.ShowAsync();
     }
 
     private static void ConfigureQuestPdf()

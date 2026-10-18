@@ -1,0 +1,8 @@
+{
+  "ConnectionStrings": {
+    "InventoryPosDatabase": "Host=localhost;Port=5432;Database=inventorypos_dev;Username=postgres;Password=YOUR_PASSWORD_HERE"
+  },
+  "Storage": {
+    "DataRoot": "C:\\InventoryPOSData"
+  }
+}

@@ -30,4 +30,11 @@ Use a test database and a backup. Repeat **each** write operation with (1) a val
 - Restart app, change system date forward/back, and verify validation behavior. A local-only clock is not a trusted anti-rollback authority.
 
 ## Scope and outstanding release work
-This patch extends application-service licensing guards; it does **not** certify every workflow, database-level enforcement, concurrent expiry during a transaction, file permissions, or protection against a local administrator modifying binaries. Installer, database provisioning, backup/restore, code signing, and upgrade/uninstall scripts belong to the next deployment phase **after** this test pass.
+This patch extends application-service licensing guards; it does **not** certify every workflow, database-level enforcement, concurrent expiry during a transaction, file permissions, or protection against a local administrator modifying binaries.
+
+Installer + License Manager are documented in:
+- [VENDOR-LICENSE-AND-INSTALLER.md](VENDOR-LICENSE-AND-INSTALLER.md)
+- [CUSTOMER-INSTALL-AND-LICENSE.md](CUSTOMER-INSTALL-AND-LICENSE.md)
+- [installer/README.md](../installer/README.md)
+
+Still deferred: code signing of the setup EXE, backup/restore UI, and Postgres major-version upgrades.
