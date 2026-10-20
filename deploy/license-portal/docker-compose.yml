@@ -1,0 +1,61 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: inventorypos_license_portal
+      POSTGRES_USER: portal
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - portal_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U portal -d inventorypos_license_portal"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  portal:
+    build:
+      context: ../..
+      dockerfile: tools/InventoryPOS.LicensePortal/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=inventorypos_license_portal;Username=portal;Password=${POSTGRES_PASSWORD}
+      Portal__KeyDirectory: /data/keys
+      Portal__IssuedLicensesDirectory: /data/issued-licenses
+      Portal__ReleasesDirectory: /data/releases
+      Portal__PublicBaseUrl: ${PUBLIC_BASE_URL}
+      Portal__BootstrapAdminEmail: ${BOOTSTRAP_ADMIN_EMAIL}
+      Portal__BootstrapAdminPassword: ${BOOTSTRAP_ADMIN_PASSWORD}
+    volumes:
+      - ./data/keys:/data/keys:ro
+      - portal_issued:/data/issued-licenses
+      - portal_releases:/data/releases
+    expose:
+      - "8080"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - portal
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      PORTAL_DOMAIN: ${PORTAL_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  portal_pgdata:
+  portal_issued:
+  portal_releases:
+  caddy_data:
+  caddy_config:

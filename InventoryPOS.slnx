@@ -1,7 +1,14 @@
 <Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+    <Platform Name="ARM64" />
+    <Platform Name="Any CPU" />
+  </Configurations>
   <Folder Name="/tools/">
     <Project Path="tools/InventoryPOS.LicenseIssuer/InventoryPOS.LicenseIssuer.csproj" />
     <Project Path="tools/InventoryPOS.LicenseManager/InventoryPOS.LicenseManager.csproj" />
+    <Project Path="tools/InventoryPOS.LicensePortal/InventoryPOS.LicensePortal.csproj" />
   </Folder>
   <Project Path="src/InventoryPOS.Application/InventoryPOS.Application.csproj" />
   <Project Path="src/InventoryPOS.Licensing.Issuer/InventoryPOS.Licensing.Issuer.csproj" />

@@ -7,11 +7,25 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <Platforms>x86;x64;ARM64</Platforms>
     <RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
-    <PublishProfile>win-$(Platform).pubxml</PublishProfile>
+    <!-- Do NOT set PublishProfile here. The unpackaged win-*.pubxml profiles are for
+         installer publish only (Build-Publish.ps1). Applying them on every Debug build
+         sets WindowsPackageType=None and breaks VS MSIX deploy (DEP1560). -->
     <UseWinUI>true</UseWinUI>
     <WinUISDKReferences>false</WinUISDKReferences>
     <EnableMsixTooling>true</EnableMsixTooling>
     <Nullable>enable</Nullable>
+    <!-- Unpackaged F5/publish: ship Windows App SDK with the app so WinUI COM
+         classes resolve without relying on a machine-wide runtime activation.
+         Also pin RuntimeIdentifier so native Bootstrap.dll lands next to the EXE
+         (not under a win-x64 subfolder) — missing that causes REGDB_E_CLASSNOTREG. -->
+    <WindowsAppSDKSelfContained Condition="'$(WindowsPackageType)' == 'None'">true</WindowsAppSDKSelfContained>
+    <RuntimeIdentifier Condition="'$(WindowsPackageType)' == 'None' and '$(RuntimeIdentifier)' == '' and '$(Platform)' == 'x64'">win-x64</RuntimeIdentifier>
+    <RuntimeIdentifier Condition="'$(WindowsPackageType)' == 'None' and '$(RuntimeIdentifier)' == '' and '$(Platform)' == 'x86'">win-x86</RuntimeIdentifier>
+    <RuntimeIdentifier Condition="'$(WindowsPackageType)' == 'None' and '$(RuntimeIdentifier)' == '' and '$(Platform)' == 'ARM64'">win-arm64</RuntimeIdentifier>
+    <Version>1.1.0</Version>
+    <AssemblyVersion>1.1.0.0</AssemblyVersion>
+    <FileVersion>1.1.0.0</FileVersion>
+    <InformationalVersion>1.1.0</InformationalVersion>
   </PropertyGroup>
   <ItemGroup>
     <Content Include="Assets\Fonts\NotoSansBengali-Regular.ttf">

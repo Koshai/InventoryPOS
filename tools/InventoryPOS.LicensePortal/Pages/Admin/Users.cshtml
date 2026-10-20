@@ -1,0 +1,55 @@
+@page
+@model InventoryPOS.LicensePortal.Pages.Admin.UsersModel
+@{
+    ViewData["Title"] = "Staff users";
+}
+
+<h1>Staff users</h1>
+<p class="text-muted">Invite-only. Public registration is disabled.</p>
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-success">@Model.StatusMessage</div>
+}
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+
+<div class="card mb-4">
+    <div class="card-body">
+        <h2 class="h5">Invite staff</h2>
+        <form method="post" class="row g-3">
+            <div class="col-md-4">
+                <label asp-for="Input.Email" class="form-label"></label>
+                <input asp-for="Input.Email" class="form-control" />
+            </div>
+            <div class="col-md-4">
+                <label asp-for="Input.TemporaryPassword" class="form-label"></label>
+                <input asp-for="Input.TemporaryPassword" class="form-control" />
+            </div>
+            <div class="col-md-4 form-check align-self-end mb-2">
+                <input asp-for="Input.IsAdmin" class="form-check-input" />
+                <label asp-for="Input.IsAdmin" class="form-check-label">Admin (can invite others)</label>
+            </div>
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary">Create user</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<table class="table table-sm">
+    <thead>
+        <tr><th>Email</th><th>Roles</th></tr>
+    </thead>
+    <tbody>
+    @foreach (var u in Model.Users)
+    {
+        <tr>
+            <td>@u.Email</td>
+            <td>@u.Roles</td>
+        </tr>
+    }
+    </tbody>
+</table>

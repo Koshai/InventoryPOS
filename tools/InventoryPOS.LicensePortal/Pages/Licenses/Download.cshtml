@@ -1,0 +1,19 @@
+@page
+@model InventoryPOS.LicensePortal.Pages.Licenses.DownloadModel
+@{
+    ViewData["Title"] = "Download license";
+}
+
+<h1>License ready</h1>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+else
+{
+    <p>Email the <code>.iposlic</code> file to the customer. They import it on the Licensing page in Desktop.</p>
+    <p><code>@Model.FileName</code></p>
+    <a class="btn btn-primary" asp-page-handler="File" asp-route-fileName="@Model.FileName">Download .iposlic</a>
+    <a class="btn btn-link" asp-page="/Customers/Index">Customers</a>
+}

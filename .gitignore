@@ -364,8 +364,19 @@ FodyWeavers.xsd
 
 # InventoryPOS licensing
 **/private-key.pem
+**/public-key.pem
 **/issued-licenses/
 *.iposlic
+
+# License portal — secrets & local runtime data (keep .env.example and keys/.gitkeep)
+**/.env
+!**/.env.example
+deploy/license-portal/data/keys/*
+!deploy/license-portal/data/keys/.gitkeep
+tools/InventoryPOS.LicensePortal/App_Data/
+*.db
+*.db-shm
+*.db-wal
 
 # Local / machine secrets (never commit)
 **/appsettings.Development.json

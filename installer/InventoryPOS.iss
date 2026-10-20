@@ -7,7 +7,7 @@
 ;   3. Compile this script with Inno Setup Compiler (ISCC)
 
 #define MyAppName "InventoryPOS"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.1.0"
 #define MyAppPublisher "InventoryPOS"
 #define MyAppExeName "InventoryPOS.Desktop.exe"
 #define PublishDir "..\artifacts\publish\win-x64"
@@ -50,10 +50,19 @@ Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Run]
-; Configure PostgreSQL + local appsettings before first launch
+; First install only: create PostgreSQL role/DB and write ProgramData config.
+; Upgrades skip this so existing databases, passwords, and preferences are preserved.
 Filename: "powershell.exe"; \
   Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\installer-scripts\Install-PostgresAndConfigure.ps1"" -PostgresInstallerPath ""{tmp}\postgresql-windows-x64.exe"" -DataRoot ""C:\InventoryPOSData"""; \
   StatusMsg: "Installing PostgreSQL and creating the InventoryPOS database..."; \
-  Flags: runhidden waituntilterminated
+  Flags: runhidden waituntilterminated; \
+  Check: not IsExistingInstallation
 Filename: "{app}\{#MyAppExeName}"; Description: "Launch InventoryPOS"; Flags: nowait postinstall skipifsilent
+
+[Code]
+function IsExistingInstallation: Boolean;
+begin
+  { Prefer ProgramData local config written by the first-run provisioner. }
+  Result := FileExists(ExpandConstant('{commonappdata}\InventoryPOS\config\appsettings.Local.json'));
+end;
 

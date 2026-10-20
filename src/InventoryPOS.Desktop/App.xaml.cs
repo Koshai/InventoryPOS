@@ -113,6 +113,7 @@ public partial class App : Microsoft.UI.Xaml.Application
                     return new PendingCustomerPaymentJournalService(dataRoot);
                 });
                 services.AddSingleton<ILicenseAccessGuard, LicenseAccessGuard>();
+                services.AddSingleton<IAppUpdateService, AppUpdateService>();
                 services.AddTransient<ProductsViewModel>();
                 services.AddTransient<AddProductViewModel>();
                 services.AddTransient<ProductDetailsViewModel>();
@@ -137,6 +138,8 @@ public partial class App : Microsoft.UI.Xaml.Application
                 services.AddTransient<SalesViewModel>();
                 services.AddTransient<InvoiceViewModel>();
                 services.AddTransient<BusinessProfileViewModel>();
+                services.AddTransient<DashboardViewModel>();
+                services.AddTransient<ReportsViewModel>();
                 services.AddTransient<CustomerAccountViewModel>();
                 services.AddTransient<SalesReturnViewModel>();
                 services.AddTransient<SalesReturnsViewModel>();

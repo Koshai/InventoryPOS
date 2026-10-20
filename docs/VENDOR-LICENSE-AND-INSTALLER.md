@@ -1,34 +1,40 @@
-# Vendor guide — License Manager and installer
+# Vendor guide — License portal, License Manager, and installer
 
-## License Manager (day-to-day)
+## License portal (day-to-day, recommended)
 
-Use **InventoryPOS.LicenseManager** (no CLI required).
+Staff-only web dashboard on your VPS: issue licenses and publish desktop updates.
+
+See **[LICENSE-PORTAL.md](LICENSE-PORTAL.md)** and [`deploy/license-portal/`](../deploy/license-portal/).
+
+1. Customer sends **email** + **Installation ID**.
+2. Portal → **Issue license** → download `.iposlic` → email to customer.
+3. Portal → **Releases** → upload `InventoryPOSSetup.exe` so Settings → Check for updates works when `Updates:FeedUrl` is set.
+
+## License Manager (offline / emergency)
+
+Use **InventoryPOS.LicenseManager** when the portal is unavailable (air-gapped keys).
 
 ```powershell
 dotnet run --project tools/InventoryPOS.LicenseManager
 ```
 
-Or publish and install it on your admin PC.
+### First run (keys — same key pair for portal and Manager)
 
-### First run
-
-1. Click **Generate signing keys** once.
+1. Click **Generate signing keys** once (or copy existing PEMs to the portal `data/keys` mount).
 2. Back up `%ProgramData%\InventoryPOS\LicenseIssuer\private-key.pem` offline. Never share it.
-3. Copy the matching **public** key PEM into [`TrustedLicenseKeys.cs`](../src/InventoryPOS.Desktop/Licensing/TrustedLicenseKeys.cs) and rebuild POS before shipping to customers.
+3. Copy the matching **public** key PEM into [`TrustedLicenseKeys.cs`](../src/InventoryPOS.Application/Licensing/TrustedLicenseKeys.cs) and rebuild POS before shipping to customers.
 
-### Issue or renew a license
+### Issue or renew (Manager)
 
 1. Customer opens **Licensing** in InventoryPOS and sends you their **email** + **Installation ID**.
-2. In License Manager, enter email, display name, Installation ID, and days.
-3. Click **Issue / Renew license**.
-4. Email the generated `.iposlic` file to the customer (Open folder / Copy path).
-5. Customer imports the file on the Licensing page.
+2. Enter email, display name, Installation ID, and days → **Issue / Renew license**.
+3. Email the `.iposlic` file; customer imports it on the Licensing page.
 
-Customers are stored in `%ProgramData%\InventoryPOS\LicenseManager\licenses.db` (email, machines, expiry, history).
+Local CRM: `%ProgramData%\InventoryPOS\LicenseManager\licenses.db`.
 
 ### Optional CLI
 
-`tools/InventoryPOS.LicenseIssuer` remains for automation; prefer License Manager.
+`tools/InventoryPOS.LicenseIssuer` remains for automation; prefer the portal or License Manager.
 
 ---
 

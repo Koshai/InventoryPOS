@@ -1,0 +1,4 @@
+.env
+data/keys/*.pem
+data/keys/private-key.pem
+data/keys/public-key.pem

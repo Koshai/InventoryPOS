@@ -1,0 +1,41 @@
+@page
+@model InventoryPOS.LicensePortal.Pages.Customers.IndexModel
+@{
+    ViewData["Title"] = "Customers";
+}
+
+<h1>Customers</h1>
+
+<form method="get" class="row g-2 mb-3">
+    <div class="col-md-6">
+        <input class="form-control" name="q" value="@Model.Q" placeholder="Search email or name" />
+    </div>
+    <div class="col-auto">
+        <button class="btn btn-outline-primary" type="submit">Search</button>
+    </div>
+    <div class="col-auto">
+        <a class="btn btn-primary" asp-page="/Licenses/Issue">Issue license</a>
+    </div>
+</form>
+
+<table class="table table-striped table-sm">
+    <thead>
+        <tr>
+            <th>Email</th>
+            <th>Name</th>
+            <th>Created (UTC)</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var c in Model.Customers)
+    {
+        <tr>
+            <td>@c.Email</td>
+            <td>@c.DisplayName</td>
+            <td>@c.CreatedAtUtc.UtcDateTime.ToString("u")</td>
+            <td><a asp-page="Details" asp-route-id="@c.Id">Details</a></td>
+        </tr>
+    }
+    </tbody>
+</table>

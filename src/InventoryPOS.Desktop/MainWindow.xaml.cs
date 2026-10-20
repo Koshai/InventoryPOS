@@ -54,6 +54,7 @@ public sealed partial class MainWindow : Window
             // We'll wire these as their pages are implemented.
 
             case "dashboard":
+                ContentFrame.Navigate(typeof(DashboardPage));
                 break;
 
             case "pos":
@@ -91,6 +92,9 @@ public sealed partial class MainWindow : Window
             case "customers":
                 ContentFrame.Navigate(
                     typeof(CustomersPage));
+                break;
+            case "reports":
+                ContentFrame.Navigate(typeof(ReportsPage));
                 break;
             case "licensing":
                 ContentFrame.Navigate(

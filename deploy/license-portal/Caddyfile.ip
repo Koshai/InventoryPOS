@@ -1,0 +1,11 @@
+# No custom domain: serve HTTP on the Linode public IP.
+# Copy over Caddyfile before compose up:
+#   cp Caddyfile.ip Caddyfile
+#
+# PORTAL_DOMAIN in .env is unused with this file.
+# Use PUBLIC_BASE_URL=http://YOUR.LINODE.IP  (http, not https)
+
+:80 {
+	encode gzip
+	reverse_proxy portal:8080
+}

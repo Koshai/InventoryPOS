@@ -1,0 +1,11 @@
+**/.git
+**/.vs
+**/bin
+**/obj
+**/artifacts
+**/node_modules
+**/*.user
+**/App_Data
+deploy/license-portal/data/keys/*.pem
+**/.env
+**/app.db

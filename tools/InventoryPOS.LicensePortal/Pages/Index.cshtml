@@ -1,0 +1,29 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home";
+}
+
+<div class="row">
+    <div class="col-lg-8">
+        <h1 class="display-6">InventoryPOS License Portal</h1>
+        <p class="lead">Staff-only dashboard for issuing email + Installation ID licenses and publishing desktop updates.</p>
+
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <div class="d-flex gap-2 flex-wrap">
+                <a class="btn btn-primary" asp-page="/Customers/Index">Customers</a>
+                <a class="btn btn-outline-primary" asp-page="/Licenses/Issue">Issue / renew license</a>
+                <a class="btn btn-outline-secondary" asp-page="/Releases/Index">Releases &amp; update feed</a>
+            </div>
+            <hr />
+            <p class="mb-1"><strong>Public update feed:</strong></p>
+            <code>@Model.FeedUrl</code>
+            <p class="text-muted mt-2 mb-0">Point Desktop <code>Updates:FeedUrl</code> at this URL.</p>
+        }
+        else
+        {
+            <a class="btn btn-primary" asp-area="Identity" asp-page="/Account/Login">Staff login</a>
+        }
+    </div>
+</div>

@@ -71,6 +71,7 @@ public static class DependencyInjection
         services.AddSingleton<IWarrantyClaimPdfService, WarrantyClaimPdfService>();
         services.AddSingleton<IQrCodeService, QrCodeService>();
         services.AddSingleton<IPricingCalculator, PricingCalculator>();
+        services.AddScoped<IReportQueryService, ReportQueryService>();
 
         return services;
     }

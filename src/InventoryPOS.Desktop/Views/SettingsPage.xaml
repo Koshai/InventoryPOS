@@ -579,6 +579,49 @@
                         </Grid>
                     </Border>
 
+                    <!-- Application updates -->
+                    <Border
+                        Padding="22"
+                        CornerRadius="8"
+                        BorderThickness="1"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+
+                        <StackPanel Spacing="12">
+                            <StackPanel Spacing="3">
+                                <TextBlock Text="Application updates" FontSize="18" FontWeight="SemiBold"/>
+                                <TextBlock
+                                    Text="Replace program files only. PostgreSQL data, license, and settings in ProgramData are kept."
+                                    Opacity="0.65"
+                                    TextWrapping="Wrap"/>
+                            </StackPanel>
+
+                            <TextBlock x:Name="AppVersionText" FontWeight="SemiBold"/>
+
+                            <InfoBar
+                                x:Name="UpdateInfoBar"
+                                IsOpen="False"
+                                IsClosable="True"/>
+
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Button
+                                    x:Name="CheckUpdatesButton"
+                                    Content="Check for updates online"
+                                    Click="CheckUpdatesButton_Click"/>
+                                <Button
+                                    x:Name="UpgradeFromFileButton"
+                                    Content="Upgrade from installer file…"
+                                    Click="UpgradeFromFileButton_Click"/>
+                                <Button
+                                    x:Name="DownloadUpdateButton"
+                                    Content="Download and install update"
+                                    Click="DownloadUpdateButton_Click"
+                                    Visibility="Collapsed"
+                                    Style="{StaticResource AccentButtonStyle}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
                 </StackPanel>
 
                 <!-- Bottom Actions -->

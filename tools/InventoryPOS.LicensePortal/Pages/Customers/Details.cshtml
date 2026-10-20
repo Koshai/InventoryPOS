@@ -1,0 +1,81 @@
+@page "{id:long}"
+@model InventoryPOS.LicensePortal.Pages.Customers.DetailsModel
+@{
+    ViewData["Title"] = Model.Customer?.Email ?? "Customer";
+}
+
+@if (Model.Customer is null)
+{
+    <p>Not found.</p>
+}
+else
+{
+    <h1>@Model.Customer.DisplayName</h1>
+    <p class="text-muted">@Model.Customer.Email</p>
+    <p>
+        <a class="btn btn-sm btn-primary"
+           asp-page="/Licenses/Issue"
+           asp-route-email="@Model.Customer.Email"
+           asp-route-name="@Model.Customer.DisplayName">Issue / renew</a>
+        <a class="btn btn-sm btn-link" asp-page="Index">Back</a>
+    </p>
+
+    <h2 class="h5 mt-4">Machines</h2>
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Installation ID</th>
+                <th>Edition</th>
+                <th>Expires (UTC)</th>
+                <th>License</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var m in Model.Machines)
+        {
+            <tr class="@(Model.MachineId == m.Id ? "table-active" : null)">
+                <td><code>@m.InstallationId</code></td>
+                <td>@m.Edition</td>
+                <td>@m.ExpiresAtUtc.UtcDateTime.ToString("u")</td>
+                <td>
+                    @if (!string.IsNullOrEmpty(m.LastIssuedFileName))
+                    {
+                        <a asp-page="/Licenses/Download" asp-route-fileName="@m.LastIssuedFileName">Download</a>
+                    }
+                </td>
+                <td>
+                    <a asp-page="Details" asp-route-id="@Model.Customer.Id" asp-route-machineId="@m.Id">History</a>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+
+    <h2 class="h5 mt-4">Issue history</h2>
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Issued (UTC)</th>
+                <th>Expires (UTC)</th>
+                <th>By</th>
+                <th>Notes</th>
+                <th>File</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var h in Model.History)
+        {
+            <tr>
+                <td>@h.IssuedAtUtc.UtcDateTime.ToString("u")</td>
+                <td>@h.ExpiresAtUtc.UtcDateTime.ToString("u")</td>
+                <td>@h.IssuedByUserName</td>
+                <td>@h.Notes</td>
+                <td>
+                    <a asp-page="/Licenses/Download" asp-route-fileName="@h.FileName">@h.FileName</a>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
