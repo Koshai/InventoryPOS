@@ -44,9 +44,12 @@ See [installer/README.md](../installer/README.md).
 
 Summary:
 
-1. Embed the correct public key in the Desktop app.
-2. `Build-Publish.ps1` → `artifacts\publish\win-x64`
-3. Place PostgreSQL installer as `installer\redist\postgresql-windows-x64.exe`
-4. Compile `installer\InventoryPOS.iss` with Inno Setup
+1. Embed the correct public key in the Desktop app (`TrustedLicenseKeys`).
+2. Bump version in Desktop csproj **and** `#define MyAppVersion` in `installer/InventoryPOS.iss`.
+3. Optional online updates: set `#define UpdateFeedUrl "http://YOUR.PORTAL.IP/updates/feed.json"` in the ISS file (empty = file-only upgrades).
+4. `Build-Publish.ps1` → `artifacts\publish\win-x64`
+5. Place PostgreSQL installer as `installer\redist\postgresql-windows-x64.exe`
+6. Compile `installer\InventoryPOS.iss` with Inno Setup
+7. Upload `artifacts\installer\InventoryPOSSetup.exe` to the portal **Releases** page (and/or email to customers)
 
-Ship `artifacts\installer\InventoryPOSSetup.exe` to customers.
+The installer writes `Updates:FeedUrl` into ProgramData on first install and on upgrade when `UpdateFeedUrl` is set.

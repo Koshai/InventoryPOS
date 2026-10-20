@@ -25,5 +25,8 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "Published to $publishDir"
-Write-Host "Next: place PostgreSQL installer at installer\redist\postgresql-windows-x64.exe"
-Write-Host "Then compile installer\InventoryPOS.iss with Inno Setup."
+Write-Host "Next:"
+Write-Host "  1. Place PostgreSQL installer at installer\redist\postgresql-windows-x64.exe"
+Write-Host "  2. Optional: set #define UpdateFeedUrl in installer\InventoryPOS.iss (license portal feed)"
+Write-Host "  3. Compile installer\InventoryPOS.iss with Inno Setup"
+Write-Host "  4. Upload artifacts\installer\InventoryPOSSetup.exe to the license portal Releases page"

@@ -226,7 +226,16 @@ Public (no auth):
 
 Feed shape matches [`UPDATE-FEED.example.json`](UPDATE-FEED.example.json).
 
-Set on each machine (bundled config or ProgramData override):
+**Recommended:** bake the feed into the customer installer before compile:
+
+```iss
+; installer/InventoryPOS.iss
+#define UpdateFeedUrl "http://YOUR.LINODE.IP/updates/feed.json"
+```
+
+That writes `Updates:FeedUrl` into ProgramData on install/upgrade. See [installer/README.md](../installer/README.md).
+
+**Or** set manually on each machine (ProgramData override):
 
 ```json
 "Updates": {

@@ -6,7 +6,10 @@ param(
 
     [string] $DataRoot = "C:\InventoryPOSData",
 
-    [string] $ServiceAccountPassword = ""
+    [string] $ServiceAccountPassword = "",
+
+    # Optional license-portal update feed (baked in by InventoryPOS.iss).
+    [string] $UpdateFeedUrl = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -80,9 +83,15 @@ $connectionString = & (Join-Path $scriptRoot "Provision-Database.ps1") `
     -PostgresBin (Join-Path $InstallDir "bin") `
     -SuperPassword $ServiceAccountPassword
 
-& (Join-Path $scriptRoot "Write-LocalConfig.ps1") `
-    -ConnectionString $connectionString `
-    -DataRoot $DataRoot
+$writeArgs = @{
+    ConnectionString = $connectionString
+    DataRoot         = $DataRoot
+}
+if (-not [string]::IsNullOrWhiteSpace($UpdateFeedUrl)) {
+    $writeArgs.UpdateFeedUrl = $UpdateFeedUrl
+}
+
+& (Join-Path $scriptRoot "Write-LocalConfig.ps1") @writeArgs
 
 # Persist postgres super password for support reinstall only (ACL restricted).
 $secretDir = Join-Path $env:ProgramData "InventoryPOS\config"

@@ -4,12 +4,12 @@ InventoryPOS supports two upgrade paths. Both replace **program files only**.
 
 **Preserved on upgrade**
 - PostgreSQL database
-- `%ProgramData%\InventoryPOS\config\` (connection string)
+- `%ProgramData%\InventoryPOS\config\` (connection string and optional `Updates:FeedUrl`)
 - `%ProgramData%\InventoryPOS\Licensing\`
 - `Storage:DataRoot` (default `C:\InventoryPOSData`)
 - Business settings stored in the database
 
-## 1. Upgrade from installer file (available now)
+## 1. Upgrade from installer file (always available)
 
 Settings → **Upgrade from installer file…** → select `InventoryPOSSetup.exe`.
 
@@ -17,31 +17,39 @@ The app launches the setup with elevation and exits. Use the same Inno `AppId` s
 
 ## 2. Check for updates online (license portal feed)
 
-The Desktop client already implements HTTPS feed check, SHA-256 verify, and elevated installer launch.
+The Desktop client implements HTTPS/HTTP feed check, SHA-256 verify, and elevated installer launch.
 
-### Point clients at your portal
+### Bake the feed into the installer (recommended)
 
-1. Deploy the staff license portal ([LICENSE-PORTAL.md](LICENSE-PORTAL.md)).
-2. Publish a release from **Releases** (uploads setup + writes `feed.json`).
-3. Set `Updates:FeedUrl` on each machine via `%ProgramData%\InventoryPOS\config\appsettings.Local.json` (see [appsettings.Local.updates.example.json](appsettings.Local.updates.example.json)):
+When compiling the setup, set in [`installer/InventoryPOS.iss`](../installer/InventoryPOS.iss):
 
-```json
-{
-  "Updates": {
-    "FeedUrl": "https://licenses.yourdomain.com/updates/feed.json"
-  }
-}
+```iss
+#define UpdateFeedUrl "http://YOUR.LINODE.IP/updates/feed.json"
 ```
 
-Or set the same key in the bundled `appsettings.json` for a custom tester build.
+First install and later upgrades write/merge that URL into:
 
-4. Settings → **Check for updates online** → **Download and install update**.
+`%ProgramData%\InventoryPOS\config\appsettings.Local.json`
+
+See [installer/README.md](../installer/README.md).
+
+### Or set FeedUrl manually
+
+Copy [appsettings.Local.updates.example.json](appsettings.Local.updates.example.json) fields into the machine’s `appsettings.Local.json`, or ship a custom bundled `appsettings.json`.
+
+### Publish a release
+
+1. Deploy the staff license portal ([LICENSE-PORTAL.md](LICENSE-PORTAL.md)).
+2. Build `InventoryPOSSetup.exe` (bump version in csproj + ISS).
+3. Portal → **Releases** → upload the setup (writes `feed.json` + SHA-256).
+4. On the PC: Settings → **Check for updates online** → **Download and install update**.
 
 Feed shape: [UPDATE-FEED.example.json](UPDATE-FEED.example.json). Until `FeedUrl` is set, the UI explains that online updates are not configured.
 
 ## Building a new setup for testers
 
 1. Bump `Version` in `InventoryPOS.Desktop.csproj` and `#define MyAppVersion` in `installer/InventoryPOS.iss`.
-2. `powershell -File installer\scripts\Build-Publish.ps1`
-3. Compile `installer\InventoryPOS.iss` with Inno Setup.
-4. Upload `artifacts\installer\InventoryPOSSetup.exe` in the license portal **Releases** page (preferred), or ship the file manually.
+2. Optionally set `#define UpdateFeedUrl` in the ISS file.
+3. `powershell -File installer\scripts\Build-Publish.ps1`
+4. Compile `installer\InventoryPOS.iss` with Inno Setup.
+5. Upload `artifacts\installer\InventoryPOSSetup.exe` in the license portal **Releases** page (preferred), or ship the file manually.

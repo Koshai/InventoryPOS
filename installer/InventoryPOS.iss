@@ -4,7 +4,8 @@
 ;      e.g. postgresql-16.x-windows-x64.exe
 ;   2. Publish the app:
 ;      powershell -File installer\scripts\Build-Publish.ps1
-;   3. Compile this script with Inno Setup Compiler (ISCC)
+;   3. Optionally set UpdateFeedUrl below to your license portal feed
+;   4. Compile this script with Inno Setup Compiler (ISCC)
 
 #define MyAppName "InventoryPOS"
 #define MyAppVersion "1.1.0"
@@ -12,6 +13,12 @@
 #define MyAppExeName "InventoryPOS.Desktop.exe"
 #define PublishDir "..\artifacts\publish\win-x64"
 #define PostgresRedist "redist\postgresql-windows-x64.exe"
+
+; Optional: bake the license-portal update feed into ProgramData config on install/upgrade.
+; Example (no domain): http://203.0.113.10/updates/feed.json
+; Example (domain):    https://licenses.example.com/updates/feed.json
+; Leave empty to skip (customers can still upgrade from a local setup file).
+#define UpdateFeedUrl ""
 
 [Setup]
 AppId={{5DF30F3B-3234-4097-A585-ED2447A696C2}
@@ -53,10 +60,18 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 ; First install only: create PostgreSQL role/DB and write ProgramData config.
 ; Upgrades skip this so existing databases, passwords, and preferences are preserved.
 Filename: "powershell.exe"; \
-  Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\installer-scripts\Install-PostgresAndConfigure.ps1"" -PostgresInstallerPath ""{tmp}\postgresql-windows-x64.exe"" -DataRoot ""C:\InventoryPOSData"""; \
+  Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\installer-scripts\Install-PostgresAndConfigure.ps1"" -PostgresInstallerPath ""{tmp}\postgresql-windows-x64.exe"" -DataRoot ""C:\InventoryPOSData"" -UpdateFeedUrl ""{#UpdateFeedUrl}"""; \
   StatusMsg: "Installing PostgreSQL and creating the InventoryPOS database..."; \
   Flags: runhidden waituntilterminated; \
   Check: not IsExistingInstallation
+
+; First install + upgrade: when UpdateFeedUrl is set at compile time, write/merge it into local config.
+Filename: "powershell.exe"; \
+  Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\installer-scripts\Set-UpdateFeedUrl.ps1"" -UpdateFeedUrl ""{#UpdateFeedUrl}"""; \
+  StatusMsg: "Configuring online update feed..."; \
+  Flags: runhidden waituntilterminated; \
+  Check: HasUpdateFeedUrl
+
 Filename: "{app}\{#MyAppExeName}"; Description: "Launch InventoryPOS"; Flags: nowait postinstall skipifsilent
 
 [Code]
@@ -66,3 +81,7 @@ begin
   Result := FileExists(ExpandConstant('{commonappdata}\InventoryPOS\config\appsettings.Local.json'));
 end;
 
+function HasUpdateFeedUrl: Boolean;
+begin
+  Result := '{#UpdateFeedUrl}' <> '';
+end;
